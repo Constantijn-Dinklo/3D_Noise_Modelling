@@ -120,26 +120,28 @@ class Tin:
                      [self.trs[check_tr][2], self.trs[check_tr][0]]]
             for i, e in enumerate(edges):
                 # store edges from smaller to larger index to be consistent in chosen_edges
-                e.sort()
+                #e.sort()
                 if e not in chosen_edges:
                     if (self.side_test(receiver, source, self.vts[e[0]]) >= 0 and
-                        self.side_test(receiver, source, self.vts[e[1]]) <= 0) or \
-                            (self.side_test(receiver, source, self.vts[e[0]]) <= 0 and
-                             self.side_test(receiver, source, self.vts[e[1]]) >= 0):
+                        self.side_test(receiver, source, self.vts[e[1]]) <= 0):
                         chosen_edges.append(e)
                         check_tr = self.trs[check_tr][nbs[i]]
                         break
         return chosen_edges  # 2 edges might have a common vertex fix for this in interpolation
 
-    def create_cross_section(self, tr_list):
+    def create_cross_section(self, edge_list, source, receiver):
         """
         Explanation:
         ---------------
         Input:
+        edge_list: list of edges, each edge is a tuple of 2 vertices.
         ---------------
         Output:
+        a list with vertices in the cross section plane
+        a list of edges which use the generated vertices.
         """
-        pass
+        #area_left = self.side_test(receiver, source, self.vts[e[0]])
+
 
 
 def write_obj(obj_filename):
@@ -157,7 +159,6 @@ def write_obj(obj_filename):
         tr[2] += 1
         f_out.write("f " + str(tr[0]) + " " + str(tr[1]) + " " + str(tr[2]) + "\n")
     f_out.close()
-
 
 def main(sys_args):
     """
@@ -180,9 +181,10 @@ def main(sys_args):
     init_tr = trs_.find_source_triangle(4, source)
     edges = trs_.walk_straight_to_receiver(init_tr)
     # fix the problem with edge [0,1] first triangle needs a double check
-    print('hi')
+    print(edges)
     # Walk to receiver, and save passing triangles
     # interpolat height and distance
+    trs_.create_cross_section(edges, source, receiver)
 
     # write_obj("out.obj")
 
