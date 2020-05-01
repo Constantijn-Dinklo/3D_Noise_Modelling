@@ -12,18 +12,18 @@ trs = [[0, 2, 1, 1, -1, -1],
        [7, 8, 9, -1, -1, 6]]
 
 vertices = [[0, 0, 0],
-            [1, 1, 0],
-            [2, 0, 0],
+            [1, 1, 1],
+            [2, 0, 1],
             [3, 1, 0],
-            [4, 0, 0],
-            [5, 1, 0],
+            [4, 0, 1],
+            [5, 1, 1],
             [6, 0, 0],
-            [7, 1, 0],
+            [7, 1, 1],
             [8, 0, 0],
             [9, 1, 0]]
 
-source = [0.75, 0.5, 0]
-receiver = [8.25, 0.5, 0]
+source = [0.75, 0.1, 0]
+receiver = [8.25, 0.9, 0]
 
 
 class Tin:
@@ -31,24 +31,30 @@ class Tin:
         self.trs = trs  # triangles [v1, v2, v3, n1, n2, n3]
         self.vts = vts  # set with vertex numbers used in this mesh
 
-    def side_test(self, pa, pb, pc):  # pa, pb, pc = index numbor of P
+    def side_test(self, pa, pb, pc):
         """
         Explanation:
-        find whether pc is on the left (+/-) or on the right (+/-) of the line pa -> pb
+        find whether pc is on the left (+) or on the right (-) of the line pa -> pb
+        the computed value is actually the 2* area of the triangle
         ---------------
         Input:
-        vertex coordinates (had to change this: vertex indices edge of tr: pa, pb p_source = pc)
+        pa = [x,y,z]
+        pb = [x,y,z]
+        pc = [x,y,z]
         ---------------
         Output:
-        boolean, whether the point is in the triangle
+        2 *  the area of the triangle
         """
         return ((pa[0] - pc[0]) * (pb[1] - pc[1])) - ((pb[0] - pc[0]) * (pa[1] - pc[1]))
 
     def point_in_triangle(self, pt, tr):
         """
         Explanation:
+        do a side test for all edges with the pt, if they are all positive
         ---------------
         Input:
+        pt = [x,y,z]
+        tr = triangle ID
         ---------------
         Output:
         """
@@ -56,7 +62,7 @@ class Tin:
         d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], pt)
         d3 = self.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], pt)
 
-        if d1 > 0 and d2 > 0 and d3 > 0:
+        if d1 >= 0 and d2 >= 0 and d3 >= 0:
             return True  # the point is in the triangle
         else:
             return False
@@ -73,8 +79,9 @@ class Tin:
         Output:
         triangle id of triangle underneath source point
         """
+        print("=== find_receiver_triangle ===")
         tr = tr_init
-        while True:
+        for i in range(1000): # max 1000 triangles to walk.
             # do the side test for all sides, returns the value
             d1 = self.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], p_receiver)
             d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], p_receiver)
@@ -92,12 +99,11 @@ class Tin:
             # find the right neighbouring triangle to go to.
             nbs = [5, 3, 4]
             nb_index = nbs[d_min]
-            # if(d_min == 0): d_min = 5
-            # if(d_min == 1): d_min = 3
-            # if(d_min == 2): d_min = 4
 
             # get the index of the neighbour triangle
             tr = self.trs[tr][nb_index]
+        print("no tr found after 1000 loops")
+        assert(False)
 
     def walk_straight_to_source(self, tr_receiver):
         """
@@ -110,6 +116,7 @@ class Tin:
         Output:
         list of list containing the edges
         """
+        print("=== walk_straight_to_source ===")
         check_tr = tr_receiver
         chosen_edges = []
         nbs = [5, 3, 4]
@@ -126,22 +133,63 @@ class Tin:
                         break
         return chosen_edges  # 2 edges might have a common vertex fix for this in interpolation
 
-    def create_cross_section(self, tr_list):
+    def create_cross_section(self, edge_list, source, receiver):
         """
         Explanation:
         ---------------
         Input:
+        edge_list: list of edges, each edge is a tuple of 2 vertices.
         ---------------
         Output:
+        a list with vertices in the cross section plane
+        a list of edges which use the generated vertices.
         """
-        pass
+        print("=== create_cross_section ===")
+        # the first vertex is the receiver, and the last vertex the source
+        cross_section_vertices = [receiver]
 
+        # the edges go from 0 - 1, 1-2, 2-3, 3-4, 4-5, 5-6
+        cross_section_edges = [[0]]
+        for i, edge in enumerate(edge_list):
+            # get the vertices (from the vts list) and turn them into a numpt array for vector processing.
+            vertex_right = np.array(self.vts[edge[0]])
+            vertex_left = np.array(self.vts[edge[1]])
+            
+            #get the absolute area of the 2* the triangle (the rectangle of length from source to receiver and width the perpendicular distance to point p)
+            area_right = abs(self.side_test(receiver, source, vertex_right))
+            area_left = abs(self.side_test(receiver, source, vertex_left))
 
-def write_obj(obj_filename):
+            # find where on the line (percentile) the cross section is.
+            part_right = area_right / (area_left + area_right)
+
+            # take vertex_right and append a part of the vector from right to left to it
+            intersection_point = vertex_right + (vertex_left - vertex_right) * part_right
+            print(np.sum(cross_section_vertices[-1] - intersection_point))
+            if(np.sum(cross_section_vertices[-1] - intersection_point) < 0.1):
+                print("points are the same, nothing to add")
+                continue
+
+            cross_section_vertices.append(intersection_point)
+            cross_section_edges[-1].append(i+1)
+            cross_section_edges.append([i+1])
+
+            #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
+        
+        cross_section_vertices.append(source)
+        cross_section_edges[-1].append(len(cross_section_vertices)-1)
+
+        #print(cross_section_vertices)
+        #print(cross_section_edges)
+
+        return cross_section_vertices, cross_section_edges
+
+def write_obj(obj_filename, cross_edges, cross_vts):
     print("=== Writing {} ===".format(obj_filename))
 
     f_out = open(obj_filename, 'w')
     for v in vertices:
+        f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
+    for v in cross_vts:
         f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
 
     f_out.write("o 0\n")
@@ -151,8 +199,13 @@ def write_obj(obj_filename):
         tr[1] += 1
         tr[2] += 1
         f_out.write("f " + str(tr[0]) + " " + str(tr[1]) + " " + str(tr[2]) + "\n")
-    f_out.close()
 
+    f_out.write("l")
+    for line in cross_edges:
+        f_out.write(" " + str(line[0] + 1 + len(vertices)))
+    f_out.write(" " + str(cross_edges[-1][1] + 1 + len(vertices)) +  "\n")
+
+    f_out.close()
 
 def main(sys_args):
     """
@@ -173,13 +226,13 @@ def main(sys_args):
     trs_ = Tin(trs, vertices)
     # find source triangle
     init_tr = trs_.find_receiver_triangle(4, receiver)
+    # Walk to source, and save passing edges
     edges = trs_.walk_straight_to_source(init_tr)
-    # fix the problem with edge [0,1] first triangle needs a double check
-    print('hi')
-    # Walk to receiver, and save passing triangles
-    # interpolat height and distance
+    # interpolate height and distance
+    cross_vts, cross_edgs = trs_.create_cross_section(edges, source, receiver)
 
-    # write_obj("out.obj")
+    #optionally, write the output line to the .obj file
+    write_obj("out.obj", cross_edgs, cross_vts)
 
 
 if __name__ == "__main__":
