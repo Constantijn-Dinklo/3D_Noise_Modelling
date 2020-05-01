@@ -119,7 +119,7 @@ class Tin:
         print("=== walk_straight_to_source ===")
         check_tr = tr_receiver
         chosen_edges = []
-        nbs = [5, 3, 4]
+        nbs = (5, 3, 4)
         while not self.point_in_triangle(source, check_tr):
             edges = [[self.trs[check_tr][0], self.trs[check_tr][1]],
                      [self.trs[check_tr][1], self.trs[check_tr][2]],
@@ -131,9 +131,35 @@ class Tin:
                         chosen_edges.append(e)
                         check_tr = self.trs[check_tr][nbs[i]]
                         break
-        return chosen_edges  # 2 edges might have a common vertex fix for this in interpolation
+        return chosen_edges, check_tr  # 2 edges might have a common vertex fix for this in interpolation
 
-    def create_cross_section(self, edge_list, source, receiver):
+    def interpolate_triangle(self, tr, pt):
+        """
+        Explanation:
+        Find the interpolated value in a triangle
+        ---------------
+        Input:
+        tr: id of the triangle
+        pt: point inside the triangle [x,y,z]
+        ---------------
+        Output:
+        interpolated value
+        """
+        v1 = self.vts[self.trs[tr][0]]
+        v2 = self.vts[self.trs[tr][1]]
+        v3 = self.vts[self.trs[tr][2]]
+        print(v1, v2, v3, pt)
+
+        w1 = ((v2[1] - v3[1])*(pt[0] - v3[0]) + (v3[0] - v2[0])*(pt[1] - v3[1])) / ((v2[1] - v3[1])*(v1[0] - v3[0]) + (v3[0] - v2[0])*(v1[1] - v3[1]))
+        w2 = ((v3[1] - v1[1])*(pt[0] - v3[0]) + (v1[0] - v3[0])*(pt[1] - v3[1])) / ((v2[1] - v3[1])*(v1[0] - v3[0]) + (v3[0] - v2[0])*(v1[1] - v3[1]))
+        w3 = 1 - w1 - w2
+
+        print(w1, w2, w3)
+
+        height = w1 * v1[2] + w2 * v2[2] + w3 * v3[2]
+        return height
+
+    def create_cross_section(self, edge_list, source, receiver, source_tr, receiver_tr ):
         """
         Explanation:
         ---------------
@@ -146,7 +172,9 @@ class Tin:
         """
         print("=== create_cross_section ===")
         # the first vertex is the receiver, and the last vertex the source
-        cross_section_vertices = [receiver]
+        receiver_height = self.interpolate_triangle(receiver_tr, receiver)
+        print(receiver_height)
+        cross_section_vertices = [[receiver[0], receiver[1], receiver_height]]
 
         # the edges go from 0 - 1, 1-2, 2-3, 3-4, 4-5, 5-6
         cross_section_edges = [[0]]
@@ -164,7 +192,7 @@ class Tin:
 
             # take vertex_right and append a part of the vector from right to left to it
             intersection_point = vertex_right + (vertex_left - vertex_right) * part_right
-            print(np.sum(cross_section_vertices[-1] - intersection_point))
+            #print(np.sum(cross_section_vertices[-1] - intersection_point))
             if(np.sum(cross_section_vertices[-1] - intersection_point) < 0.1):
                 print("points are the same, nothing to add")
                 continue
@@ -175,13 +203,17 @@ class Tin:
 
             #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
         
-        cross_section_vertices.append(source)
+        source_height = self.interpolate_triangle(source_tr, source)
+        print(source_height)
+        cross_section_vertices.append([source[0], source[1], source_height])
         cross_section_edges[-1].append(len(cross_section_vertices)-1)
 
         #print(cross_section_vertices)
         #print(cross_section_edges)
 
         return cross_section_vertices, cross_section_edges
+
+
 
 def write_obj(obj_filename, cross_edges, cross_vts):
     print("=== Writing {} ===".format(obj_filename))
@@ -221,15 +253,15 @@ def main(sys_args):
     list?
     """
     # sys args will be: 
-    # run command: python crossSection.py ....
+    # run command: python crossSection.py
 
     trs_ = Tin(trs, vertices)
     # find source triangle
-    init_tr = trs_.find_receiver_triangle(4, receiver)
+    receiver_tr = trs_.find_receiver_triangle(4, receiver)
     # Walk to source, and save passing edges
-    edges = trs_.walk_straight_to_source(init_tr)
+    edges, source_tr = trs_.walk_straight_to_source(receiver_tr)
     # interpolate height and distance
-    cross_vts, cross_edgs = trs_.create_cross_section(edges, source, receiver)
+    cross_vts, cross_edgs = trs_.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
 
     #optionally, write the output line to the .obj file
     write_obj("out.obj", cross_edgs, cross_vts)
