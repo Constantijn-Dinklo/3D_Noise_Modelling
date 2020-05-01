@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import fiona
 
 # test data
 trs = [[0, 2, 1, 1, -1, -1],
@@ -121,9 +122,9 @@ class Tin:
         chosen_edges = []
         nbs = [5, 3, 4]
         while not self.point_in_triangle(source, check_tr):
-            edges = [[self.trs[check_tr][0], self.trs[check_tr][1]],
-                     [self.trs[check_tr][1], self.trs[check_tr][2]],
-                     [self.trs[check_tr][2], self.trs[check_tr][0]]]
+            edges = [(self.trs[check_tr][0], self.trs[check_tr][1]),
+                     (self.trs[check_tr][1], self.trs[check_tr][2]),
+                     (self.trs[check_tr][2], self.trs[check_tr][0])]
             for i, e in enumerate(edges):
                 if e not in chosen_edges:
                     if (self.side_test(receiver, source, self.vts[e[0]]) <= 0 and
