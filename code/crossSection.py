@@ -118,10 +118,7 @@ class Tin:
                      [self.trs[check_tr][1], self.trs[check_tr][2]],
                      [self.trs[check_tr][2], self.trs[check_tr][0]]]
             for i, e in enumerate(edges):
-                # store edges from smaller to larger index to be consistent in chosen_edges
                 if e not in chosen_edges:
-                    # d1 = self.side_test(receiver, source, self.vts[e[0]])
-                    # d2 = self.side_test(receiver, source, self.vts[e[1]])
                     if (self.side_test(receiver, source, self.vts[e[0]]) <= 0 and
                             self.side_test(receiver, source, self.vts[e[1]]) >= 0):
                         chosen_edges.append(e)
