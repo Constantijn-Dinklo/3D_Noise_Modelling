@@ -34,6 +34,7 @@ class Tin:
         """
         Explanation:
         find whether pc is on the left (+/-) or on the right (+/-) of the line pa -> pb
+        the computed value is actually the 2* area of the triangle
         ---------------
         Input:
         vertex indices edge of tr: pa, pb p_source = pc
