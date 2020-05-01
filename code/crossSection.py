@@ -44,7 +44,7 @@ class Tin:
         """
         return ((pa[0] - pc[0]) * (pb[1] - pc[1])) - ((pb[0] - pc[0]) * (pa[1] - pc[1]))
 
-    def point_in_triangle(self, p_source, tr):
+    def point_in_triangle(self, pt, tr):
         """
         Explanation:
         ---------------
@@ -52,16 +52,16 @@ class Tin:
         ---------------
         Output:
         """
-        d1 = self.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], p_source)
-        d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], p_source)
-        d3 = self.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], p_source)
+        d1 = self.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], pt)
+        d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], pt)
+        d3 = self.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], pt)
 
         if d1 > 0 and d2 > 0 and d3 > 0:
             return True  # the point is in the triangle
         else:
             return False
 
-    def find_source_triangle(self, tr_init, p_source):
+    def find_receiver_triangle(self, tr_init, p_receiver):
         """
         Explanation:
         Find the trinagle in which the p_source is located, by means of walking from tr_init to the right triangle
@@ -76,9 +76,9 @@ class Tin:
         tr = tr_init
         while True:
             # do the side test for all sides, returns the value
-            d1 = self.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], p_source)
-            d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], p_source)
-            d3 = self.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], p_source)
+            d1 = self.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], p_receiver)
+            d2 = self.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], p_receiver)
+            d3 = self.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], p_receiver)
 
             # If all side_tests are positive (point is either exactly on the edge, or on the inside)
             if d1 >= 0 and d2 >= 0 and d3 >= 0:
@@ -99,7 +99,7 @@ class Tin:
             # get the index of the neighbour triangle
             tr = self.trs[tr][nb_index]
 
-    def walk_straight_to_receiver(self, tr_source):
+    def walk_straight_to_source(self, tr_receiver):
         """
         Explanation:
         Finds the edges of triangles between source and receiver
@@ -110,21 +110,20 @@ class Tin:
         Output:
         list of list containing the edges
         """
-        check_tr = tr_source
+        check_tr = tr_receiver
         chosen_edges = []
         nbs = [5, 3, 4]
-        while not self.point_in_triangle(receiver, check_tr):
+        while not self.point_in_triangle(source, check_tr):
             edges = [[self.trs[check_tr][0], self.trs[check_tr][1]],
                      [self.trs[check_tr][1], self.trs[check_tr][2]],
                      [self.trs[check_tr][2], self.trs[check_tr][0]]]
             for i, e in enumerate(edges):
                 # store edges from smaller to larger index to be consistent in chosen_edges
-                e.sort()
                 if e not in chosen_edges:
-                    if (self.side_test(receiver, source, self.vts[e[0]]) >= 0 and
-                        self.side_test(receiver, source, self.vts[e[1]]) <= 0) or \
-                            (self.side_test(receiver, source, self.vts[e[0]]) <= 0 and
-                             self.side_test(receiver, source, self.vts[e[1]]) >= 0):
+                    # d1 = self.side_test(receiver, source, self.vts[e[0]])
+                    # d2 = self.side_test(receiver, source, self.vts[e[1]])
+                    if (self.side_test(receiver, source, self.vts[e[0]]) <= 0 and
+                            self.side_test(receiver, source, self.vts[e[1]]) >= 0):
                         chosen_edges.append(e)
                         check_tr = self.trs[check_tr][nbs[i]]
                         break
@@ -176,8 +175,8 @@ def main(sys_args):
 
     trs_ = Tin(trs, vertices)
     # find source triangle
-    init_tr = trs_.find_source_triangle(4, source)
-    edges = trs_.walk_straight_to_receiver(init_tr)
+    init_tr = trs_.find_receiver_triangle(4, receiver)
+    edges = trs_.walk_straight_to_source(init_tr)
     # fix the problem with edge [0,1] first triangle needs a double check
     print('hi')
     # Walk to receiver, and save passing triangles
