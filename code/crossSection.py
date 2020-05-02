@@ -136,7 +136,7 @@ class Tin:
     def interpolate_triangle(self, tr, pt):
         """
         Explanation:
-        Find the interpolated value in a triangle
+        Find the interpolated height in a triangle
         ---------------
         Input:
         tr: id of the triangle
@@ -148,17 +148,13 @@ class Tin:
         v1 = self.vts[self.trs[tr][0]]
         v2 = self.vts[self.trs[tr][1]]
         v3 = self.vts[self.trs[tr][2]]
-        print(v1, v2, v3, pt)
 
         w1 = ((v2[1] - v3[1])*(pt[0] - v3[0]) + (v3[0] - v2[0])*(pt[1] - v3[1])) / ((v2[1] - v3[1])*(v1[0] - v3[0]) + (v3[0] - v2[0])*(v1[1] - v3[1]))
         w2 = ((v3[1] - v1[1])*(pt[0] - v3[0]) + (v1[0] - v3[0])*(pt[1] - v3[1])) / ((v2[1] - v3[1])*(v1[0] - v3[0]) + (v3[0] - v2[0])*(v1[1] - v3[1]))
         w3 = 1 - w1 - w2
 
-        print(w1, w2, w3)
-
-        height = w1 * v1[2] + w2 * v2[2] + w3 * v3[2]
-        return height
-
+        return w1 * v1[2] + w2 * v2[2] + w3 * v3[2]
+        
     def create_cross_section(self, edge_list, source, receiver, source_tr, receiver_tr ):
         """
         Explanation:
@@ -173,7 +169,6 @@ class Tin:
         print("=== create_cross_section ===")
         # the first vertex is the receiver, and the last vertex the source
         receiver_height = self.interpolate_triangle(receiver_tr, receiver)
-        print(receiver_height)
         cross_section_vertices = [[receiver[0], receiver[1], receiver_height]]
 
         # the edges go from 0 - 1, 1-2, 2-3, 3-4, 4-5, 5-6
@@ -192,24 +187,20 @@ class Tin:
 
             # take vertex_right and append a part of the vector from right to left to it
             intersection_point = vertex_right + (vertex_left - vertex_right) * part_right
-            #print(np.sum(cross_section_vertices[-1] - intersection_point))
+
+            # Check if the new calculated point is not too close to the previously added point, in MH distance
             if(np.sum(cross_section_vertices[-1] - intersection_point) < 0.1):
-                print("points are the same, nothing to add")
+                print("points are the too close, nothing to add")
                 continue
 
             cross_section_vertices.append(intersection_point)
             cross_section_edges[-1].append(i+1)
             cross_section_edges.append([i+1])
-
             #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
         
         source_height = self.interpolate_triangle(source_tr, source)
-        print(source_height)
         cross_section_vertices.append([source[0], source[1], source_height])
         cross_section_edges[-1].append(len(cross_section_vertices)-1)
-
-        #print(cross_section_vertices)
-        #print(cross_section_edges)
 
         return cross_section_vertices, cross_section_edges
 

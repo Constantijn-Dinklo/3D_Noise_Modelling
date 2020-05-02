@@ -30,6 +30,7 @@
     ---------------<br />
     Output:<br />
     """<br />
+* If no output, put void
 
 ## Classes
 
