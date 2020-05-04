@@ -14,6 +14,10 @@
     * Every new word starts with a lower case letter
     * Put a _ between new words
     * Eg: variable_name
+* Global variables:
+    * Try not to use them unless ABSOLUTELY necessary
+    * All uppercase letters, with _ between words
+    * Put them at the top of the file after imports but before any funciton or class
 
 ## Functions
 
