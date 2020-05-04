@@ -1,0 +1,69 @@
+\RequirePackage{silence}
+\WarningFilter{pdfcolmk}{Nothing to fix}
+\documentclass{tudelft-report}
+\usepackage{natbib}
+\usepackage{changes}
+\usepackage{comment}
+\usepackage{pgfgantt}
+\newcommand{\ie}{i.e.}
+\newcommand{\eg}{e.g.}
+\begin{document}
+
+%% Use Roman numerals for the page numbers of the title pages and table of
+%% contents.
+\frontmatter
+
+
+\title[tudelft-white]{3D\ noise\\simulation}
+\subtitle[tudelft-black]{\Huge Final\ report}
+\author[tudelft-white]{\LARGE
+5037638\ Nadine\ Hobeika \\
+4452348\ Maarit\ Prusti \\
+5166357\ Constantijn\ Dinklo\\
+5045304\ Denis\ Giannelli\\
+4982363\ Laurens\ van\ Rijssel}
+\affiliation{Delft University of Technology}
+\bigskip
+\coverimage{figs/cover-2.jpg}
+\covertext[tudelft-white]{
+    \textbf{Synthesis project 2020} \\
+    Master Geomatics, Faculty of Architecture and the build environment
+}
+\setpagecolor{tudelft-cyan}
+\makecover[split]
+
+
+%% Include an optional title page.
+\input{title}
+
+\input{preface}
+
+\tableofcontents
+
+%% Use Arabic numerals for the page numbers of the chapters.
+\mainmatter
+
+sample of references:
+citep only gives the number reference
+cite does the same
+citet also provides the author
+citeauthor does not give the reference number
+this is citep: \citep{3Dnoise}
+this is cite: \cite{3Dnoise}
+this is citet: \citet{3Dnoise}
+this is citeauthor: \citeauthor{3Dnoise}
+
+
+% 5 pages in total for this part
+% \input{[filename]}
+
+
+%% Use letters for the chapter numbers of the appendices.
+\appendix
+
+%\input{appendix-a}
+
+\bibliography{report}
+
+\end{document}
+
