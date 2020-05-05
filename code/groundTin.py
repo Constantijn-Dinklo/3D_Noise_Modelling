@@ -2,6 +2,7 @@
 import misc
 import numpy as np
 import sys
+import fiona
 
 from scipy.spatial import ConvexHull
 from shapely.geometry import shape, Polygon, LineString, Point
@@ -224,7 +225,7 @@ class GroundTin:
                 print("points are the too close, nothing to add")
                 continue
 
-            cross_section_vertices.append(intersection_point)
+            cross_section_vertices.append(tuple(intersection_point))
             cross_section_edges[-1].append(i+1)
             cross_section_edges.append([i+1])
             #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
@@ -252,16 +253,16 @@ class GroundTin:
         cross_section_vertices = []
         cross_section_edges = []
         for edge in dtm_edges:
-            shapely_line = LineString([tuple(vertices[edge[0]]), tuple(vertices[edge[1]])])
+            shapely_line = LineString([tuple(dtm_vertices[edge[0][0]]), tuple(dtm_vertices[edge[0][1]])])
             count = len(cross_section_vertices)
             if not edge[1]:
                 if dtm_vertices[edge[0][0]] not in cross_section_vertices:
                     cross_section_vertices.append(dtm_vertices[edge[0][0]])
                     cross_section_vertices.append(dtm_vertices[edge[0][1]])
-                    cross_section_edges.append((count, count + 1))  # check if count is correct
+                    cross_section_edges.append((count, count + 1))
                 else:
                     cross_section_vertices.append(dtm_vertices[edge[0][1]])
-                    cross_section_edges.append((count, count + 1))  # check if count is correct
+                    cross_section_edges.append((count - 1, count))
             else:
                 # check intersection with polygon: intersects/ doesn't intersect/ inside polygon
                 new_points = []
@@ -272,10 +273,14 @@ class GroundTin:
                     shapely_poly = shape(build_info['geometry'])
                     h_poly = build_info['properties']['h_dak'] - build_info['properties']['h_maaiveld']
                     flat_shp_geom = transform(lambda x, y, z=None: (x, y), shapely_poly)
+                    '''build_info = buildings[building]  # building = id of polygon in shapefile
+                    shapely_poly = shape(build_info)
+                    h_poly = 2.0
+                    flat_shp_geom = transform(lambda x, y, z=None: (x, y), shapely_poly)'''
                     # check if endpoints of edge are in polygon
-                    if Point((vertices[edge[0]][0], vertices[edge[0]][1])).within(flat_shp_geom):
+                    if Point((dtm_vertices[edge[0][0]][0], dtm_vertices[edge[0][0]][1])).within(flat_shp_geom):
                         check_edge_0 = True
-                    if Point((vertices[edge[1]][0], vertices[edge[1]][1])).within(flat_shp_geom):
+                    if Point((dtm_vertices[edge[0][1]][0], dtm_vertices[edge[0][1]][1])).within(flat_shp_geom):
                         check_edge_1 = True
                     poly_bound = flat_shp_geom.boundary
                     flat_shapely_line = transform(lambda x, y, z=None: (x, y), shapely_line)
@@ -287,39 +292,86 @@ class GroundTin:
                     elif not flat_shapely_line.intersects(poly_bound) and flat_shapely_line.within(flat_shp_geom):
                         # edge entirely inside polygon, no need to insert it anymore
                         continue
-                    elif flat_shapely_line.intersects(poly_bound) and flat_shapely_line.within(flat_shp_geom):
+                    # elif flat_shapely_line.intersects(poly_bound) and flat_shapely_line.within(flat_shp_geom):
                         # do we need this condition?
-                        pass
+                        # pass
                     else:
                         intersection_elem = flat_shapely_line.intersection(poly_bound)
-                        individual_points = [(pt.x, pt.y) for pt in intersection_elem]
-                        # what happens if it only intersects at one point???
-                        for i, point in enumerate(individual_points):
-                            if i % 2 == 0:
-                                new_points.append((point[0], point[1], self.interpolate_edge(edge[0], edge[1], point)))
-                                new_points.append((point[0], point[1],
-                                                   (self.interpolate_edge(edge[0], edge[1], point) + h_poly)))
-                            else:
-                                new_points.append((point[0], point[1],
-                                                   (self.interpolate_edge(edge[0], edge[1], point) + h_poly)))
-                                new_points.append((point[0], point[1], self.interpolate_edge(edge[0], edge[1], point)))
+                        if intersection_elem.geom_type == 'Point':
+                            individual_points = list(intersection_elem.coords)
+                        else:
+                            individual_points = [(pt.x, pt.y) for pt in intersection_elem]
+                        type_intersection = flat_shapely_line.intersection(flat_shp_geom)
+                        # to distinguish between line intersections and point intersections
+                        if (type_intersection.geom_type == 'GeometryCollection' or
+                                type_intersection.geom_type == 'MultiLineString' or
+                                type_intersection.geom_type == 'MultiPoint'):
+                            for elem in type_intersection:
+                                if elem.geom_type == 'Point':
+                                    point = list(elem.coords)[0]
+                                    new_points.append((point[0], point[1], self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
+                                    new_points.append((point[0], point[1], (self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
+                                    new_points.append((point[0], point[1], (self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
+                                    new_points.append((point[0], point[1], self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
+                                if elem.geom_type == 'LineString':
+                                    points = list(elem.coords)
+                                    if points[0] in individual_points:
+                                        new_points.append((points[0][0], points[0][1], self.interpolate_edge(
+                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0])))
+                                        new_points.append((points[0][0], points[0][1], (self.interpolate_edge(
+                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0]) + h_poly)))
+                                    elif points[1] in individual_points:
+                                        new_points.append((points[1][0], points[1][1], (self.interpolate_edge(
+                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1]) + h_poly)))
+                                        new_points.append((points[1][0], points[1][1], self.interpolate_edge(
+                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1])))
+                        else:
+                            if type_intersection.geom_type == 'Point':
+                                point = list(type_intersection.coords)[0]
+                                new_points.append((point[0], point[1], self.interpolate_edge(
+                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
+                                new_points.append((point[0], point[1], (self.interpolate_edge(
+                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
+                                new_points.append((point[0], point[1], (self.interpolate_edge(
+                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
+                                new_points.append((point[0], point[1], self.interpolate_edge(
+                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
+                            if type_intersection.geom_type == 'LineString':
+                                points = list(type_intersection.coords)
+                                if points[0] in individual_points:
+                                    new_points.append((points[0][0], points[0][1], self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0])))
+                                    new_points.append((points[0][0], points[0][1], (self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0]) + h_poly)))
+                                elif points[1] in individual_points:
+                                    new_points.append((points[1][0], points[1][1], (self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1]) + h_poly)))
+                                    new_points.append((points[1][0], points[1][1], self.interpolate_edge(
+                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1])))
                 # add first endpoint of the edge if needed
-                if tuple(vertices[edge[0]]) not in new_points and check_edge_0 is False:
-                    new_points = [tuple(vertices[edge[0]])] + new_points
+                if tuple(dtm_vertices[edge[0][0]]) not in new_points and check_edge_0 is False:
+                    new_points = [tuple(dtm_vertices[edge[0][0]])] + new_points
                 # add second endpoint of the edge if needed
-                if tuple(vertices[edge[1]]) not in new_points and check_edge_1 is False:
-                    new_points = new_points + [tuple(vertices[edge[1]])]
-                # sort buildings in order of occurrence is it possible??? otherwise order of vertices will be wrong
-                new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]])
-                for j, pt in enumerate(new_points_sorted[:(len(new_points_sorted) - 1)]):
-                    if j == 0:
+                if tuple(dtm_vertices[edge[0][1]]) not in new_points and check_edge_1 is False:
+                    new_points = new_points + [tuple(dtm_vertices[edge[0][1]])]
+                # sort buildings otherwise order of vertices will be wrong, check order between receiver and source
+                if dtm_vertices[0][0] - dtm_vertices[-1][0] < 0:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]])
+                elif dtm_vertices[0][0] - dtm_vertices[-1][0] == 0:
+                    print('Check Source and Receiver')
+                else:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]], reverse=True)
+                for pt in new_points_sorted:
+                    count = len(cross_section_vertices)
+                    if not cross_section_vertices:
                         cross_section_vertices.append(pt)
-                        cross_section_vertices.append(new_points_sorted[j + 1])
-                        cross_section_edges.append((count, count + 1))  # check if count is really correct at this line
                     else:
-                        cross_section_vertices.append(new_points_sorted[j + 1])
-                        cross_section_edges.append((count - 1, count))  # check if count is really correct at this line
-
+                        cross_section_vertices.append(pt)
+                        cross_section_edges.append((count - 1, count))
         return cross_section_vertices, cross_section_edges
 
     def get_2d_convex_hull(self):
@@ -551,12 +603,39 @@ if __name__ == "__main__":
     ground_tin_result = GroundTin.read_from_obj(filename)
 
     #Setup dummy source and receiver points
-    source = [0.75, 0.1, 0]
-    receiver = [8.25, 0.9, 0]
+    source = [0.8, 0.2, 0]
+    receiver = [7.2, 0.6, 0]
 
     #Setup dummy source and receiver points
     source = [87037.5, 440178.2, 3]
     receiver = [87061.4, 440332.4, 2]
+
+    # shapely tests
+    build = fiona.open(r"C:\Users\Nadine\Desktop\Nad\TU delft\Q4\GEO1101\3d_geo_data\lod13\lod13.shp")
+
+    # dsm test
+    '''triangles = [[0, 2, 1, 1, -1, -1],
+           [1, 2, 3, 2, -1, 0],
+           [2, 4, 3, 3, 1, -1],
+           [3, 4, 5, 4, -1, 2],
+           [4, 6, 5, 5, 3, -1],
+           [5, 6, 7, 6, -1, 4],
+           [6, 8, 7, 7, 5, -1],
+           [7, 8, 9, -1, -1, 6]]
+
+    vertices = [[0, 0, 0],
+                [1, 1, 1],
+                [2, 0, 1],
+                [3, 1, 0],
+                [4, 0, 1],
+                [5, 1, 1],
+                [6, 0, 0],
+                [7, 1, 1],
+                [8, 0, 0],
+                [9, 1, 0]]
+
+    ground_tin_result = GroundTin(vertices, triangles)'''
+
 
     # find source triangle
     receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)
@@ -564,6 +643,20 @@ if __name__ == "__main__":
     edges, source_tr = ground_tin_result.walk_straight_to_source(source, receiver_tr)
     # interpolate height and distance
     cross_vts, cross_edgs = ground_tin_result.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
+    # to delete
+    '''cross_edgs_attr = []
+    for l, e in enumerate(cross_edgs):
+        if l < 3:
+            cross_edgs_attr.append([e, [0]])
+        else:
+            cross_edgs_attr.append([e, []])
+    polygon = [(5.4, 0.2, 0.0), (6.8, 0.2, 0.0), (7, 0.8, 0.0), (6.2, 0.8, 0.0), (6.2, 0.4, 0.0),
+               (5.8, 0.4, 0.0), (5.8, 0.8, 0.0), (5.4, 0.8, 0.0), (5.4, 0.2, 0.0)]
+    build = [Polygon(polygon)]'''
+
+    # add buildings to the cross section/ edges should have attributes or equivalent check data structure
+    cross_vts_dsm, cross_edgs_dsm = ground_tin_result.create_cross_section_dsm(cross_vts, cross_edgs, build)
+
 
     #optionally, write the output line to the .obj file
     misc.write_cross_section_to_obj("output/out.obj", cross_edgs, cross_vts, ground_tin_result.vts, ground_tin_result.trs)
