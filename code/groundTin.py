@@ -2,6 +2,7 @@
 import misc
 import numpy as np
 import sys
+from time import time
 
 from scipy.spatial import ConvexHull
 
@@ -110,6 +111,7 @@ class GroundTin:
             # get the index of the neighbour triangle
             tr = self.trs[tr][nb_index]
         print("no tr found after 1000 loops")
+        assert(False)
     
     def walk_straight_to_source(self, source, tr_receiver):
         """
@@ -129,6 +131,7 @@ class GroundTin:
         chosen_edges = []
         nbs = [5, 3, 4]
         while not self.point_in_triangle(source, check_tr):
+            assert(check_tr != -1)
             edges = [[self.trs[check_tr][0], self.trs[check_tr][1]],
                      [self.trs[check_tr][1], self.trs[check_tr][2]],
                      [self.trs[check_tr][2], self.trs[check_tr][0]]]
@@ -438,15 +441,19 @@ if __name__ == "__main__":
     filename = sys.argv[1]
     #run in commandline = python groundTin.py ./input/sample.obj
 
+    start = time()
+
     ground_tin_result = GroundTin.read_from_obj(filename)
 
+    time_1 = time()
+    print("runtime reading: {:.2f} seconds".format(time_1 - start))
     #Setup dummy source and receiver points
-    source = [0.75, 0.1, 0]
-    receiver = [8.25, 0.9, 0]
+    #source = [0.75, 0.1, 0]
+    #receiver = [8.25, 0.9, 0]
 
     #Setup dummy source and receiver points
-    source = [87037.5, 440178.2, 3]
-    receiver = [87061.4, 440332.4, 2]
+    source = [93512.5, 441865, 3]
+    receiver = [93612.2, 441885.4, 2]
 
     # find source triangle
     receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)
@@ -455,13 +462,21 @@ if __name__ == "__main__":
     # interpolate height and distance
     cross_vts, cross_edgs = ground_tin_result.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
 
+    time_2 = time()
+    print("runtime walking: {:.2f} seconds".format(time_2 - time_1))
+    print("runtime total: {:.2f} seconds".format(time_2 - start))
+    
+
     #optionally, write the output line to the .obj file
     misc.write_cross_section_to_obj("output/out.obj", cross_edgs, cross_vts, ground_tin_result.vts, ground_tin_result.trs)
 
-    output_file = "output/{}p".format(filename)
+    #output_file = "output/{}p".format(filename)
+    output_file = "output/out_test.objp"
 
     #ground_tin_result.write_to_obj("output/isolated_cubes.obj")
-    ground_tin_result.write_to_objp("output/tin_.objp")
+    ground_tin_result.write_to_objp(output_file)
 
+    time_3 = time()
+    print("runtime writing: {:.2f} seconds".format(time_3 - time_2))
     #print(ground_tin_result.vts)
     #print(ground_tin_result.trs)
