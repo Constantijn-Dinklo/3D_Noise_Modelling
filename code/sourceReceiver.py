@@ -1,12 +1,14 @@
 # Generate sources and receivers
 import math
 import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Read the GML file
-tree = ET.parse('/Users/mprusti/Documents/geo1101/wegvakgeografie_simplified.gml')
+tree = ET.parse('./input/wegvakgeografie_simplified.gml')
 root = tree.getroot()
-line_segments = [ ]
-structured_segments = [ ]
+line_segments = []
+structured_segments = []
 
 # Creates a list with line segments
 for child in root.iter():
@@ -103,4 +105,10 @@ for circle_line in hard_coded_lines:
 # Save all the intersection points in dictionary
 hard_coded_source = tuple(hard_coded_source)
 dict_intersection[hard_coded_source] = list_intersection
-print(dict_intersection)
+list_intersection = np.array(list_intersection)
+#print(list_intersection[:,1])
+
+plt.scatter(hard_coded_source[0], hard_coded_source[1])
+plt.scatter(list_intersection[:,0], list_intersection[:,1])
+
+plt.show()
