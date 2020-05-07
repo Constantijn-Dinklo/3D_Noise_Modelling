@@ -271,7 +271,9 @@ class GroundTin:
                 for building in edge[1]:
                     build_info = buildings.get(building)  # building = id of polygon in shapefile
                     shapely_poly = shape(build_info['geometry'])
-                    h_poly = build_info['properties']['h_dak'] - build_info['properties']['h_maaiveld']
+                    h_poly = build_info['properties']['h_dak']
+                    if h_poly is None:
+                        continue
                     flat_shp_geom = transform(lambda x, y, z=None: (x, y), shapely_poly)
                     '''build_info = buildings[building]  # building = id of polygon in shapefile
                     shapely_poly = shape(build_info)
@@ -297,61 +299,48 @@ class GroundTin:
                         # pass
                     else:
                         intersection_elem = flat_shapely_line.intersection(poly_bound)
-                        if intersection_elem.geom_type == 'Point':
-                            individual_points = list(intersection_elem.coords)
+                        if intersection_elem.geom_type == 'Point' or intersection_elem.geom_type == 'MultiPoint':
+                            new_points.append(dtm_vertices[edge[0][0]])
+                            new_points.append(dtm_vertices[edge[0][1]])
+                            continue
                         else:
                             individual_points = [(pt.x, pt.y) for pt in intersection_elem]
                         type_intersection = flat_shapely_line.intersection(flat_shp_geom)
                         # to distinguish between line intersections and point intersections
                         if (type_intersection.geom_type == 'GeometryCollection' or
-                                type_intersection.geom_type == 'MultiLineString' or
-                                type_intersection.geom_type == 'MultiPoint'):
+                                type_intersection.geom_type == 'MultiLineString'):
                             for elem in type_intersection:
                                 if elem.geom_type == 'Point':
-                                    point = list(elem.coords)[0]
-                                    new_points.append((point[0], point[1], self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
-                                    new_points.append((point[0], point[1], (self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
-                                    new_points.append((point[0], point[1], (self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
-                                    new_points.append((point[0], point[1], self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
+                                    pass
                                 if elem.geom_type == 'LineString':
                                     points = list(elem.coords)
                                     if points[0] in individual_points:
-                                        new_points.append((points[0][0], points[0][1], self.interpolate_edge(
-                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0])))
-                                        new_points.append((points[0][0], points[0][1], (self.interpolate_edge(
-                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0]) + h_poly)))
+                                        ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                                       dtm_vertices[edge[0][1]], points[0])
+                                        assert h_poly > ground, "Roof height is lower than ground height"
+                                        new_points.append((points[0][0], points[0][1], ground))
+                                        new_points.append((points[0][0], points[0][1], h_poly))
                                     elif points[1] in individual_points:
-                                        new_points.append((points[1][0], points[1][1], (self.interpolate_edge(
-                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1]) + h_poly)))
-                                        new_points.append((points[1][0], points[1][1], self.interpolate_edge(
-                                            dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1])))
+                                        ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                                       dtm_vertices[edge[0][1]], points[1])
+                                        assert h_poly > ground, "Roof height is lower than ground height"
+                                        new_points.append((points[1][0], points[1][1], h_poly))
+                                        new_points.append((points[1][0], points[1][1], ground))
                         else:
-                            if type_intersection.geom_type == 'Point':
-                                point = list(type_intersection.coords)[0]
-                                new_points.append((point[0], point[1], self.interpolate_edge(
-                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
-                                new_points.append((point[0], point[1], (self.interpolate_edge(
-                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
-                                new_points.append((point[0], point[1], (self.interpolate_edge(
-                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point) + h_poly)))
-                                new_points.append((point[0], point[1], self.interpolate_edge(
-                                    dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], point)))
-                            if type_intersection.geom_type == 'LineString':
-                                points = list(type_intersection.coords)
-                                if points[0] in individual_points:
-                                    new_points.append((points[0][0], points[0][1], self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0])))
-                                    new_points.append((points[0][0], points[0][1], (self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[0]) + h_poly)))
-                                elif points[1] in individual_points:
-                                    new_points.append((points[1][0], points[1][1], (self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1]) + h_poly)))
-                                    new_points.append((points[1][0], points[1][1], self.interpolate_edge(
-                                        dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]], points[1])))
+                            # It is a LineString
+                            points = list(type_intersection.coords)
+                            if points[0] in individual_points:
+                                ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                               dtm_vertices[edge[0][1]], points[0])
+                                assert h_poly > ground, "Roof height is lower than ground height"
+                                new_points.append((points[0][0], points[0][1], ground))
+                                new_points.append((points[0][0], points[0][1], h_poly))
+                            elif points[1] in individual_points:
+                                ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                               dtm_vertices[edge[0][1]], points[1])
+                                assert h_poly > ground, "Roof height is lower than ground height"
+                                new_points.append((points[1][0], points[1][1], h_poly))
+                                new_points.append((points[1][0], points[1][1], ground))
                 # add first endpoint of the edge if needed
                 if tuple(dtm_vertices[edge[0][0]]) not in new_points and check_edge_0 is False:
                     new_points = [tuple(dtm_vertices[edge[0][0]])] + new_points
@@ -370,6 +359,7 @@ class GroundTin:
                     if not cross_section_vertices:
                         cross_section_vertices.append(pt)
                     else:
+                        # check linearity
                         cross_section_vertices.append(pt)
                         cross_section_edges.append((count - 1, count))
         return cross_section_vertices, cross_section_edges
