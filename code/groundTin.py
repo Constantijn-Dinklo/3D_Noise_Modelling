@@ -7,12 +7,17 @@ import fiona
 from scipy.spatial import ConvexHull
 from shapely.geometry import shape, Polygon, LineString, Point
 from shapely.ops import transform
+from scipy.spatial import KDTree
+from time import time
+
 
 class GroundTin:
     
     def __init__(self, vts, trs):
         self.vts = np.array(vts)
         self.trs = np.array(trs)
+        
+        self.kd_vts = KDTree(self.vts)
 
         self.bounding_box_2d = [100000000, 100000000, -100000000, -100000000]
         self.bounding_box_3d = [100000000, 100000000, 100000000, -100000000, -100000000, -100000000]
@@ -132,6 +137,7 @@ class GroundTin:
         chosen_edges = []
         nbs = [5, 3, 4]
         while not self.point_in_triangle(source, check_tr):
+            assert(check_tr != -1)
             edges = [[self.trs[check_tr][0], self.trs[check_tr][1]],
                      [self.trs[check_tr][1], self.trs[check_tr][2]],
                      [self.trs[check_tr][2], self.trs[check_tr][0]]]
@@ -575,6 +581,64 @@ class GroundTin:
 
         return ground_tin
 
+    @staticmethod
+    def read_from_objp(file_path):
+        """
+        Explination: Read an objp file and make a tin from it.
+        ---------------
+        Input:
+            file_path : string - The path to the obj file.
+        ---------------
+        Output:
+            ground_tin : GroundTin - The tin that was created from the obj file input.
+        """
+
+        vertices = []
+        triangles = []
+
+        min_values = [100000000, 100000000, 100000000]
+        max_values = [-100000000, -100000000, -100000000]
+
+        total_list_create_time = 0
+        total_class_create_time = 0
+
+        #Read the file and store all the vertices and triangles
+        with open(file_path, 'r') as input_file:
+
+            lines = input_file.readlines()
+
+            for line in lines:
+                line_elements = line.split(' ')
+                if line_elements[0] == 'v':
+                    x = float(line_elements[1])
+                    y = float(line_elements[2])
+                    z = float(line_elements[3])
+                    vertex = [x, y, z]
+                    vertices.append(vertex)
+                    for i in range(0, 3):
+                        if vertex[i] < min_values[i]:
+                            min_values[i] = vertex[i]
+                        if vertex[i] > max_values[i]:
+                            max_values[i] = vertex[i]
+                
+                if line_elements[0] == 'f':
+                    v1 = int(line_elements[1]) - 1
+                    v2 = int(line_elements[2]) - 1
+                    v3 = int(line_elements[3]) - 1
+                    a1 = int(line_elements[4]) - 1
+                    a2 = int(line_elements[5]) - 1
+                    a3 = int(line_elements[6]) - 1
+
+                    triangle = [v1, v2, v3, a1, a2, a3, np.array([100, 100]), 100, 100]
+                    
+                    triangles.append(triangle)
+        
+        ground_tin = GroundTin(vertices, triangles)
+        ground_tin.bounding_box_2d = [min_values[0], min_values[1], max_values[0], max_values[1]]
+        ground_tin.bounding_box_3d = [min_values[0], min_values[1], min_values[2], max_values[0], max_values[1], max_values[2]]
+
+        return ground_tin
+
     def write_to_obj(self, file_path):
         """
         Explination: Writes out the tin to an obj file.
@@ -613,18 +677,24 @@ class GroundTin:
                 output_file.write(triangle_str)
 
 if __name__ == "__main__":
-    tin_filename = sys.argv[1]
     #run in commandline = python groundTin.py ./input/sample.obj
+    tin_filename = sys.argv[1]
 
-    ground_tin_result = GroundTin.read_from_obj(tin_filename)
+    #Create a 
+    #ground_tin_result = GroundTin.read_from_obj("input/isolated_cubes.obj")
+    #ground_tin_resultp = GroundTin.read_from_objp("input/isolated_cubes.objp")
+    
+    start = time()
+    ground_tin_result = GroundTin.read_from_objp(tin_filename)
+    time_1 = time()
+    print("runtime reading obj: {:.2f} seconds".format(time_1 - start))
+    #Setup dummy source and receiver points
+    #source = [0.75, 0.1, 0]
+    #receiver = [8.25, 0.9, 0]
 
     #Setup dummy source and receiver points
-    # source = [0.8, 0.2, 0]
-    # receiver = [7.6, 0.8, 0]
-
-    #Setup dummy source and receiver points
-    source = [87037.5, 440178.2, 3]
-    receiver = [87061.4, 440332.4, 2]
+    source = [93512.5, 441865, 3]
+    receiver = [93612.2, 441885.4, 2]
 
     building_filename = sys.argv[2]
     build = fiona.open(building_filename)
@@ -676,13 +746,21 @@ if __name__ == "__main__":
     cross_vts_dsm, cross_edgs_dsm = ground_tin_result.create_cross_section_dsm(cross_vts, cross_edgs, build)
 
 
+    time_2 = time()
+    print("runtime walking: {:.2f} seconds".format(time_2 - time_1))
+    print("runtime total: {:.2f} seconds".format(time_2 - start))
+    
+
     #optionally, write the output line to the .obj file
     misc.write_cross_section_to_obj("output/out.obj", cross_edgs, cross_vts, ground_tin_result.vts, ground_tin_result.trs)
 
-    output_file = "output/{}p".format(filename)
+    #output_file = "output/{}p".format(filename)
+    output_file = "output/out_test.objp"
 
     #ground_tin_result.write_to_obj("output/isolated_cubes.obj")
-    ground_tin_result.write_to_objp("output/tin_.objp")
+    ground_tin_result.write_to_objp(output_file)
 
+    time_3 = time()
+    print("runtime writing: {:.2f} seconds".format(time_3 - time_2))
     #print(ground_tin_result.vts)
     #print(ground_tin_result.trs)
