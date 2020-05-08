@@ -178,12 +178,12 @@ class GroundTin:
         Find the interpolated value on an edge
         ---------------
         Input:
-        edge_0: first endpoint coordinates
-        edge_1: second endpoint coordinates
-        pt: point on the edge [x,y]
+        edge_0: (x, y, z) - first endpoint coordinates
+        edge_1: (x, y, z) - second endpoint coordinates
+        pt: (x, y) - point on the edge to be interpolated
         ---------------
         Output:
-        interpolated value
+        float - interpolated value
         """
 
         delta_x = edge_0[0] - pt[0]
@@ -253,13 +253,14 @@ class GroundTin:
         Adds buildings to the DTM cross section
         ---------------
         Input:
-        dtm_vertices: List of vertices of cross section
-        dtm_edges: list of edges, each edge is a tuple of 2 vertices and tuple of associated building polygons.[(__,__), (__, ..._)
-        Buildings: list of shapely polygons with height attribute (how will this be exactly?)
+        dtm_vertices: [(x1, y1, z1), (x2, y2, z2), ...] - the vertices of the DTM cross-section
+        dtm_edges: [[(v0, v1), (b0, b1, ...)], ...] the edges of the DTM cross-section, each edge is a tuple of 2
+                    vertices and tuple of associated building polygons.
+        Buildings: Fiona's Collection where each record/building holds a 'geometry' and a 'property' key
         ---------------
         Output:
-        a list with vertices in the cross section plane
-        a list of edges which use the generated vertices.
+        list of tuples: [(x1, y1, z1), (x2, y2, z2), ...] - the vertices of the DSM cross-section
+        list of tuples: [(v0, v1), (v1, v2), ...] - the edges formed by the vertices of the DSM cross-section
         """
         cross_section_vertices = []
         cross_section_edges = []
