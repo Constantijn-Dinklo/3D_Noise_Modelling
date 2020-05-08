@@ -588,20 +588,24 @@ class GroundTin:
 
 if __name__ == "__main__":
     filename = sys.argv[1]
-    #run in commandline = python groundTin.py ./input/sample.obj
+    #run in commandline = python groundTin.py ./input/tin.obj
 
     ground_tin_result = GroundTin.read_from_obj(filename)
 
     #Setup dummy source and receiver points
-    source = [0.8, 0.2, 0]
-    receiver = [7.2, 0.6, 0]
+    #source = [0.8, 0.2, 0]
+    #receiver = [7.2, 0.6, 0]
 
     #Setup dummy source and receiver points
     source = [87037.5, 440178.2, 3]
     receiver = [87061.4, 440332.4, 2]
 
+    # for scenario 00:
+    source = [93515.5, 441876.2, 3]
+    receiver = [93603.4, 441888.4, 2]
+
     # shapely tests
-    build = fiona.open(r"C:\Users\Nadine\Desktop\Nad\TU delft\Q4\GEO1101\3d_geo_data\lod13\lod13.shp")
+    build = fiona.open(r"./input/lod13.shp")
 
     # dsm test
     '''triangles = [[0, 2, 1, 1, -1, -1],
