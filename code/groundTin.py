@@ -2,8 +2,11 @@
 import misc
 import numpy as np
 import sys
+import fiona
 
 from scipy.spatial import ConvexHull
+from shapely.geometry import shape, Polygon, LineString, Point
+from shapely.ops import transform
 from scipy.spatial import KDTree
 from time import time
 
@@ -169,6 +172,32 @@ class GroundTin:
 
         return w1 * v1[2] + w2 * v2[2] + w3 * v3[2]
 
+    def interpolate_edge(self, edge_0, edge_1, pt):
+        """
+        Explanation:
+        Find the interpolated value on an edge
+        ---------------
+        Input:
+        edge_0: (x, y, z) - first endpoint coordinates
+        edge_1: (x, y, z) - second endpoint coordinates
+        pt: (x, y) - point on the edge to be interpolated
+        ---------------
+        Output:
+        float - interpolated value
+        """
+
+        delta_x = edge_0[0] - pt[0]
+        delta_y = edge_0[1] - pt[1]
+
+        if delta_x > delta_y:
+            w0 = delta_x / (edge_0[0] - edge_1[0])
+        else:
+            w0 = delta_y / (edge_0[1] - edge_1[1])
+
+        w1 = 1 - w0
+
+        return w0 * edge_0[2] + w1 * edge_1[2]
+
     def create_cross_section(self, edge_list, source, receiver, source_tr, receiver_tr ):
         """
         Explanation:
@@ -183,7 +212,7 @@ class GroundTin:
         print("=== create_cross_section ===")
         # the first vertex is the receiver, and the last vertex the source
         receiver_height = self.interpolate_triangle(receiver_tr, receiver)
-        cross_section_vertices = [[receiver[0], receiver[1], receiver_height]]
+        cross_section_vertices = [(receiver[0], receiver[1], receiver_height)]
 
         # the edges go from 0 - 1, 1-2, 2-3, 3-4, 4-5, 5-6
         cross_section_edges = [[0]]
@@ -207,15 +236,165 @@ class GroundTin:
                 print("points are the too close, nothing to add")
                 continue
 
-            cross_section_vertices.append(intersection_point)
+            cross_section_vertices.append(tuple(intersection_point))
             cross_section_edges[-1].append(i+1)
             cross_section_edges.append([i+1])
             #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
         
         source_height = self.interpolate_triangle(source_tr, source)
-        cross_section_vertices.append([source[0], source[1], source_height])
+        cross_section_vertices.append((source[0], source[1], source_height))
         cross_section_edges[-1].append(len(cross_section_vertices)-1)
 
+        return cross_section_vertices, cross_section_edges
+
+    def create_cross_section_dsm(self, dtm_vertices, dtm_edges, buildings):
+        """
+        Explanation:
+        Adds buildings to the DTM cross section
+        ---------------
+        Input:
+        dtm_vertices: [(x1, y1, z1), (x2, y2, z2), ...] - the vertices of the DTM cross-section
+        dtm_edges: [[(v0, v1), (b0, b1, ...)], ...] the edges of the DTM cross-section, each edge is a tuple of 2
+                    vertices and tuple of associated building polygons.
+        Buildings: Fiona's Collection where each record/building holds a 'geometry' and a 'property' key
+        ---------------
+        Output:
+        list of tuples: [(x1, y1, z1), (x2, y2, z2), ...] - the vertices of the DSM cross-section
+        list of tuples: [(v0, v1), (v1, v2), ...] - the edges formed by the vertices of the DSM cross-section
+        """
+        cross_section_vertices = []
+        cross_section_edges = []
+        for edge in dtm_edges:
+            shapely_line = LineString([dtm_vertices[edge[0][0]], dtm_vertices[edge[0][1]]])
+            count = len(cross_section_vertices)
+            if not edge[1]:
+                if dtm_vertices[edge[0][0]] not in cross_section_vertices:
+                    cross_section_vertices.append(dtm_vertices[edge[0][0]])
+                    cross_section_vertices.append(dtm_vertices[edge[0][1]])
+                    cross_section_edges.append((count, count + 1))
+                else:
+                    cross_section_vertices.append(dtm_vertices[edge[0][1]])
+                    cross_section_edges.append((count - 1, count))
+            else:
+                # check intersection with polygon: intersects/ doesn't intersect/ inside polygon
+                new_points = []
+                check_edge_0 = False
+                check_edge_1 = False
+                for building in edge[1]:
+                    build_info = buildings.get(building)  # building = id of polygon in shapefile
+                    shapely_poly = shape(build_info['geometry'])
+                    h_poly = build_info['properties']['h_dak']
+                    if h_poly is None:
+                        continue
+                    flat_shp_geom = transform(lambda x, y, z=None: (x, y), shapely_poly)
+                    '''build_info = buildings[building]  # building = id of polygon in shapefile
+                    shapely_poly = shape(build_info)
+                    h_poly = 2.0
+                    flat_shp_geom = transform(lambda x, y, z=None: (x, y), shapely_poly)'''
+                    # check if endpoints of edge are in polygon
+                    if Point((dtm_vertices[edge[0][0]][0], dtm_vertices[edge[0][0]][1])).within(flat_shp_geom):
+                        check_edge_0 = True
+                    if Point((dtm_vertices[edge[0][1]][0], dtm_vertices[edge[0][1]][1])).within(flat_shp_geom):
+                        check_edge_1 = True
+                    poly_bound = flat_shp_geom.boundary
+                    flat_shapely_line = transform(lambda x, y, z=None: (x, y), shapely_line)
+                    if not flat_shapely_line.intersects(poly_bound) and not flat_shapely_line.within(flat_shp_geom):
+                        # no intersection, edge identical to dtm
+                        new_points.append(dtm_vertices[edge[0][0]])
+                        new_points.append(dtm_vertices[edge[0][1]])
+                        continue
+                    elif not flat_shapely_line.intersects(poly_bound) and flat_shapely_line.within(flat_shp_geom):
+                        # edge entirely inside polygon, no need to insert it anymore
+                        continue
+                    # elif flat_shapely_line.intersects(poly_bound) and flat_shapely_line.within(flat_shp_geom):
+                        # do we need this condition?
+                        # pass
+                    else:
+                        intersection_elem = flat_shapely_line.intersection(poly_bound)
+                        if intersection_elem.geom_type == 'Point':
+                            individual_points = list(intersection_elem.coords)
+                        else:
+                            individual_points = [(pt.x, pt.y) for pt in intersection_elem]
+                        type_intersection = flat_shapely_line.intersection(flat_shp_geom)
+                        # to distinguish between line intersections and point intersections
+                        if type_intersection.geom_type == 'Point':
+                            new_points.append(dtm_vertices[edge[0][0]])
+                            new_points.append(dtm_vertices[edge[0][1]])
+                            continue
+                        if (type_intersection.geom_type == 'GeometryCollection' or
+                                type_intersection.geom_type == 'MultiLineString'):
+                            for elem in type_intersection:
+                                if elem.geom_type == 'Point':
+                                    pass
+                                if elem.geom_type == 'LineString':
+                                    points = list(elem.coords)
+                                    if points[0] in individual_points:
+                                        ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                                       dtm_vertices[edge[0][1]], points[0])
+                                        if h_poly > ground:
+                                            new_points.append((points[0][0], points[0][1], ground))
+                                            new_points.append((points[0][0], points[0][1], h_poly))
+                                        else:
+                                            print("Roof height is lower than ground height, for building ", building)
+                                            continue
+                                    if points[1] in individual_points:
+                                        ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                                       dtm_vertices[edge[0][1]], points[1])
+                                        if h_poly > ground:
+                                            new_points.append((points[1][0], points[1][1], h_poly))
+                                            new_points.append((points[1][0], points[1][1], ground))
+                                        else:
+                                            print("Roof height is lower than ground height, for building ", building)
+                                            continue
+                        else:
+                            # It is a LineString
+                            points = list(type_intersection.coords)
+                            if points[0] in individual_points:
+                                ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                               dtm_vertices[edge[0][1]], points[0])
+                                if h_poly > ground:
+                                    new_points.append((points[0][0], points[0][1], ground))
+                                    new_points.append((points[0][0], points[0][1], h_poly))
+                                else:
+                                    print("Roof height is lower than ground height, for building ", building)
+                                    continue
+                            if points[1] in individual_points:
+                                ground = self.interpolate_edge(dtm_vertices[edge[0][0]],
+                                                               dtm_vertices[edge[0][1]], points[1])
+                                if h_poly > ground:
+                                    new_points.append((points[1][0], points[1][1], h_poly))
+                                    new_points.append((points[1][0], points[1][1], ground))
+                                else:
+                                    print("Roof height is lower than ground height, for building ", building)
+                                    continue
+                # add first endpoint of the edge if needed
+                if dtm_vertices[edge[0][0]] not in new_points and check_edge_0 is False:
+                    new_points = [dtm_vertices[edge[0][0]]] + new_points
+                # add second endpoint of the edge if needed
+                if dtm_vertices[edge[0][1]] not in new_points and check_edge_1 is False:
+                    new_points = new_points + [dtm_vertices[edge[0][1]]]
+                # sort buildings otherwise order of vertices will be wrong, check order between receiver and source
+                if dtm_vertices[0][0] - dtm_vertices[-1][0] < 0:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]])
+                elif dtm_vertices[0][0] - dtm_vertices[-1][0] == 0 and dtm_vertices[0][1] - dtm_vertices[-1][1] < 0:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]])
+                elif dtm_vertices[0][0] - dtm_vertices[-1][0] == 0 and dtm_vertices[0][1] - dtm_vertices[-1][1] > 0:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]], reverse=True)
+                else:
+                    new_points_sorted = sorted(new_points, key=lambda k: [k[0], k[1]], reverse=True)
+                for pt in new_points_sorted:
+                    count = len(cross_section_vertices)
+                    if not cross_section_vertices:
+                        cross_section_vertices.append(pt)
+                    elif cross_section_vertices[-1] == pt:
+                        pass
+                    elif ((cross_section_vertices[-1][0], cross_section_vertices[-1][1]) == (pt[0], pt[1]) and
+                          (cross_section_vertices[-2][0], cross_section_vertices[-2][1]) == (pt[0], pt[1])):
+                        cross_section_vertices = cross_section_vertices[:(count-1)]
+                        cross_section_vertices.append(pt)
+                    else:
+                        cross_section_vertices.append(pt)
+                        cross_section_edges.append((count - 1, count))
         return cross_section_vertices, cross_section_edges
 
     def get_2d_convex_hull(self):
@@ -500,14 +679,14 @@ class GroundTin:
 
 if __name__ == "__main__":
     #run in commandline = python groundTin.py ./input/sample.obj
-    filename = sys.argv[1]
+    tin_filename = sys.argv[1]
 
     #Create a 
     #ground_tin_result = GroundTin.read_from_obj("input/isolated_cubes.obj")
     #ground_tin_resultp = GroundTin.read_from_objp("input/isolated_cubes.objp")
     
     start = time()
-    ground_tin_result = GroundTin.read_from_objp(filename)
+    ground_tin_result = GroundTin.read_from_objp(tin_filename)
     time_1 = time()
     print("runtime reading obj: {:.2f} seconds".format(time_1 - start))
     #Setup dummy source and receiver points
@@ -518,12 +697,55 @@ if __name__ == "__main__":
     source = [93512.5, 441865, 3]
     receiver = [93612.2, 441885.4, 2]
 
+    building_filename = sys.argv[2]
+    build = fiona.open(building_filename)
+
+    # dsm test
+    '''triangles = [[0, 2, 1, 1, -1, -1],
+           [1, 2, 3, 2, -1, 0],
+           [2, 4, 3, 3, 1, -1],
+           [3, 4, 5, 4, -1, 2],
+           [4, 6, 5, 5, 3, -1],
+           [5, 6, 7, 6, -1, 4],
+           [6, 8, 7, 7, 5, -1],
+           [7, 8, 9, -1, -1, 6]]
+
+    vertices = [[0, 0, 0],
+                [1, 1, 1],
+                [2, 0, 1],
+                [3, 1, 0],
+                [4, 0, 1],
+                [5, 1, 1],
+                [6, 0, 0],
+                [7, 1, 1],
+                [8, 0, 0],
+                [9, 1, 0]]
+
+    ground_tin_result = GroundTin(vertices, triangles)'''
+
+
     # find source triangle
     receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)
     # Walk to source, and save passing edges
     edges, source_tr = ground_tin_result.walk_straight_to_source(source, receiver_tr)
     # interpolate height and distance
     cross_vts, cross_edgs = ground_tin_result.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
+    # to delete
+    '''cross_edgs_attr = []
+    for lin, e in enumerate(cross_edgs):
+        if lin < 6:
+            cross_edgs_attr.append([e, []])
+        elif lin == 6:
+            cross_edgs_attr.append([e, [0, 1]])
+        else:
+            cross_edgs_attr.append([e, [1]])
+    polygon_1 = [(1.8, 0.6, 0.0), (1.8, 0.2, 0.0), (2.2, 0.2, 0.0), (2.2, 0.6, 0.0), (1.8, 0.6, 0.0)]
+    polygon_2 = [(1.2, 0.2, 0.0), (1.8, 0.2, 0.0), (1.8, 0.8, 0.0), (1.2, 0.8, 0.0), (1.2, 0.2, 0.0)]
+    build = [Polygon(polygon_1), Polygon(polygon_2)]'''
+
+    # add buildings to the cross section/ edges should have attributes or equivalent check data structure
+    cross_vts_dsm, cross_edgs_dsm = ground_tin_result.create_cross_section_dsm(cross_vts, cross_edgs, build)
+
 
     time_2 = time()
     print("runtime walking: {:.2f} seconds".format(time_2 - time_1))
