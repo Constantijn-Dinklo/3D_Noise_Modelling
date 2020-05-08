@@ -28,21 +28,21 @@ def side_test(pa, pb, pc):
         """
         return ((pa[0] - pc[0]) * (pb[1] - pc[1])) - ((pb[0] - pc[0]) * (pa[1] - pc[1]))
     
-def write_cross_section_to_obj(obj_filename, cross_edges, cross_vts):
+def write_cross_section_to_obj(obj_filename, cross_edges, cross_vts, vertices=[], trs=[]):
     print("=== Writing {} ===".format(obj_filename))
 
     f_out = open(obj_filename, 'w')
     for v in vertices:
         f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
     for v in cross_vts:
-        f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
+        #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
+        f_out.write("v {:.3f} {:.3f} {:.3f}\n".format(v[0], v[1], v[2]))
+        
 
     f_out.write("o 0\n")
 
     for tr in trs:
-        tr[0] += 1
-        tr[1] += 1
-        tr[2] += 1
+        tr += 1
         f_out.write("f " + str(tr[0]) + " " + str(tr[1]) + " " + str(tr[2]) + "\n")
 
     f_out.write("l")
