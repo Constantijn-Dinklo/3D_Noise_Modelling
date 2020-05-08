@@ -1,14 +1,20 @@
 
 import misc
 import numpy as np
+import time
+import sys
 
 from scipy.spatial import ConvexHull
+from scipy.spatial import KDTree
+
 
 class GroundTin:
     
     def __init__(self, vts, trs):
         self.vts = np.array(vts)
         self.trs = np.array(trs)
+        
+        self.kd_vts = KDTree(self.vts)
 
         self.bounding_box_2d = [100000000, 100000000, -100000000, -100000000]
         self.bounding_box_3d = [100000000, 100000000, 100000000, -100000000, -100000000, -100000000]
@@ -374,6 +380,65 @@ class GroundTin:
 
         return ground_tin
 
+    @staticmethod
+    def read_from_objp(file_path):
+        """
+        Explination: Read an objp file and make a tin from it.
+        ---------------
+        Input:
+            file_path : string - The path to the obj file.
+        ---------------
+        Output:
+            ground_tin : GroundTin - The tin that was created from the obj file input.
+        """
+
+        vertices = []
+        triangles = []
+        trs_classes = []
+
+        min_values = [100000000, 100000000, 100000000]
+        max_values = [-100000000, -100000000, -100000000]
+
+        total_list_create_time = 0
+        total_class_create_time = 0
+
+        #Read the file and store all the vertices and triangles
+        with open(file_path, 'r') as input_file:
+
+            lines = input_file.readlines()
+
+            for line in lines:
+                line_elements = line.split(' ')
+                if line_elements[0] == 'v':
+                    x = float(line_elements[1])
+                    y = float(line_elements[2])
+                    z = float(line_elements[3])
+                    vertex = [x, y, z]
+                    vertices.append(vertex)
+                    for i in range(0, 3):
+                        if vertex[i] < min_values[i]:
+                            min_values[i] = vertex[i]
+                        if vertex[i] > max_values[i]:
+                            max_values[i] = vertex[i]
+                
+                if line_elements[0] == 'f':
+                    v1 = int(line_elements[1]) - 1
+                    v2 = int(line_elements[2]) - 1
+                    v3 = int(line_elements[3]) - 1
+                    a1 = int(line_elements[4]) - 1
+                    a2 = int(line_elements[5]) - 1
+                    a3 = int(line_elements[6]) - 1
+
+                    triangle = [v1, v2, v3, a1, a2, a3, np.array([100, 100]), 100, 100]
+                    
+                    triangles.append(triangle)
+        
+        ground_tin = GroundTin(vertices, triangles, trs_classes)
+        ground_tin.bounding_box_2d = [min_values[0], min_values[1], max_values[0], max_values[1]]
+        ground_tin.bounding_box_3d = [min_values[0], min_values[1], min_values[2], max_values[0], max_values[1], max_values[2]]
+
+        return ground_tin
+
     def write_to_obj(self, file_path):
         """
         Explination: Writes out the tin to an obj file.
@@ -415,6 +480,7 @@ if __name__ == "__main__":
 
     #Create a 
     ground_tin_result = GroundTin.read_from_obj("input/isolated_cubes.obj")
+    ground_tin_resultp = GroundTin.read_from_objp("input/isolated_cubes.objp")
 
     #Setup dummy source and receiver points
     source = [0.75, 0.1, 0]
