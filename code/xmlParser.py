@@ -1,6 +1,7 @@
 import xml.etree.cElementTree as ET
 import numpy as np
-
+import bisect
+import misc
 # to be removed later, for debugging
 import matplotlib.pyplot as plt
 
@@ -9,6 +10,7 @@ class XmlParser:
     def __init__(self, vts, srs, rec):
         self.vts_xyz = np.array(vts)
         self.vts_dz = []
+        self.vts_dx_simplified = []
 
         self.source_height = srs[2] - vts[0][2]
         self.receiver_height = rec[2] - vts[-1][2]
@@ -37,8 +39,74 @@ class XmlParser:
         # stack the diagonal distance with the height
         self.vts_dz = np.vstack((D, self.vts_xyz[:,2])).T
 
-    def douglas_Peucker(self):
-        pass
+    def get_offsets_perpendicular(self, start, end):
+        """
+        Explination:
+            calculates the perpendicular distance from points to the the line
+        ---------------
+        Input: 
+            Start = id of the start point
+            end = id of the end point
+        ---------------
+        Output: 
+            List of distances
+        """
+        p_start = self.vts_dz[start]
+        p_end = self.vts_dz[end]
+        line_length = ((p_end[1] - p_start[1]) ** 2 + (p_end[0] - p_start[0]) ** 2) ** 0.5
+        offsets = []
+
+        for id in range(start+1, end):
+            # do side test (return lenght of line x perpendicualr distace) so devide it by the length and voila
+            diff = abs(misc.side_test(p_start, p_end, self.vts_dz[id])) / line_length
+            offsets.append(diff)
+
+        return np.array(offsets)
+
+    def douglas_Peucker(self, threshold):
+        """
+        Explination:
+            simplifies the path using the dougles peucker algorithm
+        ---------------
+        Input:
+            Threshold = maximum distance for point that can be deleted.
+        ---------------
+        Output: void (fills the self.vts_dz_simplified list)
+        """
+        # initalize simple path first first and last point
+        simplified_path = [0, len(self.vts_dz)-1]
+
+        not_done = True
+        while(not_done):
+            not_done = False
+            
+            inserted_markers = []
+            # for each validated line segment
+            for i in range(len(simplified_path)-1):
+                # start and end point of a segment
+                start = simplified_path[i]
+                end = simplified_path[i+1]
+                # if there is no point in between, skip it
+                if(end - start < 2): continue
+
+                # Get the offset between the line from start to end, and the points in between
+                offsets = self.get_offsets_perpendicular(start, end)
+
+                # get the id of the highest offset
+                id_max = np.argmax(offsets)
+
+                # Check if the offset is above the treshold, if so, add the point to the list
+                if(offsets[id_max] > threshold):
+                    # Make sure to get the right id, id_max starts at 0, but 0 is already 1 further than the start point.
+                    inserted_markers.append(id_max + start + 1) # 
+                    not_done = True
+            # Update the marker list, and keep the list sorted (always increasing)
+            for marker in inserted_markers:
+                bisect.insort(simplified_path, marker)
+
+        # add the values of the simplified list to the class variable.
+        self.vts_dx_simplified = np.array([self.vts_dz[id] for id in simplified_path])
+                    
 
     def write_xml(self, filename):
         """
@@ -113,6 +181,7 @@ class XmlParser:
         # plot the lines for both input and translated lines
         #plt.plot(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
         plt.plot(abs(self.vts_dz[:,0]), abs(self.vts_dz[:,1]))
+        plt.plot(abs(self.vts_dx_simplified[:,0]), abs(self.vts_dx_simplified[:,1]))
         
         plt.show()
 
@@ -141,9 +210,11 @@ if __name__ == "__main__":
     xml_section = XmlParser(vertices, source, receiver)
     xml_section.set_coordinates_local()
     xml_section.unfold_straight_path()
-    xml_section.write_xml("test.xml")
+    xml_section.douglas_Peucker(0.3)
 
-    # xml_section.visualize_path()
+    #xml_section.write_xml("test.xml")
+
+    xml_section.visualize_path()
 
     # test with CNOSSOS like this:
     # put the produced xml file in the CNOSSOS/code / data folder adn run:
