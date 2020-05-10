@@ -1,66 +1,58 @@
 # Generate sources and receivers
 import math
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Read the GML file
-tree = ET.parse('./input/wegvakgeografie_simplified.gml')
-root = tree.getroot()
-line_segments = []
-structured_segments = []
+hard_coded_source = (93550, 442000)
 
-# Creates a list with line segments
-for child in root.iter():
-    if 'coordinates' in child.tag:
-        coordinates = child.text
-        line = coordinates.split()
-        line_segments.append(line)
-        for elem in line_segments:
-            if len(elem) > 2:
-                for i in range(len(elem)):
-                    if i < (len(elem)-1):
-                        first_el = elem[i]
-                        second_el = elem[i + 1]
-                        line_segments.append([first_el, second_el])
-                line_segments.remove(elem)
+def read_gml(path):
+    # input: path to a xml file
+    # output: returns the roots of the xml file
+    tree = ET.parse(path)
+    root = tree.getroot()
+    return root
 
-temp_point = [ ]
-structured_lines = [ ]
-# input is a list with line segments
-# output is a single line segment that can be tested for intersection
-for segment in line_segments:
-    for point in segment:
-        coord = point.split(',')
-        gml_point = [coord[0], coord[1]]
-        if len(temp_point) < 2:
-            temp_point.append(gml_point)
-        if len(temp_point) == 2:
-            #print([temp_point[0], temp_point[1]])
-            structured_lines.append([temp_point[0], temp_point[1]])
-            temp_point.clear()
-
-angle = 2.0 * (math.pi / 180) 
-cnossos_radius = 2000.0
-base_angle = 0.0
-lines_per_circle = [ ]
-angle_st = 2.0
-start_st = 0.0
-
-hard_coded_source = [93450, 445000]
-hard_coded_line = [[93450, 445000], [94500, 43500]]
+structured_segments = [ ]
+def return_segments_source(root):
+    line_string = [ ] # replace lists inside function
+    line_float = [ ]
+    line_segments = [ ]
+    # input: root of the xml file
+    # output: list of line segments consisting of two points, however format not correct yet
+    for child in root.iter():
+        if "coordinates" in child.tag:
+            coordinates = child.text
+            line_string = coordinates.split()
+            if len(line_string) > 1:
+                for point in line_string:
+                    coord = point.split(',') 
+                    line_float.append((float(coord[0]), float(coord[1])))
+                for i in range(len(line_float)-1):
+                    first_el = line_float[i]
+                    second_el = line_float[i + 1]
+                    line = (first_el, second_el)
+                    if line not in line_segments:
+                        line_segments.append((first_el, second_el))
+    return line_segments
 
 def return_points_circle(centre, radius, radians):
-    # input = receiver point, radius and the angle size
-    # output = next point on circumsfere
+    # input: receiver point [x, y], radius and the angle size
+    # output: next point on circumsfere [x, y]
     x_next = centre[0] + radius * math.cos(radians)
     y_next = centre[1] + radius * math.sin(radians)
     next_point = [x_next, y_next]
     return next_point
 
+angle = 2.0 * (math.pi / 180) 
+cnossos_radius = 100.0
+base_angle = 0.0
+angle_st = 2.0
+start_st = 0.0
 def return_line_segments_receiver(centre, start, step, base):
-    # input = receiver point
-    # output = all receiver line segments
+    # input: receiver point [x, y], start, step size, basis angle in degrees
+    # output: a list of all receiver line segments
+    lines_per_circle = [ ]
     while start < 360:
         next_angle = base * (math.pi / 180)
         following = return_points_circle(hard_coded_source, cnossos_radius, next_angle)
