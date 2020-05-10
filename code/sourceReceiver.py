@@ -61,46 +61,63 @@ def return_line_segments_receiver(centre, start, step, base):
         start += step
     return lines_per_circle
 
-intersected_points = [ ]
-def return_point_intersection(line1, line2):
-    # input = two line segments, line1 = (p1, p2), line2 = (p3, p4)
-    # output = intersection point of the two line segments
-    xdiff = (float(line1[0][0]) - float(line1[1][0]), float(line2[0][0]) - float(line2[1][0]))
-    ydiff = (float(line1[0][1]) - float(line1[1][1]), float(line2[0][1]) - float(line2[1][1]))
-
-    def det(a, b):
-        return float(a[0]) * float(b[1]) - float(a[1]) * float(b[0])
-
-    div = det(xdiff, ydiff)
-    d = (det(*line1), det(*line2))
-    if div != 0:
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
-        return [x, y]
+def line_intersect(line1, line2):
+    # input: line1 is the receiver line segments, line2 is the source line segment
+    # output: intersection point in a tuple
+    d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (line1[1][1] - line1[0][1])
+    if d:
+        uA = ((line2[1][0] - line2[0][0]) * (line1[0][1] - line2[0][1]) - (line2[1][1] - line2[0][1]) * (line1[0][0] - line2[0][0])) / d
+        uB = ((line1[1][0] - line1[0][0]) * (line1[0][1] - line2[0][1]) - (line1[1][1] - line1[0][1]) * (line1[0][0] - line2[0][0])) / d
+    else:
+        return
+    if not(0 <= uA <= 1 and 0 <= uB <= 1):
+        return
+    x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
+    y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
+    return x, y
 
 dict_intersection = { }
 list_intersection = [ ]
-count = 0
+def return_dictionary(receiver_list, source_list):
+    # input: two lists of line segments
+    # output: a dictionary in which the receiver point is the key and a list of intersection points as the corresponding value
+    for circle_line in receiver_list:
+        for struct_line in source_list:
+            point_intersection = line_intersect(circle_line, struct_line)
+            if point_intersection not in list_intersection and point_intersection is not None:
+                list_intersection.append(point_intersection)
 
-# Check for every source line segment whether it intersects with source line segments
-hard_coded_lines = return_line_segments_receiver(hard_coded_source, start_st, angle_st, base_angle)
-#print("circle lines", hard_coded_lines)
-#print("structured_lines", structured_lines)
-for circle_line in hard_coded_lines:
-    for struct_line in structured_lines:
-        #print("circle line:", circle_line, "with struct line:", struct_line)
-        point_intersection = return_point_intersection(circle_line, struct_line)
-        #print("this is their intersection:", intersection)
-        if point_intersection not in list_intersection and point_intersection is not None:
-            list_intersection.append(point_intersection)
+    dict_intersection[hard_coded_source] = list_intersection
+    return dict_intersection
 
-# Save all the intersection points in dictionary
-hard_coded_source = tuple(hard_coded_source)
-dict_intersection[hard_coded_source] = list_intersection
-list_intersection = np.array(list_intersection)
-#print(list_intersection[:,1])
+if __name__ == '__main__':
+    doc = read_gml('/Users/mprusti/Documents/geo1101/wegvakgeografie_simplified.gml') # now local, should be global in future
+    line_lst = return_segments_source(doc) # check
+    hard_coded_source_lines = return_line_segments_receiver(hard_coded_source, start_st, angle_st, base_angle) # check
+    intersected = return_dictionary(hard_coded_source_lines, line_lst)
 
-plt.scatter(hard_coded_source[0], hard_coded_source[1])
-plt.scatter(list_intersection[:,0], list_intersection[:,1])
+    # Plot the source line segments
+    x_source = [ ]
+    y_source = [ ]
+    for ln in line_lst:
+        x_source.append(ln[0][0])
+        x_source.append(ln[1][0])
+        y_source.append(ln[0][1])
+        y_source.append(ln[1][1])
+    plt.plot(x_source, y_source, c='g')
 
-plt.show()
+    # Plot the receiver line segments
+    x_receiver = [ ]
+    y_receiver = [ ]
+    for lne in hard_coded_source_lines:
+        x_receiver.append(lne[0][0])
+        x_receiver.append(lne[1][0])
+        y_receiver.append(lne[0][1])
+        y_receiver.append(lne[1][1])
+    plt.plot(x_receiver, y_receiver, c='b')
+
+    # Plot the intersection points
+    list_intersected = np.array(intersected.get(hard_coded_source))
+    plt.scatter(list_intersected[:,0], list_intersected[:,1], c='r')
+
+    plt.show()
