@@ -113,19 +113,29 @@ def get_paths(dictionary):
     Output:
     """
     for receiver in r_dict:
+        dictionary[receiver] = {}
         for source in s_dict:
+            sources_dictionary = { }
+            dictionary[receiver][source] = sources_dictionary
             r = r_dict[receiver]
             s = s_dict[source]
             for bag_id in f_dict:
+                bag_dictionary = { }
+                dictionary[receiver][source][bag_id] = bag_dictionary
+                hoogte_abs = f_dict[bag_id]['hoogte_abs']
+                dictionary[receiver][source][bag_id]['hoogte_abs'] = hoogte_abs
+                paths = [ ]
                 walls = f_dict[bag_id]['walls']
                 for wall in walls:
                     s_mirror = get_mirror_point(s,get_line_equation(wall[0],wall[1]))
                     ref = get_intersection(wall,[s_mirror,r])
                     bbox = get_bbox(wall)
                     if ref[0] > bbox[0] and ref[0] < bbox[1] and ref[1] > bbox[2] and ref[1] < bbox[3]:
-                        rays = [s,ref], [ref,r]
+                        ray = [s, ref, r]
+                        paths.append(ray)
+                dictionary[receiver][source][bag_id]['paths'] = paths
 
-def write_output(output_file):
+def write_output(output_file,dictionary):
     """
     Explination:
     Input:
@@ -139,22 +149,24 @@ if __name__ == "__main__":
     r_dict = { }
     p_dict = { }
     read_buildings('file:///Users/denisgiannelli/Desktop/Buildings1.gpkg',f_dict)
-    print()
-    for key in f_dict:
-        print('key')
-        print(key)
-        print('hoogte_abs')
-        print(f_dict[key]['hoogte_abs'])
-        print('walls')
-        for wall in f_dict[key]['walls']:
-            print(wall)
-        print()
+    #print()
+    #for key in f_dict:
+    #    print('key')
+    #    print(key)
+    #    print('hoogte_abs')
+    #    print(f_dict[key]['hoogte_abs'])
+    #    print('walls')
+    #    for wall in f_dict[key]['walls']:
+    #        print(wall)
+    #    print()
     read_points('file:///Users/denisgiannelli/Desktop/Sources1.gpkg',s_dict)
-    print(s_dict)
-    print()
+    #print(s_dict)
+    #print()
     read_points('file:///Users/denisgiannelli/Desktop/Receivers1.gpkg',r_dict)
-    print(r_dict)
-    print()
+    #print(r_dict)
+    #print()
     get_paths(p_dict)
     print()
     print(p_dict)
+    print()
+    #write_output('',p_dict)
