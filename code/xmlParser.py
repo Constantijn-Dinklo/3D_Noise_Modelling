@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 class XmlParser:
     
     def __init__(self, vts, srs, rec):
-        self.vts_xyz = np.array(vts)
-        self.vts_dz = []
-        self.vts_dx_simple = []
+        self.vts = np.array(vts)
+        self.vts_simple = []
 
         self.source_height = srs[2] - vts[0][2]
         self.receiver_height = rec[2] - vts[-1][2]
@@ -23,7 +22,7 @@ class XmlParser:
         ---------------
         Output: void
         """
-        self.vts_xyz -= self.vts_xyz[0]
+        self.vts -= self.vts[0]
 
     def unfold_straight_path(self):
         """
@@ -34,10 +33,12 @@ class XmlParser:
         Output: void (fills self.vts_dz)
         """
         # calc the diagonal distance for all vertices
-        D = (self.vts_xyz[:,0] ** 2 + self.vts_xyz[:,1] ** 2) ** 0.5
+        d = (self.vts[:,0] ** 2 + self.vts[:,1] ** 2) ** 0.5
+
+        y = np.zeros(len(self.vts), dtype=float)
 
         # stack the diagonal distance with the height
-        self.vts_dz = np.vstack((D, self.vts_xyz[:,2])).T
+        self.vts = np.vstack((d, y, self.vts[:,2])).T
 
     def get_offsets_perpendicular(self, start, end):
         """
@@ -51,31 +52,24 @@ class XmlParser:
         Output: 
             List of distances
         """
-        p_start = self.vts_dz[start]
-        p_end = self.vts_dz[end]
-        line_length = ((p_end[1] - p_start[1]) ** 2 + (p_end[0] - p_start[0]) ** 2) ** 0.5
+        p_start = self.vts[start]
+        p_end = self.vts[end]
+        line_length = ((p_end[2] - p_start[2]) ** 2 + (p_end[0] - p_start[0]) ** 2) ** 0.5
         offsets = []
 
         for id in range(start+1, end):
             # do side test (return lenght of line x perpendicualr distace) so devide it by the length and voila
-            diff = abs(misc.side_test(p_start, p_end, self.vts_dz[id])) / line_length
+            diff = abs(misc.side_test((p_start[0], p_start[2]), (p_end[0], p_end[2]), (self.vts[id,0], self.vts[id,2]))) / line_length
             offsets.append(diff)
 
         return np.array(offsets)
 
     def douglas_Peucker(self, threshold):
         # initalize simple path first first and last point
-        path_simple = [0, len(self.vts_dz)-1]
+        path_simple = [0, len(self.vts)-1]
         i = 0
 
-        while(True):
-            print(i)
-            # if we reach the end of the path, we are done.
-            if(i == len(path_simple) - 1): 
-                # add the values of the simplified list to the class variable.
-                self.vts_dx_simple = np.array([self.vts_dz[id] for id in path_simple])
-                return
-
+        while(i < len(path_simple) - 1):
             start = path_simple[i]
             end = path_simple[i+1]
 
@@ -92,11 +86,13 @@ class XmlParser:
             # Check if the offset is above the treshold, if so, add the point to the list
             if(offsets[id_max] > threshold):
                 # Make sure to get the right id, id_max starts at 0, but 0 is already 1 further than the start point.
-                bisect.insort(path_simple, (id_max + start + 1)) # 
+                path_simple.insert(i+1, id_max + start + 1)
             else:
                 i += 1
+        
+        self.vts_simple = np.array([self.vts[id] for id in path_simple])
                     
-    def write_xml(self, filename):
+    def write_xml(self, filename, validate):
         """
         Explination:
             1. create a element tree and set general information
@@ -115,20 +111,28 @@ class XmlParser:
 
         # Set the Method (same for all)
         ET.SubElement(method, "select", id="JRC-2012")
+
+        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input it horizontal and orientation is correct
+        if(not validate):
+            options = ET.SubElement(method, "options")
+            ET.SubElement(options, "option", id="CheckHorizontalAlignment", value="false")
+            ET.SubElement(options, "option", id="ForceSourceToReceiver", value="false")
+
         meteo = ET.SubElement(method, "meteo", model="DEFAULT")
         ET.SubElement(meteo, "pFav").text = "0.3"
         
         # create the path
         path = ET.SubElement(root, "path")
 
-        for point in self.vts_dz:
+        for point in self.vts:
             # create a control point
             cp = ET.Element("cp")
 
             # insert the pos (position)
             pos = ET.SubElement(cp, "pos")
             ET.SubElement(pos, "x").text = str(point[0])
-            ET.SubElement(pos, "z").text = str(point[1])
+            ET.SubElement(pos, "y").text = str(point[1])
+            ET.SubElement(pos, "z").text = str(point[2])
 
             # Insert the material
             ET.SubElement(cp, "mat", id="H")
@@ -163,13 +167,13 @@ class XmlParser:
         """
         # plot input points, and both source and receiver
         #plt.scatter(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.scatter(0, self.vts_dz[0,1] + self.receiver_height)
-        plt.scatter(abs(self.vts_dz[-1,0]), self.vts_dz[-1,1] + self.source_height)
+        plt.scatter(0, self.vts[0,2] + self.receiver_height)
+        plt.scatter(abs(self.vts[-1,0]), self.vts[-1,2] + self.source_height)
         
         # plot the lines for both input and translated lines
         #plt.plot(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.plot(abs(self.vts_dz[:,0]), abs(self.vts_dz[:,1]))
-        plt.plot(abs(self.vts_dx_simple[:,0]), abs(self.vts_dx_simple[:,1]))
+        plt.plot(abs(self.vts[:,0]), abs(self.vts[:,2]))
+        #plt.plot(abs(self.vts_simple[:,0]), abs(self.vts_simple[:,2]))
         
         plt.show()
 
@@ -197,10 +201,13 @@ if __name__ == "__main__":
 
     xml_section = XmlParser(vertices, source, receiver)
     xml_section.set_coordinates_local()
+
+    # For direct path only:
     xml_section.unfold_straight_path()
+
     xml_section.douglas_Peucker(0.3)
 
-    #xml_section.write_xml("test.xml")
+    xml_section.write_xml("test.xml", True)
 
     xml_section.visualize_path()
 
