@@ -1,6 +1,7 @@
 import math
 import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import numpy as np
 
 class ReceiverPoint:
@@ -34,6 +35,9 @@ class ReceiverPoint:
         Output:
         list : a list of all the coordinates are saved as (x, y), line segments with every next point in list
         """
+        count = 0
+        sets = [ ]
+        all_points = [ ]
         line_string = [ ]
         line_float = [ ]
         line_segments = [ ]
@@ -44,13 +48,23 @@ class ReceiverPoint:
                 if len(line_string) > 1:
                     for point in line_string:
                         coord = point.split(',') 
-                        line_float.append((float(coord[0]), float(coord[1])))
-                    for i in range(len(line_float)-1):
-                        first_el = line_float[i]
-                        second_el = line_float[i + 1]
-                        line = (first_el, second_el)
-                        if line not in line_segments:
-                            line_segments.append((first_el, second_el))
+                        sets.append((float(coord[0]), float(coord[1])))
+                        all_points.append((float(coord[0]), float(coord[1])))
+                        count += 1
+                        if len(line_string) == count:
+                            line_float.append(sets)
+                            count = 0
+                            sets = [ ]
+        for elem in line_float:
+            if len(elem) == 2:
+                line_segments.append(elem)
+            if len(elem) > 2:
+                for i in range(len(elem) -1):
+                    first_el = elem[i]
+                    next_el = elem[i + 1]
+                    new_elem = first_el, next_el
+                    line_segments.append([first_el, next_el])
+        #print(line_segments)
         return line_segments
 
     def return_points_circle(self, radius, radians):
@@ -148,26 +162,41 @@ if __name__ == '__main__':
     cnossos_angle = 2.0 * (math.pi / 180)
 
     doc = ReceiverPoint.read_gml('/Users/mprusti/Documents/geo1101/wegvakgeografie_simplified.gml') # eventually global, now local
-    receiver_lines = ReceiverPoint.return_segments_source(doc)
-    source_lines = ReceiverPoint.return_segments_receiver(hard_coded_source)
-    intersected = ReceiverPoint.return_dictionary(source_lines, receiver_lines)
+    source_lines = ReceiverPoint.return_segments_source(doc)
+    #receiver_lines = ReceiverPoint.return_segments_receiver(hard_coded_source)
+    #intersected = ReceiverPoint.return_dictionary(source_lines, receiver_lines)
     #print(intersected)
 
     
     # Plot the source line segments
     x_source = [ ]
     y_source = [ ]
-    for ln in receiver_lines:
+    for ln in source_lines:
+        print("ln", ln)
         x_source.append(ln[0][0])
         x_source.append(ln[1][0])
         y_source.append(ln[0][1])
         y_source.append(ln[1][1])
-    plt.plot(x_source, y_source, c='g')
+        #print("x", x_source)
+        #print("y", y_source)
 
+        #x_source = [ ]
+        #y_source = [ ]
+
+    #fig, ax = plt.subplots()
+    #ax.set_xlim(x.min(), x.max())
+    #ax.set_ylim(ys.min(), ys.max()) 
+    #print("x", x_source)
+    #print("y", y_source)
+    #source_line_segments = LineCollection(source_lines)
+    #ax.add_collection(source_line_segments)
+    #plt.scatter(x_source, y_source, c='g')
+    plt.show()
+    """
     # Plot the receiver line segments
     x_receiver = [ ]
     y_receiver = [ ]
-    for lne in source_lines:
+    for lne in receiver_lines:
         x_receiver.append(lne[0][0])
         x_receiver.append(lne[1][0])
         y_receiver.append(lne[0][1])
@@ -177,5 +206,5 @@ if __name__ == '__main__':
     # Plot the intersection points
     list_intersected = np.array(intersected.get(hard_coded_source))
     plt.scatter(list_intersected[:,0], list_intersected[:,1], c='r')
-
-    plt.show()
+    """
+    
