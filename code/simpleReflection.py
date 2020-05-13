@@ -1,6 +1,5 @@
 import fiona
 import math
-import matplotlib.pyplot as plt
 
 class ReflectionPath:
 
@@ -11,10 +10,12 @@ class ReflectionPath:
 
     def get_line_equation(self,p1,p2):
         """
-        Explanation:
-        A function that reads two points and returns the ABC parameters of the line composed by these points.
+        Explanation:A function that reads two points and returns the ABC parameters of the line composed by these points.
+        ---------------
         Input:
-        p1 [x(float),y(float)] and p2 [x(float),y(float)]
+        p1 [x(float),y(float)]
+        p2 [x(float),y(float)]
+        ---------------
         Output:
         parameters [a_norm(float),b_norm(float),c_norm(float)]
         """
@@ -34,11 +35,12 @@ class ReflectionPath:
 
     def get_mirror_point(self,p1,parameters):
         """
-        Explanation:
-        A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
+        Explanation: A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
+        ---------------
         Input:
         p1 [x(float),y(float)]
         parameters [a_norm(float),b_norm(float),c_norm(float)]
+        ---------------
         Output:
         p_mirror [x(float),y(float)]
         """
@@ -48,111 +50,89 @@ class ReflectionPath:
         p_mirror_y = p1[1] - 2*parameters[1]*d
         return [p_mirror_x,p_mirror_y]
 
-    def get_intersection(self,line1,line2):
+    def line_intersect(self, line1, line2):
         """
-        Explanation:
-        A function that takes two lines and returns the interesection point between them.
+        Explanation: this functions returns the intersection points (source points) of both lines
+        ---------------
         Input:
-        line 1 [[x1(float),y1(float)],[x2(float),y2(float)]]
-        line 2 [[x3(float),y3(float)],[x4(float),y4(float)]]
+        line1: the line segment of the receiver point
+        line2: the line segment of the source
+        ---------------
         Output:
-        point [x(float),y(float)]
+        point : it returns the point where both line segments intersect
         """
-        xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-        ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
-
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
-
-        div = det(xdiff, ydiff)
-        if div == 0:
-            raise Exception('lines do not intersect')
-
-        d = (det(*line1), det(*line2))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
+        d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (line1[1][1] - line1[0][1])
+        if d:
+            uA = ((line2[1][0] - line2[0][0]) * (line1[0][1] - line2[0][1]) - (line2[1][1] - line2[0][1]) * (line1[0][0] - line2[0][0])) / d
+            uB = ((line1[1][0] - line1[0][0]) * (line1[0][1] - line2[0][1]) - (line1[1][1] - line1[0][1]) * (line1[0][0] - line2[0][0])) / d
+        else:
+            return False
+        if not(0 <= uA <= 1 and 0 <= uB <= 1):
+            return False 
+        x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
+        y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
         return [x,y]
 
-    def get_bbox(self,line):
+    def orientation_test(self, a, b, p):
         """
-        Explanation:
-        A function that takes a line and computes the bounding box of its geometry.
+        Explination: An auxiliary function that tests in which side of a line segment a point lies into.
+        ---------------
         Input:
-        line 1 [[x1(float),y1(float)],[x2(float),y2(float)]]
+        AB is the line segment and P is the point.
+        For, A, B and P: [x(float),y(float)]
+        ---------------
         Output:
-        bbox [x_min(float),x_max(float),y_min(float),y_max(float)]
+        'value': a float number that can be positive / zero / negative.
         """
-        p1 = line[0]
-        p2 = line[1]
-        x_min = min(p1[0],p2[0])
-        x_max = max(p1[0],p2[0])
-        y_min = min(p1[1],p2[1])
-        y_max = max(p1[1],p2[1])
-        bbox = [x_min,x_max,y_min,y_max]
-        return bbox
+        value = ( a[0]*b[1] + a[1]*p[0] + b[0]*p[1] ) - ( b[1]*p[0] + a[0]*p[1] + a[1]*b[0] )
+        return value
 
-    def get_paths(self,dictionary):
+    def get_paths(self,source,receiver):
         """
-        Explanation:
-        A function that reads receivers, sources and walls and computes 1ST-ORDER propagation paths for each pair of
-        source and receiver, according to the walls that (eventually) present a reflection point in its 2D line.
+        Explanation: A function that reads a source point and a receiver and computes all possible first-order reflection paths,
+        according to buildings that are stored in f_dict (separate dictionary)
+        ---------------        
         Input:
-        dictionary: an empty 'p_dict' dictionary in __main__, which will be filled with the info about the path
-        p_dict = {
-                receiver = { 
-                    source = { 
-                        bag_id = { 
-                            'hoogte_abs' = float
-                            'paths' = [ [sx,xy], [refx,refy], [rx,ry] ]
-                                }
-                            }
-                            }
-                }
+        source [x,y]
+        receiver [x,y]
+        ---------------
         Output:
-        void.
+        A list of all (independent) points that are capable of reflecting the sound wave from source to receiver.:
+        l = [ [ p1, p2, p3, .... pn ] , [ h1, h2, h3, .... hn ] ]
+        such that:
+        p = [x(float),y(float)]
+        h = value(float)
+        the n-th element of "p_list" corresponds to the n-th element of "h_list".
         """
-        for receiver in r_dict:
-            dictionary[receiver] = {}
-            for source in s_dict:
-                sources_dictionary = { }
-                dictionary[receiver][source] = sources_dictionary
-                r = r_dict[receiver]
-                s = s_dict[source]
-                for bag_id in f_dict:
-                    bag_dictionary = { }
-                    dictionary[receiver][source][bag_id] = bag_dictionary
-                    hoogte_abs = f_dict[bag_id]['hoogte_abs']
-                    dictionary[receiver][source][bag_id]['hoogte_abs'] = hoogte_abs
-                    paths = [ ]
-                    walls = f_dict[bag_id]['walls']
-                    for wall in walls:
-                        s_mirror = self.get_mirror_point(s,self.get_line_equation(wall[0],wall[1]))
-                        ref = self.get_intersection(wall,[s_mirror,r])
-                        bbox = self.get_bbox(wall)
-                        if ref[0] > bbox[0] and ref[0] < bbox[1] and ref[1] > bbox[2] and ref[1] < bbox[3]:
-                            ray = [s, ref, r]
-                            paths.append(ray)
-                    dictionary[receiver][source][bag_id]['paths'] = paths
-
-    def write_output(self,output_file,dictionary):
-        """
-        Explanation:
-        A function that reads a dictionary and write a 'gml' file as an output.
-        Input:
-        output_file: the directory/file that will be written as an output.
-        p_dict in __main__, containing the geometry of the line segments.
-        Output:
-        void
-        """
-        
+        s = receiver    # [x,y,(z)]
+        r = source      # [x,y,(z)]
+        coords   = [ ]
+        heights  = [ ]
+        for bag_id in f_dict:
+            hoogte_abs = f_dict[bag_id]['hoogte_abs']
+            walls = f_dict[bag_id]['walls']
+            for wall in walls:
+                test_r = self.orientation_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
+                test_s = self.orientation_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
+                if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
+                    s_mirror = self.get_mirror_point(s,self.get_line_equation(wall[0],wall[1]))
+                    ref = self.line_intersect(wall,[s_mirror,r])
+                    if type(ref) == list:
+                        coords.append(ref)
+                        heights.append(hoogte_abs)
+                        ref_z = ref
+                        ref_z.append(hoogte_abs)
+                        p_list.append([s,ref_z,r])
+        return [ coords, heights ] #[ [p1, p2, ..., pn], [h1, h2, ..., hn] ] 
 
 def read_buildings(input_file,dictionary):
     """
-    Explanation:
-    A function that reads footprints and stores all walls as [p1,p2] and absolute heights (float) of these.
+    Explanation: A function that reads footprints and stores all walls as [p1,p2] and absolute heights (float) of these.
+    ---------------
     Input:
     input_file: a .gpkg file containing the footprints of the buildings.
     dictionary: an empty 'f_dict' dictionary in __main__
+    ---------------
     Output:
     void.
     """
@@ -176,11 +156,12 @@ def read_buildings(input_file,dictionary):
 
 def read_points(input_file,dictionary):
     """
-    Explanation:
-    A function that reads points and store their ids (int) and coordinates as [x,y].
+    Explanation: A function that reads points and store their ids (int) and coordinates as [x,y].
+    ---------------
     Input:
     input_file: a .gpkg file containing the points (with z coordinates)
     dictionary: an empty dictionary in __main__ (either s_dict for sources or r_dict for receivers)
+    ---------------
     Output:
     void.
     """
@@ -188,18 +169,58 @@ def read_points(input_file,dictionary):
         for feature in layer:
             source_id = feature['properties']['id']
             coord_object = list(feature['geometry']['coordinates'])
-            dictionary[source_id] = coord_object[:len(coord_object)-1]
+            dictionary[source_id] = coord_object#[:len(coord_object)-1]
     layer.close()
+
+def write_output(output_file,lista):
+    """
+    Explanation: A function that writes a CSV file with the reflected paths. It is used for visualising the paths in QGIS.
+    ---------------
+    Input:
+    output_file: the directory/name of the csv file to be created.
+    lista: a list containing all the 1st order propagation paths in the following schema:
+    [ [source_x, source_y, source_z,] , [reflection_x, reflection_y, hoogte_abs], [receiver_x, receiver_y, receiver_z] ] 
+    ---------------
+    Output:
+    void.
+    """
+    fout = open(output_file,'w')
+    line = 'fid \t geometry \n'
+    fout.write(str(line))
+    count = 0
+    for path in lista:
+        count += 1
+        sou = path[0]
+        ref = path[1]
+        rec = path[2]
+        line = '%d \t MultiLineStringZ ((%f %f %f, %f %f %f, %f %f %f)) \n' % (count,sou[0],sou[1],sou[2],ref[0],ref[1],0,rec[0],rec[1],rec[2]) 
+        fout.write(line)
+    fout.close()
+    #MultiLineStringZ ((93528.02305619 441927.11005859 2.5, 93567.67848824 441908.81858497 0, 93539.68248698 441892 1.4))
 
 if __name__ == "__main__":
     f_dict = { }
     s_dict = { }
     r_dict = { }
-    p_dict = { }
-    read_buildings('file:///Users/denisgiannelli/Desktop/Buildings1.gpkg',f_dict)
-    read_points('file:///Users/denisgiannelli/Desktop/Sources1.gpkg',s_dict)
-    read_points('file:///Users/denisgiannelli/Desktop/Receivers1.gpkg',r_dict)
+    p_list = [ ]
+    
+    # DATASETS FOR 'SCENARIO 000'
+    read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Building Data/lod10/p75/37fz1_lod10_p75/pand.gpkg',f_dict)
+    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Sources/Sources1.gpkg',s_dict)
+    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Receivers/Receivers1.gpkg',r_dict)
+    
     reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
-    reflection_path.get_paths(p_dict)
-    print(p_dict)
-    #write_output('',p_dict)
+
+    for source in s_dict:
+        for receiver in r_dict:
+            print('source:',source,'receiver',receiver)
+            print('number of paths:',len(reflection_path.get_paths(s_dict[source],r_dict[receiver])[0]))
+            for el in reflection_path.get_paths(s_dict[source],r_dict[receiver]):
+                print(el)
+            print()
+
+    for path in p_list:
+        print(path)
+    print(len(p_list))
+
+    write_output('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path.csv',p_list)
