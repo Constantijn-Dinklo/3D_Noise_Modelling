@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 
 class XmlParser:
     
-    def __init__(self, vts, srs, rec):
+    def __init__(self, vts, mat, ext=[]):
         self.vts = np.array(vts)
-        self.vts_simple = []
+        self.mat = mat
+        if(len(ext) == 0): print("empty")
+        self.ext = ext
 
-        self.source_height = srs[2] - vts[0][2]
-        self.receiver_height = rec[2] - vts[-1][2]
 
     def set_coordinates_local(self):
         """
@@ -124,34 +124,38 @@ class XmlParser:
         # create the path
         path = ET.SubElement(root, "path")
 
-        for point in self.vts:
+        for id in range(len(self.vts)):
             # create a control point
             cp = ET.Element("cp")
 
             # insert the pos (position)
             pos = ET.SubElement(cp, "pos")
-            ET.SubElement(pos, "x").text = str(point[0])
-            ET.SubElement(pos, "y").text = str(point[1])
-            ET.SubElement(pos, "z").text = str(point[2])
+            ET.SubElement(pos, "x").text = "{:.2f}".format(self.vts[id,0])
+            ET.SubElement(pos, "y").text = "{:.2f}".format(self.vts[id,1])
+            ET.SubElement(pos, "z").text = "{:.2f}".format(self.vts[id,2])
 
             # Insert the material
-            ET.SubElement(cp, "mat", id="H")
+            ET.SubElement(cp, "mat", id=self.mat[id])
 
             # append the created control point to the path
             path.append(cp)
 
-        # set the first point as receiver
-        ext_rec = ET.Element("ext")
-        rec = ET.SubElement(ext_rec, "receiver")
-        ET.SubElement(rec, "h").text = str(self.receiver_height)
+        for id, val in self.ext.items():
+            # set the first point as receiver
+            ext = ET.Element("ext")
+            ext_type = ET.SubElement(ext, val[0])
+            ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+            if (len(ext) > 2):
+                ET.SubElement(ext_type, "mat").text = str(val[2])
+            
+            path[id].append(ext)
 
-        path[0].append(ext_rec)
         # set the last point as source
-        ext_srs = ET.Element("ext")
-        srs = ET.SubElement(ext_srs, "source")
-        ET.SubElement(srs, "h").text = str(self.source_height)
+        #ext_srs = ET.Element("ext")
+        #srs = ET.SubElement(ext_srs, "source")
+        #ET.SubElement(srs, "h").text = str(self.source_height)
 
-        path[-1].append(ext_srs)
+        #path[-1].append(ext_srs)
         # Put the whole root in the tree, and write the tree to the file
         tree = ET.ElementTree(root)
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
@@ -167,8 +171,6 @@ class XmlParser:
         """
         # plot input points, and both source and receiver
         #plt.scatter(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.scatter(0, self.vts[0,2] + self.receiver_height)
-        plt.scatter(abs(self.vts[-1,0]), self.vts[-1,2] + self.source_height)
         
         # plot the lines for both input and translated lines
         #plt.plot(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
@@ -196,10 +198,48 @@ if __name__ == "__main__":
         (0.8, 0.2, 0.5)
         ]
 
+    Materials = ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"]
+    extension = {}
+    # input:
+    # The xmlParser part will deviate differently over direct path than over the others. therefore the function can be called as follows:
+    # Direct path:
+    #   xmlParser(vertices, material)
+    # (1st order) reflected or diffracted path or barriers:
+    #   xmlParser(vertices, material, extensions)
+
+    # === vertices ===
+    # numpy array with arrays/tuples of the coordinates, this includes barriers (TIN point below the point) and reflection edges.
+    # vertices = [(x,y,z), (x,y,z), ...]
+
+    # === material ====
+    # List with material (string) for each vertex: ["G", "C", "A0"]
+    # Which material to choose: 
+    # groundType: absorbtion index 1: "C"
+    # groundType: absorbtion index 0: "G"
+    # Building in DSM: "A0"
+
+    # === Extensions ===
+    # Extension holds information about reflection and diffraction. It is a dictionary
+    # the key is the index of the related vertex, the value is a list with the type, material and the height
+    # ext = {
+    #   "0":   ["source", 2],       # The source (and receiver) don't have a material.
+    #   "id0": [type, height above TIN, material],
+    #   "id1": ["wall", 5, "A0"],     # for a reflection against a building 
+    #   "id2": ["edge", 3, "A0"],      # For a diffractions around a building (horizontal)
+    #   "id3": ["barrier", 4, "A0"]   # for a sound barrier (we currently don't have them, but it could come)
+    #   "last":["receiver", 2]
+    # }
+
     source = [0, 0, 2]
     receiver = [8, 16, 3]
 
-    xml_section = XmlParser(vertices, source, receiver)
+    extension[0] = ["source", source[2] - vertices[0][2]]
+    extension[len(vertices)-1] = ["receiver", receiver[2] - vertices[-1][2]]
+    
+
+    #xml_section = XmlParser(vertices, Materials, extension)
+    xml_section = XmlParser(vertices, Materials)
+    
     xml_section.set_coordinates_local()
 
     # For direct path only:
@@ -209,7 +249,7 @@ if __name__ == "__main__":
 
     xml_section.write_xml("test.xml", True)
 
-    xml_section.visualize_path()
+    #xml_section.visualize_path()
 
     # test with CNOSSOS like this:
     # put the produced xml file in the CNOSSOS/code / data folder adn run:
