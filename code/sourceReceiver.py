@@ -3,6 +3,7 @@ import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import numpy as np
+from pprint import pprint
 
 class ReceiverPoint:
 
@@ -64,7 +65,6 @@ class ReceiverPoint:
                     next_el = elem[i + 1]
                     new_elem = first_el, next_el
                     line_segments.append([first_el, next_el])
-        #print(line_segments)
         return line_segments
 
     def return_points_circle(self, radius, radians):
@@ -83,8 +83,6 @@ class ReceiverPoint:
         y_next = self[1] + radius * math.sin(radians)
         return (x_next, y_next)
 
-    #angle = 2.0 * (math.pi / 180) 
-    #cnossos_radius = 100.0
     def return_segments_receiver(self):
         """
         Explanation: takes the noise receiver and returns line segments from the receiver to the points on the circumsphere
@@ -152,7 +150,6 @@ class ReceiverPoint:
                 point_intersection = ReceiverPoint.line_intersect(circle_line, struct_line)
                 if point_intersection not in list_intersection and point_intersection is not None:
                     list_intersection.append(point_intersection)
-
         dict_intersection[hard_coded_source] = list_intersection
         return dict_intersection
 
@@ -163,48 +160,22 @@ if __name__ == '__main__':
 
     doc = ReceiverPoint.read_gml('/Users/mprusti/Documents/geo1101/wegvakgeografie_simplified.gml') # eventually global, now local
     source_lines = ReceiverPoint.return_segments_source(doc)
-    #receiver_lines = ReceiverPoint.return_segments_receiver(hard_coded_source)
-    #intersected = ReceiverPoint.return_dictionary(source_lines, receiver_lines)
-    #print(intersected)
+    receiver_lines = ReceiverPoint.return_segments_receiver(hard_coded_source)
+    intersected = ReceiverPoint.return_dictionary(source_lines, receiver_lines)
 
-    
     # Plot the source line segments
-    x_source = [ ]
-    y_source = [ ]
-    for ln in source_lines:
-        print("ln", ln)
-        x_source.append(ln[0][0])
-        x_source.append(ln[1][0])
-        y_source.append(ln[0][1])
-        y_source.append(ln[1][1])
-        #print("x", x_source)
-        #print("y", y_source)
-
-        #x_source = [ ]
-        #y_source = [ ]
-
-    #fig, ax = plt.subplots()
-    #ax.set_xlim(x.min(), x.max())
-    #ax.set_ylim(ys.min(), ys.max()) 
-    #print("x", x_source)
-    #print("y", y_source)
-    #source_line_segments = LineCollection(source_lines)
-    #ax.add_collection(source_line_segments)
-    #plt.scatter(x_source, y_source, c='g')
-    plt.show()
-    """
+    source_lines = np.array(source_lines)
+    #pprint(source_lines)
+    for line in source_lines:
+        plt.plot(line[:,0], line[:,1])
+    
     # Plot the receiver line segments
-    x_receiver = [ ]
-    y_receiver = [ ]
-    for lne in receiver_lines:
-        x_receiver.append(lne[0][0])
-        x_receiver.append(lne[1][0])
-        y_receiver.append(lne[0][1])
-        y_receiver.append(lne[1][1])
-    plt.plot(x_receiver, y_receiver, c='b')
+    receiver_lines = np.array(receiver_lines)
+    #pprint(receiver_lines)
+    for line in receiver_lines:
+        plt.plot(line[:,0], line[:,1])
 
     # Plot the intersection points
     list_intersected = np.array(intersected.get(hard_coded_source))
     plt.scatter(list_intersected[:,0], list_intersected[:,1], c='r')
-    """
-    
+    plt.show()
