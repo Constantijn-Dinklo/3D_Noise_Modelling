@@ -119,20 +119,22 @@ class ReceiverPoint:
         return dict_intersection
 
 if __name__ == '__main__':
-    hard_coded_source = (93550, 442000)
+    hard_coded_source = (93550, 441900)
     cnossos_radius = 100.0 # should be 2000.0 --> 2km, for now 100 is used to test
-    cnossos_angle = 2.0 * (math.pi / 180)
+    cnossos_angle = 2.0 
 
     doc = ReceiverPoint(hard_coded_source, cnossos_radius, cnossos_angle)
-    read_doc = doc.return_segments_source('/Users/mprusti/Documents/geo1101/wegvakgeografie_simplified.gml') # eventually global, now local
+    read_doc = doc.return_segments_source('/Users/mprusti/Documents/geo1101/test_2.gml') # eventually global, now local
     intersected = doc.return_intersection_points()
+
+    plt.scatter(hard_coded_source[0], hard_coded_source[1], c='b')
 
     # Plot the source line segments
     source_lines = np.array(doc.road_lines)
     for line in source_lines:
-        plt.plot(line[:,0], line[:,1])
+        plt.plot(line[:,0], line[:,1], c='k')
 
     # Plot the intersection points
     intersected_points = np.array(intersected.get(hard_coded_source))
     plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
-    #plt.show()   
+    plt.show()   
