@@ -1,5 +1,6 @@
 import fiona
 import math
+import misc
 
 class ReflectionPath:
 
@@ -73,28 +74,14 @@ class ReflectionPath:
         y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
         return [x,y]
 
-    def orientation_test(self, a, b, p):
-        """
-        Explination: An auxiliary function that tests in which side of a line segment a point lies into.
-        ---------------
-        Input:
-        AB is the line segment and P is the point.
-        For, A, B and P: [x(float),y(float)]
-        ---------------
-        Output:
-        'value': a float number that can be positive / zero / negative.
-        """
-        value = ( a[0]*b[1] + a[1]*p[0] + b[0]*p[1] ) - ( b[1]*p[0] + a[0]*p[1] + a[1]*b[0] )
-        return value
-
-    def get_paths(self,source,receiver):
+    def get_paths(self,s,r):
         """
         Explanation: A function that reads a source point and a receiver and computes all possible first-order reflection paths,
         according to buildings that are stored in f_dict (separate dictionary)
         ---------------        
         Input:
-        source [x,y]
-        receiver [x,y]
+        source s    [x,y,(z)]
+        receiver r  [x,y,(z)]
         ---------------
         Output:
         A list of all (independent) points that are capable of reflecting the sound wave from source to receiver.:
@@ -104,16 +91,14 @@ class ReflectionPath:
         h = value(float)
         the n-th element of "p_list" corresponds to the n-th element of "h_list".
         """
-        s = receiver    # [x,y,(z)]
-        r = source      # [x,y,(z)]
         coords   = [ ]
         heights  = [ ]
         for bag_id in f_dict:
             hoogte_abs = f_dict[bag_id]['hoogte_abs']
             walls = f_dict[bag_id]['walls']
             for wall in walls:
-                test_r = self.orientation_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
-                test_s = self.orientation_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
+                test_r = misc.side_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
+                test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
                 if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
                     s_mirror = self.get_mirror_point(s,self.get_line_equation(wall[0],wall[1]))
                     ref = self.line_intersect(wall,[s_mirror,r])
