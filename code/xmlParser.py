@@ -7,14 +7,13 @@ import matplotlib.pyplot as plt
 
 class XmlParser:
     
-    def __init__(self, vts, mat, ext=[]):
+    def __init__(self, vts, mat, ext):
         self.vts = np.array(vts)
         self.mat = mat
-        if(len(ext) == 0): print("empty")
         self.ext = ext
 
 
-    def set_coordinates_local(self):
+    def normalize_path(self):
         """
         Explination: Move 3D Casrtesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
         ---------------
@@ -24,13 +23,13 @@ class XmlParser:
         """
         self.vts -= self.vts[0]
 
-    def unfold_straight_path(self):
+    def align_cross_section_with_x_axis(self):
         """
-        Explination: calculate the pythagoras distance and make a new array with the distance d and the height z
+        Explination: calculate the pythagoras distance and make a new array with the distance d, y=0 and the height z
         ---------------
         Input: void
         ---------------
-        Output: void (fills self.vts_dz)
+        Output: void (updates self.vts to align the coordinates with the x axis)
         """
         # calc the diagonal distance for all vertices
         d = (self.vts[:,0] ** 2 + self.vts[:,1] ** 2) ** 0.5
@@ -46,11 +45,11 @@ class XmlParser:
             calculates the perpendicular distance from points to the the line
         ---------------
         Input: 
-            Start = id of the start point
-            end = id of the end point
+            Start: integer - id of the start point
+            end: integer - id of the end point
         ---------------
         Output: 
-            List of distances
+            numpy array - array of the offsets of points along line segment
         """
         p_start = self.vts[start]
         p_end = self.vts[end]
@@ -65,6 +64,16 @@ class XmlParser:
         return np.array(offsets)
 
     def douglas_Peucker(self, threshold):
+        """
+        Explination:
+            simplifies the path using douglas peucker algorithm
+        ---------------
+        Input: 
+            Threshold: the minimal perpendicular distance between a line and a point for the point to be imported.
+        ---------------
+        Output: 
+            void (updates self.vts)
+        """
         # initalize simple path first first and last point
         path_simple = [0, len(self.vts)-1]
         i = 0
@@ -90,7 +99,7 @@ class XmlParser:
             else:
                 i += 1
         
-        self.vts_simple = np.array([self.vts[id] for id in path_simple])
+        self.vts = np.array([self.vts[id] for id in path_simple])
                     
     def write_xml(self, filename, validate):
         """
@@ -238,14 +247,14 @@ if __name__ == "__main__":
     
 
     #xml_section = XmlParser(vertices, Materials, extension)
-    xml_section = XmlParser(vertices, Materials)
+    xml_section = XmlParser(vertices, Materials, extension)
     
-    xml_section.set_coordinates_local()
+    xml_section.normalize_path()
 
     # For direct path only:
-    xml_section.unfold_straight_path()
+    xml_section.align_cross_section_with_x_axis()
 
-    xml_section.douglas_Peucker(0.3)
+    #xml_section.douglas_Peucker(0.3)
 
     xml_section.write_xml("test.xml", True)
 
