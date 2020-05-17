@@ -21,23 +21,10 @@ class XmlParser:
         ---------------
         Output: void
         """
+        # move all vertices relative to first vertex
         self.vts -= self.vts[0]
-
-    def align_cross_section_with_x_axis(self):
-        """
-        Explination: calculate the pythagoras distance and make a new array with the distance d, y=0 and the height z
-        ---------------
-        Input: void
-        ---------------
-        Output: void (updates self.vts to align the coordinates with the x axis)
-        """
-        # calc the diagonal distance for all vertices
-        d = (self.vts[:,0] ** 2 + self.vts[:,1] ** 2) ** 0.5
-
-        y = np.zeros(len(self.vts), dtype=float)
-
-        # stack the diagonal distance with the height
-        self.vts = np.vstack((d, y, self.vts[:,2])).T
+        # make all vertices positive, makes is easier to read and process
+        self.vts = abs(self.vts)
 
     def get_offsets_perpendicular(self, start, end):
         """
@@ -74,11 +61,23 @@ class XmlParser:
         Output: 
             void (updates self.vts)
         """
-        # initalize simple path first first and last point
-        path_simple = [0, len(self.vts)-1]
-        i = 0
+        # === create initial path ===
+        # initalize simple path with all points that have an extension (source, receiver, barrier, etc)
+        path_simple = []
+        assert(len(self.ext) > 1)
+        for key in self.ext:
+            bisect.insort(path_simple, key)
 
+        # maintain the line material, insert every points where the material changes
+        for i in range(len(self.mat)-1):
+            if(self.mat[i] != self.mat[i+1]):
+                if i not in self.ext:
+                    bisect.insort(path_simple, i)
+
+        # == insert relevant points ===
+        i = 0
         while(i < len(path_simple) - 1):
+            #print(path_simple)
             start = path_simple[i]
             end = path_simple[i+1]
 
@@ -99,6 +98,14 @@ class XmlParser:
             else:
                 i += 1
         
+        # === post-processing; update extension dictionary, materials and vertices ===
+        # Update the extensions with the new positions in the list.
+        for id, id_old in enumerate(path_simple):
+            if id_old in self.ext and id != id_old:
+                # Create a new key, with the correct id, and assign is het value of the old id that is popped.
+                self.ext[id] = self.ext.pop(id_old)
+
+        self.mat = [self.mat[id] for id in path_simple]
         self.vts = np.array([self.vts[id] for id in path_simple])
                     
     def write_xml(self, filename, validate):
@@ -178,13 +185,16 @@ class XmlParser:
         ---------------
         Output: void
         """
+        # color: if it is reflective ground, take black, othewise, take brown.
+        color = ['k' if x == 'G' else 'brown' for x in self.mat]
+
+        for i in range(len(self.vts) -2, -1, -1):
+            plt.plot(self.vts[i:i+2,0], self.vts[i:i+2,2], color=color[i+1], marker="o")
+
         # plot input points, and both source and receiver
-        #plt.scatter(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
         
         # plot the lines for both input and translated lines
-        #plt.plot(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.plot(abs(self.vts[:,0]), abs(self.vts[:,2]))
-        #plt.plot(abs(self.vts_simple[:,0]), abs(self.vts_simple[:,2]))
+        #plt.plot(self.vts[:,0], self.vts[:,2])
         
         plt.show()
 
@@ -207,7 +217,7 @@ if __name__ == "__main__":
         (0.8, 0.2, 0.5)
         ]
 
-    Materials = ["G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"]
+    Materials = ["G", "G", "G", "G", "G", "G", "G", "A0", "A0", "A0", "A0", "A0", "A0", "G"]
     extension = {}
     # input:
     # The xmlParser part will deviate differently over direct path than over the others. therefore the function can be called as follows:
@@ -251,14 +261,11 @@ if __name__ == "__main__":
     
     xml_section.normalize_path()
 
-    # For direct path only:
-    xml_section.align_cross_section_with_x_axis()
+    xml_section.douglas_Peucker(0.3)
 
-    #xml_section.douglas_Peucker(0.3)
+    #xml_section.write_xml("test.xml", True)
 
-    xml_section.write_xml("test.xml", True)
-
-    #xml_section.visualize_path()
+    xml_section.visualize_path()
 
     # test with CNOSSOS like this:
     # put the produced xml file in the CNOSSOS/code / data folder adn run:
