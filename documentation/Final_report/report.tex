@@ -5,6 +5,8 @@
 \usepackage{changes}
 \usepackage{comment}
 \usepackage{pgfgantt}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 \newcommand{\ie}{i.e.}
 \newcommand{\eg}{e.g.}
 \begin{document}
@@ -48,14 +50,65 @@ citep only gives the number reference
 cite does the same
 citet also provides the author
 citeauthor does not give the reference number
-this is citep: \citep{3Dnoise}
-this is cite: \cite{3Dnoise}
-this is citet: \citet{3Dnoise}
-this is citeauthor: \citeauthor{3Dnoise}
+
+structure of the report:
+coverpage
+title page
+Preface
+Contents
+list of figures
+List of tables
+List of abbreviations
+
+Introduction
+	project overview
+	Problem definition
+	Requirements (MoSCoW)
+	
+Methodology
+	Input data
+		Which datasources used? and Why?
+		Quality of input data
+	pre-processing
+		TIN
+		Buildings -> why not add it in TIN -> DSM?
+		GroundType -> in TIN?
+		noise sources
+		Tree / database?
+	processing
+		Finding the Receiver triangle
+		Straight walking
+		Linear interpolation of edges
+		Adding buildings
+		symplifying datastructure (eg douglas peucker)
+	post-processing
+		Converting line to adhere to XML standards
+		write to xml
+
+Results
+	Quality assesment
+		Find sources
+		symplification loss of data
+		comparison with other methods
+		Compare path with PC or something?
+	Performance
+	Scalability?
+
+Conclusion
+	Capabilities / limitations
+	recommendations / future developments
+
+References
+
+Appendices
+	
+	
+		
+
 
 
 % 5 pages in total for this part
-% \input{[filename]}
+% \input{sections/[filename].tex}
 
 
 %% Use letters for the chapter numbers of the appendices.
