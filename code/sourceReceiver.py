@@ -120,7 +120,7 @@ class ReceiverPoint:
 
 if __name__ == '__main__':
     hard_coded_source = (93550, 441900)
-    cnossos_radius = 100.0 # should be 2000.0 --> 2km, for now 100 is used to test
+    cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
     cnossos_angle = 2.0 
 
     doc = ReceiverPoint(hard_coded_source, cnossos_radius, cnossos_angle)
@@ -137,4 +137,4 @@ if __name__ == '__main__':
     # Plot the intersection points
     intersected_points = np.array(intersected.get(hard_coded_source))
     plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
-    plt.show()   
+    plt.show()
