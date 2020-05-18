@@ -158,12 +158,12 @@ class ReflectionPath:
         void
         """
         for bag_id in f_dict:
-            hoogte_abs = f_dict[bag_id]['hoogte_abs']
+            h_dak = f_dict[bag_id]['h_dak']
             walls = f_dict[bag_id]['walls']
             for wall in walls:
                 ref_list = self.split_lineseg2(dim,wall)
                 for point in ref_list:
-                    point.append(hoogte_abs)
+                    point.append(h_dak)
                     candidate = [wall[0],point,wall[1]]
                     c_list.append(candidate)
 
@@ -187,7 +187,7 @@ class ReflectionPath:
         coords   = [ ]
         heights  = [ ]
         for bag_id in f_dict:
-            hoogte_abs = f_dict[bag_id]['hoogte_abs']
+            h_dak = f_dict[bag_id]['h_dak']
             walls = f_dict[bag_id]['walls']
             for wall in walls:
                 test_r = misc.side_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
@@ -197,9 +197,9 @@ class ReflectionPath:
                     ref = self.line_intersect(wall,[s_mirror,r[:2]])
                     if type(ref) == list:
                         coords.append(ref)
-                        heights.append(hoogte_abs)
+                        heights.append(h_dak)
                         ref_z = ref
-                        ref_z.append(hoogte_abs)
+                        ref_z.append(h_dak)
                         p1_list.append([s,ref_z,r])
         print('1st-order reflection. numer of paths:',len(coords))
         return [ coords, heights ] #[ [p1, p2, ..., pn], [h1, h2, ..., hn] ] 
@@ -227,7 +227,7 @@ class ReflectionPath:
         for candidate in c_list:
             #ref_list = []
             for bag_id in f_dict:
-                hoogte_abs = f_dict[bag_id]['hoogte_abs']
+                h_dak = f_dict[bag_id]['h_dak']
                 walls = f_dict[bag_id]['walls']
                 for wall in walls:
                     test_c = misc.side_test( wall[0], wall[1], candidate[1][:2]) #r[:2] makes the function to ignore an eventual 'z' value.
@@ -247,9 +247,9 @@ class ReflectionPath:
                                         r_closest = self.get_closest_point(r,(self.get_line_equation(b_mirror,candidate[1])))
                                         r_closest.append(r[2])
                                         coords.append([b,candidate[1][:2]])
-                                        heights.append([hoogte_abs,candidate[1][2]])
+                                        heights.append([h_dak,candidate[1][2]])
                                         b_z = b
-                                        b_z.append(hoogte_abs)
+                                        b_z.append(h_dak)
                                         p2_list.append([s,b_z,candidate[1],r_closest])
         print('2nd-order reflection. numer of paths:',len(coords))
         return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
@@ -269,18 +269,32 @@ def read_buildings(input_file,dictionary):
         for feature in layer:
             bag_id = feature['properties']['bag_id']
             dictionary[bag_id] = { }
-            z = feature['properties']['hoogte_abs']
-            dictionary[bag_id]['hoogte_abs'] = z
+            z = feature['properties']['h_dak']
+            dictionary[bag_id]['h_dak'] = z
             f_geom_coord = feature['geometry']['coordinates']
-            for polygon_index in range(len(f_geom_coord)):
-                polygon_object = f_geom_coord[polygon_index]
-                walls = []
-                for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
-                    a = list(polygon_object[coord_index])
-                    b = list(polygon_object[coord_index+1])
-                    wall_2D = [a[:len(a)-1],b[:len(b)-1]]
-                    walls.append(wall_2D)
-                dictionary[bag_id]['walls'] = walls
+            f_geom_type = feature['geometry']['type']
+            if f_geom_type == 'Polygon':
+                for polygon_index in range(len(f_geom_type)):
+                    polygon_object = f_geom_type[polygon_index]
+                    walls = []
+                    for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
+                        a = list(polygon_object[coord_index])
+                        b = list(polygon_object[coord_index+1])
+                        wall_2D = [a[:len(a)-1],b[:len(b)-1]]
+                        walls.append(wall_2D)
+                    dictionary[bag_id]['walls'] = walls
+            if f_geom_type == 'MultiPolygon':
+                for multi_polygon_index in range(len(f_geom_coord)):
+                    multi_polygon_object = f_geom_coord[multi_polygon_index]
+                    for polygon_index in range(len(multi_polygon_object)):
+                        polygon_object = multi_polygon_object[polygon_index]
+                        walls = []
+                        for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
+                            a = list(polygon_object[coord_index])
+                            b = list(polygon_object[coord_index+1])
+                            wall_2D = [a[:len(a)-1],b[:len(b)-1]]
+                            walls.append(wall_2D)
+                        dictionary[bag_id]['walls'] = walls
     layer.close()
 
 def read_points(input_file,dictionary):
@@ -297,8 +311,14 @@ def read_points(input_file,dictionary):
     with fiona.open(input_file) as layer:
         for feature in layer:
             source_id = feature['properties']['id']
-            coord_object = list(feature['geometry']['coordinates'])
-            dictionary[source_id] = coord_object#[:len(coord_object)-1]
+            p_geom_type = feature['geometry']['type']
+            p_geom_coord = feature['geometry']['coordinates']
+            if p_geom_type == 'Point':
+                coord_obj = list(p_geom_coord)
+            if p_geom_type == 'MultiPoint':
+                for point in p_geom_coord:
+                    coord_obj = list(point)
+            dictionary[source_id] = coord_obj
     layer.close()
 
 def write_candidates(output_file,lista):
@@ -308,7 +328,7 @@ def write_candidates(output_file,lista):
     Input:
     output_file: the directory/name of the csv file to be created.
     lista: a list containing all candidate points in the following schema:
-    [candidate_x, candidate_y, hoogte_abs]
+    [candidate_x, candidate_y, h_dak]
     ---------------
     Output:
     void.
@@ -331,7 +351,7 @@ def write_output_1st(output_file,lista):
     Input:
     output_file: the directory/name of the csv file to be created.
     lista: a list containing all the 1st order propagation paths in the following schema:
-    [ [source_x, source_y, source_z,] , [reflection_x, reflection_y, hoogte_abs], [receiver_x, receiver_y, receiver_z] ] 
+    [ [source_x, source_y, source_z,] , [reflection_x, reflection_y, h_dak], [receiver_x, receiver_y, receiver_z] ] 
     ---------------
     Output:
     void.
@@ -387,16 +407,15 @@ if __name__ == "__main__":
     p1_list = [ ]
     p2_list = [ ]
 
-    # DATASETS FOR 'SCENARIO 000'
-    read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Building Data/lod10/p75/37fz1_lod10_p75/pand.gpkg',f_dict)
-    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Sources/Sources1.gpkg',s_dict)
-    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Receivers/Receivers1.gpkg',r_dict)
-    
+    # DATASETS FOR 'MID PRESENTATION'
+    read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
+    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
+    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
+
     reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
     reflection_path.get_candidate_point(0.025) # DIM 0.025
-    print(len(c_list))
 
-    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/candidates0025.csv',c_list)
+    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/candidates0025.csv',c_list)
 
     for source in s_dict:
         for receiver in r_dict:
@@ -411,8 +430,8 @@ if __name__ == "__main__":
     print('len(p2_list)')
     print(len(p2_list))
 
-    write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path_1st.csv',p1_list)
-    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path_2nd_dim00025_t01.csv',p2_list)
+    write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_1st.csv',p1_list)
+    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_2nd_dim00025_t01.csv',p2_list)
 
     end = time.time()
     processing_time = end - start
