@@ -159,11 +159,11 @@ class GroundTin:
                     else:
                         inter_pt = tuple(inter_pt)
                         current_tr_mtl = self.tr_mtls[check_tr]
-                        current_bldg = self.tr_bldgs[check_tr]
+                        current_bldg = self.tr_bldgs.get(check_tr, -1)
                         check_tr = self.trs[check_tr][nbs[i]]
-                        next_bldg = self.tr_bldgs[check_tr]
+                        next_bldg = self.tr_bldgs.get(check_tr, -1)
                         next_tr_mtl = self.tr_mtls[check_tr]
-                        if current_bldg == [] and next_bldg == []:  # don't use the mtl because maybe later there will be != mtl for bldgs
+                        if current_bldg == -1 and next_bldg == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
                             cross_section_vertices.append([inter_pt, next_tr_mtl])
                             break
                         else:
@@ -184,14 +184,14 @@ class GroundTin:
                                 '''build_info = buildings.get(current_bldg)
                                 current_h_bldg = build_info['properties']['h_dak']'''
                                 current_h_bldg = buildings[current_bldg]
-                                if current_h_bldg > inter_pt[2] and next_bldg != []:
+                                if current_h_bldg > inter_pt[2] and next_bldg != -1:
                                     '''next_build_info = buildings.get(next_bldg)
                                     next_h_bldg = build_info['properties']['h_dak']'''
                                     next_h_bldg = buildings[next_bldg]
-                                    # no colinear horizontal points
+                                    # no collinear horizontal points
                                     if current_tr_mtl == next_tr_mtl and current_h_bldg == next_h_bldg:
                                         break
-                                    # no colinear vertical points
+                                    # no collinear vertical points
                                     else:
                                         cross_section_vertices.append([(inter_pt[0], inter_pt[1], current_h_bldg),
                                                                        current_tr_mtl])
@@ -199,7 +199,7 @@ class GroundTin:
                                                                        next_tr_mtl])
                                         break
                                 # down back to DTM
-                                elif current_h_bldg > inter_pt[2] and next_bldg == []:
+                                elif current_h_bldg > inter_pt[2] and next_bldg == -1:
                                     cross_section_vertices.append([(inter_pt[0], inter_pt[1], current_h_bldg),
                                                                    current_tr_mtl])
                                     cross_section_vertices.append([inter_pt, next_tr_mtl])
@@ -600,7 +600,7 @@ if __name__ == "__main__":
                          [9, 1, 0]])
 
     ground_type = ['C', 'A0', 'A0', 'G', 'C', 'G', 'C', 'G']
-    assoc_building = [[], 0, 1, [], [], [], [], []]
+    assoc_building = {1: 0, 2: 1}
 
     ground_tin_result = GroundTin(vertices, triangles, ground_type, assoc_building)
 
