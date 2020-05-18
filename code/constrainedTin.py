@@ -1,7 +1,8 @@
 import fiona
+import matplotlib.pyplot as plt
 import misc
 import numpy as np
-import startin  # find something else Laurens wont be happy
+import startin
 import sys
 import triangle as tr
 
@@ -24,6 +25,8 @@ class ConstrainedTin:
         self.trs = []
         self.tin = startin.DT()
         self.tin.insert(vts)
+        self.attr = []
+        # self.segments_debug = []
 
         self.kd_vts = KDTree(self.vts)
 
@@ -97,7 +100,7 @@ class ConstrainedTin:
         vts = vts_3d[:, :2]
         self.vts_2d.extend(vts.tolist())
 
-    def get_attr_coords(self, v0, v1, v2):
+    def get_attr_coord(self, v0, v1, v2):
         seg_00 = (np.array(v1) - np.array(v0)) * (10 ** (-8))
         seg_01 = (np.array(v2) - np.array(v0)) * (10 ** (-8))
         coords = (seg_00 + seg_01) + np.array(v0)
@@ -158,40 +161,68 @@ class ConstrainedTin:
         for record in semantic:
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
                 continue
-            i = len(self.vts)
-            poly = shape(record['geometry'])
-            if len(record['geometry']['coordinates'][0]) == 2:
-                vts_2d = list(poly.exterior.coords)[:-1]  # last vertex is same as first
-                self.vts_2d.extend(vts_2d)
+            shapes = []
+            if record['geometry']['type'] == 'MultiPolygon':
+                for p in record['geometry']['coordinates']:
+                    shapes.append(p[0])
             else:
+                shapes.append(record['geometry']['coordinates'][0])
+            k = 1
+            for s in shapes:
+                i = len(self.vts)
+                poly = Polygon(s)
                 x, y = poly.exterior.coords.xy
                 vts_2d = list(zip(x, y))[:-1]
                 self.vts_2d.extend(vts_2d)
-            # interpolate points from TIN
-            for v in vts_2d:
-                z = self.tin.interpolate_tin_linear(v[0], v[1])
-                self.vts.append((v[0], v[1], z))
+                # interpolate points from TIN
+                for v in vts_2d:
+                    z = self.tin.interpolate_tin_linear(v[0], v[1])
+                    self.vts.append((v[0], v[1], z))
 
-            bound = []
-            j = 0
-            while j < len(vts_2d):
-                if j != len(vts_2d) - 1:
-                    bound.append((i + j, i + j + 1))
-                    j += 1
-                else:
-                    bound.append((i + j, i))
-                    j += 1
+                bound = []
+                j = 0
+                bounds = []
+                while j < len(vts_2d):
+                    if j != len(vts_2d) - 1:
+                        bound.append((i + j, i + j + 1))
+                        '''bounds.append(self.vts_2d[i+j])
+                        bounds.append(self.vts_2d[i + j + 1])'''
+                        j += 1
+                    else:
+                        bound.append((i + j, i))
+                        '''bounds.append(self.vts_2d[i + j])
+                        bounds.append(self.vts_2d[i])'''
+                        j += 1
 
-            self.segments.extend(bound)
-            a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
-            self.regions.append([a, b, record['id'], 0])
+                self.segments.extend(bound)
+                a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
+                self.regions.append([a, b, int(record['id']) * 100 + k, 0])
+                # A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
+                # const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
+                # tr.compare(plt, A, const_tin)
+                # plt.show()
+                k += 1
 
-    def triangulate_constraints(self, grd_type, building):
+    def triangulate_constraints(self, semantics):
         self.from_3d_to_2d()
-        self.add_ground_type_constraint(grd_type)
-        self.add_building_constraint(building)
+        self.add_constraint(semantics)
         A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
         const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
+        # tr.compare(plt, A, const_tin)
+        # plt.show()
+        if len(const_tin['vertices']) != len(self.vts):
+            for v in const_tin['vertices'][len(self.vts):]:
+                z = self.tin.interpolate_tin_linear(v[0], v[1])
+                self.vts_2d.append(v)
+                self.vts.append((v[0], v[1], z))
+        temp_trs = const_tin['triangles'].tolist()
+        temp_ns = const_tin['neighbors'].tolist()
+        full_trs = list(zip(temp_trs, temp_ns))
+        for triangle in full_trs:
+            self.trs.append((triangle[0][0], triangle[0][1], triangle[0][2],
+                             triangle[1][0], triangle[1][1], triangle[1][2]))
+        self.attr = const_tin['triangle_attributes']
+        return const_tin
 
     @staticmethod
     def read_from_obj(file_path, orientation_check=True):
@@ -337,10 +368,27 @@ class ConstrainedTin:
                     triangle[5] + 1) + "\n"
                 output_file.write(triangle_str)
 
+            for attribute in self.attr:
+                attribute_str = "a " + str(attribute[0]) + "\n"  # do we have to add 1 here?
+                output_file.write(attribute_str)
+
 
 if __name__ == "__main__":
     semantics = fiona.open(r"C:\Users\Nadine\Desktop\Nad\TU delft\Q4\GEO1101\3d_geo_data\processed\semaantics_test.shp")
     v_ground_tin_lod1 = ConstrainedTin.read_from_obj(r"W:\staff-umbrella\pathfinder\01_Scenarios\scenario000\Terrain "
                                                      r"Data\TIN\0,3m\tin_03m.obj\tin.obj")
-    v_ground_tin_lod1.add_constraint(semantics)
-    print('hi')
+    output = v_ground_tin_lod1.triangulate_constraints(semantics)
+    '''test_00 = output['vertices']
+    test_01 = v_ground_tin_lod1.vts
+    for i, v in enumerate(test_00):
+        if i == len(test_00) - 1:
+            print('1', i)
+            break
+        elif (v[0], v[1]) == (test_01[i][0], test_01[i][1]):
+            continue
+        else:
+            print('2', i)
+            break
+    for t in output['triangles']:
+        if 784 in t:
+            print(t)'''
