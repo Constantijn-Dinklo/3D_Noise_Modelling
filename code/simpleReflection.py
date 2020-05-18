@@ -52,6 +52,23 @@ class ReflectionPath:
         p_mirror_y = p1[1] - 2*parameters[1]*d
         return [p_mirror_x,p_mirror_y]
 
+    def get_closest_point(self,p1,parameters):
+        """
+        Explanation: A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
+        ---------------
+        Input:
+        p1 [x(float),y(float)]
+        parameters [a_norm(float),b_norm(float),c_norm(float)]
+        ---------------
+        Output:
+        p_mirror [x(float),y(float)]
+        """
+        # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
+        d = parameters[0]*p1[0] + parameters[1]*p1[1] + parameters[2]
+        p_mirror_x = p1[0] - parameters[0]*d
+        p_mirror_y = p1[1] - parameters[1]*d
+        return [p_mirror_x,p_mirror_y]
+
     def line_intersect(self, line1, line2):
         """
         Explanation: this functions returns the intersection points (source points) of both lines
@@ -76,6 +93,9 @@ class ReflectionPath:
         return [x,y]
     
     def split_lineseg(self,n,lineseg):
+        # ATTENTION !: THIS FUNCTION SPLITS ALL THE LINE SEGMENTS IN THE MODEL INTO A FIXED NUMBER OF SUB-SEGMENTS (N), REGARDLESS OF THE
+        # LENGHT OF THE SEGMENT. AS A CONSEQUENCE, SMALL WALLS WILL HAVE VERY SMALL SUB-SEGMENTS, WHEREAS LONG WALLS WILL NOT.
+        # AS AN ALTERNATIVE, "split_lineseg2" IS BEING USED IN THIS PROGRAM. IT SPLITS ALL WALLS INTO SUB-SEGMENTS WITH A PRE-DEFINED LENGTH (DIM). 
         """
         Explanation: A function that takes a line segment and splits it into multiple sub-segments, according to a specific number.
         ---------------
@@ -86,22 +106,48 @@ class ReflectionPath:
         Output:
         ref_list: a list of all vertices of lineseg (polyline), including the two outermost and original ones.
         [[x1,y1],[x2,y2],[x3,y3].....[xn,yn]]
-
-        Obs: There is a problem with floating numbers: if n is too large, the last element of v_list will never be lineseg[1]. This
-        is why a while loop cannot be used here; it is best to keep a for loop.
         """
         delta_x = lineseg[1][0] - lineseg[0][0] # delta_x can be positive, negative or zero, depending on the direction of the line.
         delta_y = lineseg[1][1] - lineseg[0][1] # delta_x can be positive, negative or zero, depending on the direction of the line.
         vertex = lineseg[0]
         ref_list = [vertex]
-        for el in range(n):
+        for number in range(n):
             x = vertex[0] + delta_x/n
             y = vertex[1] + delta_y/n
             vertex = [x,y]
             ref_list.append(vertex)
         return ref_list
 
-    def get_candidate_point(self,n):
+    def split_lineseg2(self,dim,lineseg):
+        """
+        Explanation: A function that takes a line segment and splits it into multiple sub-segments, each one of them with lenght = 'dim'
+        ---------------
+        Input:
+        dim: the length of each sub-segment in which lineseg will be divided into
+        lineseg: the line segment in matter [[x1,y1],[xn,yn]]
+        ---------------
+        Output:
+        ref_list: a list of all vertices of lineseg (polyline), including the two outermost and original ones.
+        [[x1,y1],[x2,y2],[x3,y3].....[xn,yn]]
+        """
+        delta_x = lineseg[1][0] - lineseg[0][0]
+        delta_y = lineseg[1][1] - lineseg[0][1]
+        length = math.sqrt(delta_x**2 + delta_y**2)
+        n = math.floor(length//dim)
+        ref_list = [lineseg[0]]
+        for number in range(n):
+            h = (number+1)*dim
+            x = ((h * delta_x) / length) + lineseg[0][0]
+            y = ((h * delta_y) / length) + lineseg[0][1]
+            inter = [x,y]
+            ref_list.append(inter)
+        if ref_list[(len(ref_list)-1)] == lineseg[1]:
+            pass
+        else:
+            ref_list.append(lineseg[1])
+        return ref_list
+
+    def get_candidate_point(self,dim):
         """
         Explanation: A function that gets all the walls from f_dict and create candidate reflection points.
         ---------------        
@@ -115,7 +161,7 @@ class ReflectionPath:
             hoogte_abs = f_dict[bag_id]['hoogte_abs']
             walls = f_dict[bag_id]['walls']
             for wall in walls:
-                ref_list = self.split_lineseg(n,wall)
+                ref_list = self.split_lineseg2(dim,wall)
                 for point in ref_list:
                     point.append(hoogte_abs)
                     candidate = [wall[0],point,wall[1]]
@@ -197,11 +243,14 @@ class ReflectionPath:
                                 dist = math.sqrt(((b_mirror[0]-candidate[1][0])**2)+((b_mirror[1]-candidate[1][1])**2))
                                 if dist > 0.1:
                                     if abs(misc.side_test( b_mirror, candidate[1][:2], r)) <= t:
+                                        # GET CLOSEST POINT FROM R TO B_MIRROR_CANDIDATE[1]
+                                        r_closest = self.get_closest_point(r,(self.get_line_equation(b_mirror,candidate[1])))
+                                        r_closest.append(r[2])
                                         coords.append([b,candidate[1][:2]])
                                         heights.append([hoogte_abs,candidate[1][2]])
                                         b_z = b
                                         b_z.append(hoogte_abs)
-                                        p2_list.append([s,b_z,candidate[1],r])
+                                        p2_list.append([s,b_z,candidate[1],r_closest])
         print('2nd-order reflection. numer of paths:',len(coords))
         return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
 
@@ -251,6 +300,29 @@ def read_points(input_file,dictionary):
             coord_object = list(feature['geometry']['coordinates'])
             dictionary[source_id] = coord_object#[:len(coord_object)-1]
     layer.close()
+
+def write_candidates(output_file,lista):
+    """
+    Explanation: A function that writes a CSV file with all candidate points. It is used for visualising these points in QGIS.
+    ---------------
+    Input:
+    output_file: the directory/name of the csv file to be created.
+    lista: a list containing all candidate points in the following schema:
+    [candidate_x, candidate_y, hoogte_abs]
+    ---------------
+    Output:
+    void.
+    """
+    fout = open(output_file,'w')
+    line = 'fid \t geometry \n'
+    fout.write(str(line))
+    count = 0
+    for candidate in lista:
+        count += 1
+        line = '%d \t PointZ (%f %f %f) \n' % (count,candidate[1][0],candidate[1][1],candidate[1][2])
+        fout.write(line)
+    fout.close()
+    #PointZ (93539.68248698 441892 1.4)
 
 def write_output_1st(output_file,lista):
     """
@@ -308,7 +380,6 @@ def write_output_2nd(output_file,lista):
 
 if __name__ == "__main__":
     start = time.time()
-
     f_dict = { }
     s_dict = { }
     r_dict = { }
@@ -322,13 +393,16 @@ if __name__ == "__main__":
     read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Receivers/Receivers1.gpkg',r_dict)
     
     reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
-    reflection_path.get_candidate_point(10)
-    
+    reflection_path.get_candidate_point(0.025) # DIM 0.025
+    print(len(c_list))
+
+    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/candidates0025.csv',c_list)
+
     for source in s_dict:
         for receiver in r_dict:
             print('source:',source,'receiver',receiver)
             reflection_path.get_first_paths(s_dict[source],r_dict[receiver])
-            reflection_path.get_second_paths(s_dict[source],r_dict[source],1)
+            reflection_path.get_second_paths(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
             print()
     
     print('len(p1_list)')
@@ -338,7 +412,7 @@ if __name__ == "__main__":
     print(len(p2_list))
 
     write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path_1st.csv',p1_list)
-    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path_2nd_nXX_t1.csv',p2_list)
+    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/path_2nd_dim00025_t01.csv',p2_list)
 
     end = time.time()
     processing_time = end - start
