@@ -1,0 +1,18 @@
+% peronal notes of Laurens
+
+\section{Write to xml}
+Guide: how to run the TestCnossos software:
+I followed the instructions from the "User and programmers guide":
+\begin{enumerate}
+	\item Obtain the .zip file with the software, received from Arnaud (RIVM)
+	\item Unzip it
+	\item run the CMD (not Powershell, that one does not work)
+	\item navigate to CNOSSOS\ cnosses_code\ Release
+	\item to test, TestCnossos -w -i="..\data\barrier 2m - 200m.xml"
+\end{enumerate}
+
+running in powershell does not work
+running from bedug mode results in an error: system error:
+de code-uitvoering kan niet worden voorgezet omdat MSVCR100D.dll niet is gevonden. U kunt dit probleem mogelijk oplossen door het programma opnieuw te installeren.
+
+translates to: The file MSVCR100D.dll is missing, so the code could not be executed.
