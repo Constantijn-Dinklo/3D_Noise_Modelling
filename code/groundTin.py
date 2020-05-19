@@ -13,9 +13,10 @@ from time import time
 
 class GroundTin:
     
-    def __init__(self, vts, trs):
+    def __init__(self, vts, trs, attr = []):
         self.vts = np.array(vts)
         self.trs = np.array(trs)
+        self.attributes = np.array(attr)
         
         self.kd_vts = KDTree(self.vts)
 
@@ -596,6 +597,7 @@ class GroundTin:
 
         vertices = []
         triangles = []
+        attributes = []
 
         min_values = [100000000, 100000000, 100000000]
         max_values = [-100000000, -100000000, -100000000]
@@ -630,11 +632,15 @@ class GroundTin:
                     a2 = int(line_elements[5]) - 1
                     a3 = int(line_elements[6]) - 1
 
-                    triangle = [v1, v2, v3, a1, a2, a3, np.array([100, 100]), 100, 100]
-                    
+                    triangle = [v1, v2, v3, a1, a2, a3]
                     triangles.append(triangle)
+                
+                if line_elements[0] == 'a':
+                    attribute = float(line_elements[1])
+
+                    attributes.append(attribute)
         
-        ground_tin = GroundTin(vertices, triangles)
+        ground_tin = GroundTin(vertices, triangles, attributes)
         ground_tin.bounding_box_2d = [min_values[0], min_values[1], max_values[0], max_values[1]]
         ground_tin.bounding_box_3d = [min_values[0], min_values[1], min_values[2], max_values[0], max_values[1], max_values[2]]
 
@@ -686,19 +692,23 @@ if __name__ == "__main__":
     #ground_tin_resultp = GroundTin.read_from_objp("input/isolated_cubes.objp")
     
     start = time()
-    ground_tin_result = GroundTin.read_from_objp(tin_filename)
+    ground_tin_result = GroundTin.read_from_obj(tin_filename, False)
     time_1 = time()
     print("runtime reading obj: {:.2f} seconds".format(time_1 - start))
+
+    convex_hull = ground_tin_result.get_2d_convex_hull()
+    print(convex_hull)
+
     #Setup dummy source and receiver points
     #source = [0.8, 0.2, 0]
     #receiver = [7.2, 0.6, 0]
 
     #Setup dummy source and receiver points
-    source = [93512.5, 441865, 3]
-    receiver = [93612.2, 441885.4, 2]
+    #source = [93512.5, 441865, 3]
+    #receiver = [93612.2, 441885.4, 2]
 
-    building_filename = sys.argv[2]
-    build = fiona.open(building_filename)
+    #building_filename = sys.argv[2]
+    #build = fiona.open(building_filename)
 
     # dsm test
     '''triangles = [[0, 2, 1, 1, -1, -1],
@@ -725,11 +735,11 @@ if __name__ == "__main__":
 
 
     # find source triangle
-    receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)
+    #receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)
     # Walk to source, and save passing edges
-    edges, source_tr = ground_tin_result.walk_straight_to_source(source, receiver_tr)
+    #edges, source_tr = ground_tin_result.walk_straight_to_source(source, receiver_tr)
     # interpolate height and distance
-    cross_vts, cross_edgs = ground_tin_result.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
+    #cross_vts, cross_edgs = ground_tin_result.create_cross_section(edges, source, receiver, source_tr, receiver_tr)
     # to delete
     '''cross_edgs_attr = []
     for lin, e in enumerate(cross_edgs):
@@ -744,24 +754,24 @@ if __name__ == "__main__":
     build = [Polygon(polygon_1), Polygon(polygon_2)]'''
 
     # add buildings to the cross section/ edges should have attributes or equivalent check data structure
-    cross_vts_dsm, cross_edgs_dsm = ground_tin_result.create_cross_section_dsm(cross_vts, cross_edgs, build)
+    #cross_vts_dsm, cross_edgs_dsm = ground_tin_result.create_cross_section_dsm(cross_vts, cross_edgs, build)
 
 
-    time_2 = time()
-    print("runtime walking: {:.2f} seconds".format(time_2 - time_1))
-    print("runtime total: {:.2f} seconds".format(time_2 - start))
+    #time_2 = time()
+    #print("runtime walking: {:.2f} seconds".format(time_2 - time_1))
+    #print("runtime total: {:.2f} seconds".format(time_2 - start))
     
 
     #optionally, write the output line to the .obj file
-    misc.write_cross_section_to_obj("output/out.obj", cross_edgs, cross_vts, ground_tin_result.vts, ground_tin_result.trs)
+    #misc.write_cross_section_to_obj("output/out.obj", cross_edgs, cross_vts, ground_tin_result.vts, ground_tin_result.trs)
 
     #output_file = "output/{}p".format(filename)
-    output_file = "output/out_test.objp"
+    #output_file = "output/out_test.objp"
 
     #ground_tin_result.write_to_obj("output/isolated_cubes.obj")
-    ground_tin_result.write_to_objp(output_file)
+    #ground_tin_result.write_to_objp(output_file)
 
-    time_3 = time()
-    print("runtime writing: {:.2f} seconds".format(time_3 - time_2))
+    #time_3 = time()
+    #print("runtime writing: {:.2f} seconds".format(time_3 - time_2))
     #print(ground_tin_result.vts)
     #print(ground_tin_result.trs)
