@@ -19,9 +19,9 @@ def side_test(pa, pb, pc):
         the computed value is actually the 2* area of the triangle
         ---------------
         Input:
-        pa = [x,y,z]
-        pb = [x,y,z]
-        pc = [x,y,z]
+        pa = [x,y(,z)]
+        pb = [x,y(,z)]
+        pc = [x,y(,z)]
         ---------------
         Output:
         2 *  the area of the triangle
