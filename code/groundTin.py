@@ -690,8 +690,8 @@ if __name__ == "__main__":
     time_1 = time()
     print("runtime reading obj: {:.2f} seconds".format(time_1 - start))
     #Setup dummy source and receiver points
-    #source = [0.75, 0.1, 0]
-    #receiver = [8.25, 0.9, 0]
+    #source = [0.8, 0.2, 0]
+    #receiver = [7.2, 0.6, 0]
 
     #Setup dummy source and receiver points
     source = [93512.5, 441865, 3]
