@@ -7,15 +7,13 @@ import matplotlib.pyplot as plt
 
 class XmlParser:
     
-    def __init__(self, vts, srs, rec):
-        self.vts_xyz = np.array(vts)
-        self.vts_dz = []
-        self.vts_dx_simple = []
+    def __init__(self, vts, mat, ext):
+        self.vts = np.array(vts)
+        self.mat = mat
+        self.ext = ext
 
-        self.source_height = srs[2] - vts[0][2]
-        self.receiver_height = rec[2] - vts[-1][2]
 
-    def set_coordinates_local(self):
+    def normalize_path(self):
         """
         Explination: Move 3D Casrtesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
         ---------------
@@ -23,21 +21,10 @@ class XmlParser:
         ---------------
         Output: void
         """
-        self.vts_xyz -= self.vts_xyz[0]
-
-    def unfold_straight_path(self):
-        """
-        Explination: calculate the pythagoras distance and make a new array with the distance d and the height z
-        ---------------
-        Input: void
-        ---------------
-        Output: void (fills self.vts_dz)
-        """
-        # calc the diagonal distance for all vertices
-        D = (self.vts_xyz[:,0] ** 2 + self.vts_xyz[:,1] ** 2) ** 0.5
-
-        # stack the diagonal distance with the height
-        self.vts_dz = np.vstack((D, self.vts_xyz[:,2])).T
+        # move all vertices relative to first vertex
+        self.vts -= self.vts[0]
+        # make all vertices positive, makes is easier to read and process
+        self.vts = abs(self.vts)
 
     def get_offsets_perpendicular(self, start, end):
         """
@@ -45,37 +32,52 @@ class XmlParser:
             calculates the perpendicular distance from points to the the line
         ---------------
         Input: 
-            Start = id of the start point
-            end = id of the end point
+            Start: integer - id of the start point
+            end: integer - id of the end point
         ---------------
         Output: 
-            List of distances
+            numpy array - array of the offsets of points along line segment
         """
-        p_start = self.vts_dz[start]
-        p_end = self.vts_dz[end]
-        line_length = ((p_end[1] - p_start[1]) ** 2 + (p_end[0] - p_start[0]) ** 2) ** 0.5
+        p_start = self.vts[start]
+        p_end = self.vts[end]
+        line_length = ((p_end[2] - p_start[2]) ** 2 + (p_end[0] - p_start[0]) ** 2) ** 0.5
         offsets = []
 
         for id in range(start+1, end):
             # do side test (return lenght of line x perpendicualr distace) so devide it by the length and voila
-            diff = abs(misc.side_test(p_start, p_end, self.vts_dz[id])) / line_length
+            diff = abs(misc.side_test((p_start[0], p_start[2]), (p_end[0], p_end[2]), (self.vts[id,0], self.vts[id,2]))) / line_length
             offsets.append(diff)
 
         return np.array(offsets)
 
     def douglas_Peucker(self, threshold):
-        # initalize simple path first first and last point
-        path_simple = [0, len(self.vts_dz)-1]
+        """
+        Explination:
+            simplifies the path using douglas peucker algorithm
+        ---------------
+        Input: 
+            Threshold: the minimal perpendicular distance between a line and a point for the point to be imported.
+        ---------------
+        Output: 
+            void (updates self.vts)
+        """
+        # === create initial path ===
+        # initalize simple path with all points that have an extension (source, receiver, barrier, etc)
+        path_simple = []
+        assert(len(self.ext) > 1)
+        for key in self.ext:
+            bisect.insort(path_simple, key)
+
+        # maintain the line material, insert every points where the material changes
+        for i in range(len(self.mat)-1):
+            if(self.mat[i] != self.mat[i+1]):
+                if i not in self.ext:
+                    bisect.insort(path_simple, i)
+
+        # == insert relevant points ===
         i = 0
-
-        while(True):
-            print(i)
-            # if we reach the end of the path, we are done.
-            if(i == len(path_simple) - 1): 
-                # add the values of the simplified list to the class variable.
-                self.vts_dx_simple = np.array([self.vts_dz[id] for id in path_simple])
-                return
-
+        while(i < len(path_simple) - 1):
+            #print(path_simple)
             start = path_simple[i]
             end = path_simple[i+1]
 
@@ -92,11 +94,21 @@ class XmlParser:
             # Check if the offset is above the treshold, if so, add the point to the list
             if(offsets[id_max] > threshold):
                 # Make sure to get the right id, id_max starts at 0, but 0 is already 1 further than the start point.
-                bisect.insort(path_simple, (id_max + start + 1)) # 
+                path_simple.insert(i+1, id_max + start + 1)
             else:
                 i += 1
+        
+        # === post-processing; update extension dictionary, materials and vertices ===
+        # Update the extensions with the new positions in the list.
+        for id, id_old in enumerate(path_simple):
+            if id_old in self.ext and id != id_old:
+                # Create a new key, with the correct id, and assign is het value of the old id that is popped.
+                self.ext[id] = self.ext.pop(id_old)
+
+        self.mat = [self.mat[id] for id in path_simple]
+        self.vts = np.array([self.vts[id] for id in path_simple])
                     
-    def write_xml(self, filename):
+    def write_xml(self, filename, validate):
         """
         Explination:
             1. create a element tree and set general information
@@ -115,39 +127,51 @@ class XmlParser:
 
         # Set the Method (same for all)
         ET.SubElement(method, "select", id="JRC-2012")
+
+        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input it horizontal and orientation is correct
+        if(not validate):
+            options = ET.SubElement(method, "options")
+            ET.SubElement(options, "option", id="CheckHorizontalAlignment", value="false")
+            ET.SubElement(options, "option", id="ForceSourceToReceiver", value="false")
+
         meteo = ET.SubElement(method, "meteo", model="DEFAULT")
         ET.SubElement(meteo, "pFav").text = "0.3"
         
         # create the path
         path = ET.SubElement(root, "path")
 
-        for point in self.vts_dz:
+        for id in range(len(self.vts)):
             # create a control point
             cp = ET.Element("cp")
 
             # insert the pos (position)
             pos = ET.SubElement(cp, "pos")
-            ET.SubElement(pos, "x").text = str(point[0])
-            ET.SubElement(pos, "z").text = str(point[1])
+            ET.SubElement(pos, "x").text = "{:.2f}".format(self.vts[id,0])
+            ET.SubElement(pos, "y").text = "{:.2f}".format(self.vts[id,1])
+            ET.SubElement(pos, "z").text = "{:.2f}".format(self.vts[id,2])
 
             # Insert the material
-            ET.SubElement(cp, "mat", id="H")
+            ET.SubElement(cp, "mat", id=self.mat[id])
 
             # append the created control point to the path
             path.append(cp)
 
-        # set the first point as receiver
-        ext_rec = ET.Element("ext")
-        rec = ET.SubElement(ext_rec, "receiver")
-        ET.SubElement(rec, "h").text = str(self.receiver_height)
+        for id, val in self.ext.items():
+            # set the first point as receiver
+            ext = ET.Element("ext")
+            ext_type = ET.SubElement(ext, val[0])
+            ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+            if (len(ext) > 2):
+                ET.SubElement(ext_type, "mat").text = str(val[2])
+            
+            path[id].append(ext)
 
-        path[0].append(ext_rec)
         # set the last point as source
-        ext_srs = ET.Element("ext")
-        srs = ET.SubElement(ext_srs, "source")
-        ET.SubElement(srs, "h").text = str(self.source_height)
+        #ext_srs = ET.Element("ext")
+        #srs = ET.SubElement(ext_srs, "source")
+        #ET.SubElement(srs, "h").text = str(self.source_height)
 
-        path[-1].append(ext_srs)
+        #path[-1].append(ext_srs)
         # Put the whole root in the tree, and write the tree to the file
         tree = ET.ElementTree(root)
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
@@ -161,15 +185,16 @@ class XmlParser:
         ---------------
         Output: void
         """
+        # color: if it is reflective ground, take black, othewise, take brown.
+        color = ['k' if x == 'G' else 'brown' for x in self.mat]
+
+        for i in range(len(self.vts) -2, -1, -1):
+            plt.plot(self.vts[i:i+2,0], self.vts[i:i+2,2], color=color[i+1], marker="o")
+
         # plot input points, and both source and receiver
-        #plt.scatter(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.scatter(0, self.vts_dz[0,1] + self.receiver_height)
-        plt.scatter(abs(self.vts_dz[-1,0]), self.vts_dz[-1,1] + self.source_height)
         
         # plot the lines for both input and translated lines
-        #plt.plot(abs(self.vts_xyz[:,0]), abs(self.vts_xyz[:,2]))
-        plt.plot(abs(self.vts_dz[:,0]), abs(self.vts_dz[:,1]))
-        plt.plot(abs(self.vts_dx_simple[:,0]), abs(self.vts_dx_simple[:,1]))
+        #plt.plot(self.vts[:,0], self.vts[:,2])
         
         plt.show()
 
@@ -192,15 +217,53 @@ if __name__ == "__main__":
         (0.8, 0.2, 0.5)
         ]
 
+    Materials = ["G", "G", "G", "G", "G", "G", "G", "A0", "A0", "A0", "A0", "A0", "A0", "G"]
+    extension = {}
+    # input:
+    # The xmlParser part will deviate differently over direct path than over the others. therefore the function can be called as follows:
+    # Direct path:
+    #   xmlParser(vertices, material)
+    # (1st order) reflected or diffracted path or barriers:
+    #   xmlParser(vertices, material, extensions)
+
+    # === vertices ===
+    # numpy array with arrays/tuples of the coordinates, this includes barriers (TIN point below the point) and reflection edges.
+    # vertices = [(x,y,z), (x,y,z), ...]
+
+    # === material ====
+    # List with material (string) for each vertex: ["G", "C", "A0"]
+    # Which material to choose: 
+    # groundType: absorbtion index 1: "C"
+    # groundType: absorbtion index 0: "G"
+    # Building in DSM: "A0"
+
+    # === Extensions ===
+    # Extension holds information about reflection and diffraction. It is a dictionary
+    # the key is the index of the related vertex, the value is a list with the type, material and the height
+    # ext = {
+    #   "0":   ["source", 2],       # The source (and receiver) don't have a material.
+    #   "id0": [type, height above TIN, material],
+    #   "id1": ["wall", 5, "A0"],     # for a reflection against a building 
+    #   "id2": ["edge", 3, "A0"],      # For a diffractions around a building (horizontal)
+    #   "id3": ["barrier", 4, "A0"]   # for a sound barrier (we currently don't have them, but it could come)
+    #   "last":["receiver", 2]
+    # }
+
     source = [0, 0, 2]
     receiver = [8, 16, 3]
 
-    xml_section = XmlParser(vertices, source, receiver)
-    xml_section.set_coordinates_local()
-    xml_section.unfold_straight_path()
+    extension[0] = ["source", source[2] - vertices[0][2]]
+    extension[len(vertices)-1] = ["receiver", receiver[2] - vertices[-1][2]]
+    
+
+    #xml_section = XmlParser(vertices, Materials, extension)
+    xml_section = XmlParser(vertices, Materials, extension)
+    
+    xml_section.normalize_path()
+
     xml_section.douglas_Peucker(0.3)
 
-    #xml_section.write_xml("test.xml")
+    #xml_section.write_xml("test.xml", True)
 
     xml_section.visualize_path()
 

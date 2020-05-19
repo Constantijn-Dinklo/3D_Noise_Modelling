@@ -214,6 +214,8 @@ class GroundTin:
         receiver_height = self.interpolate_triangle(receiver_tr, receiver)
         cross_section_vertices = [(receiver[0], receiver[1], receiver_height)]
 
+        # the edges go from 0 - 1, 1-2, 2-3, 3-4, 4-5, 5-6
+        cross_section_edges = [[0]]
         for i, edge in enumerate(edge_list):
             # get the vertices (from the vts list) and turn them into a numpt array for vector processing.
             vertex_right = np.array(self.vts[edge[0]])
@@ -235,13 +237,13 @@ class GroundTin:
                 continue
 
             cross_section_vertices.append(tuple(intersection_point))
+            cross_section_edges[-1].append(i+1)
+            cross_section_edges.append([i+1])
             #print("p_r: {}, p_l: {} a_r: {} a_l: {} portion: {} intersection at: {}".format(vertex_right, vertex_left, area_right, area_left, part_right, intersection_point))
         
         source_height = self.interpolate_triangle(source_tr, source)
         cross_section_vertices.append((source[0], source[1], source_height))
-
-        edges = np.array([range(len(cross_section_vertices)-1)])
-        cross_section_edges = np.vstack((edges, edges + 1)).T
+        cross_section_edges[-1].append(len(cross_section_vertices)-1)
 
         return cross_section_vertices, cross_section_edges
 
