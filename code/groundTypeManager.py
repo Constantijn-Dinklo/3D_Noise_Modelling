@@ -32,6 +32,10 @@ class GroundTypeManager:
 
                 self.grd_division[ground_id] = ground
 
+    def add_ground_type(self, ground_id, uuid, geometry, absp_index, holes=[]):
+        ground = GroundType(ground_id, uuid, geometry, absp_index, holes)
+        self.grd_division[ground_id] = ground
+    
     def get_ground(self, id):
         return self.grd_division[id]
 
