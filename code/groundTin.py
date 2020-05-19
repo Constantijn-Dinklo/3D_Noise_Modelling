@@ -451,70 +451,6 @@ class GroundTin:
 
         return ground_tin
 
-    @staticmethod
-    def read_from_objp(file_path):
-        """
-        Explination: Read an objp file and make a tin from it.
-        ---------------
-        Input:
-            file_path : string - The path to the obj file.
-        ---------------
-        Output:
-            ground_tin : GroundTin - The tin that was created from the obj file input.
-        """
-
-        vertices = []
-        triangles = []
-        attributes = []
-
-        min_values = [100000000, 100000000, 100000000]
-        max_values = [-100000000, -100000000, -100000000]
-
-        total_list_create_time = 0
-        total_class_create_time = 0
-
-        # Read the file and store all the vertices and triangles
-        with open(file_path, 'r') as input_file:
-
-            lines = input_file.readlines()
-
-            for line in lines:
-                line_elements = line.split(' ')
-                if line_elements[0] == 'v':
-                    x = float(line_elements[1])
-                    y = float(line_elements[2])
-                    z = float(line_elements[3])
-                    vertex = [x, y, z]
-                    vertices.append(vertex)
-                    for i in range(0, 3):
-                        if vertex[i] < min_values[i]:
-                            min_values[i] = vertex[i]
-                        if vertex[i] > max_values[i]:
-                            max_values[i] = vertex[i]
-
-                if line_elements[0] == 'f':
-                    v1 = int(line_elements[1]) - 1
-                    v2 = int(line_elements[2]) - 1
-                    v3 = int(line_elements[3]) - 1
-                    a1 = int(line_elements[4]) - 1
-                    a2 = int(line_elements[5]) - 1
-                    a3 = int(line_elements[6]) - 1
-
-                    triangle = [v1, v2, v3, a1, a2, a3]
-                    triangles.append(triangle)
-                
-                if line_elements[0] == 'a':
-                    attribute = float(line_elements[1])
-
-                    attributes.append(attribute)
-        
-        ground_tin = GroundTin(vertices, triangles, attributes)
-        ground_tin.bounding_box_2d = [min_values[0], min_values[1], max_values[0], max_values[1]]
-        ground_tin.bounding_box_3d = [min_values[0], min_values[1], min_values[2], max_values[0], max_values[1],
-                                      max_values[2]]
-
-        return ground_tin
-
     def write_to_obj(self, file_path):
         """
         Explination: Writes out the tin to an obj file.
@@ -556,21 +492,87 @@ class GroundTin:
                 output_file.write(triangle_str)
 
 
+#@staticmethod
+def read_from_objp(file_path):
+    """
+    Explination: Read an objp file and make a tin from it.
+    ---------------
+    Input:
+        file_path : string - The path to the obj file.
+    ---------------
+    Output:
+        ground_tin : GroundTin - The tin that was created from the obj file input.
+    """
+
+    vertices = []
+    triangles = []
+    attributes = []
+
+    min_values = [100000000, 100000000, 100000000]
+    max_values = [-100000000, -100000000, -100000000]
+
+    total_list_create_time = 0
+    total_class_create_time = 0
+
+    # Read the file and store all the vertices and triangles
+    with open(file_path, 'r') as input_file:
+
+        lines = input_file.readlines()
+
+        for line in lines:
+            line_elements = line.split(' ')
+            if line_elements[0] == 'v':
+                x = float(line_elements[1])
+                y = float(line_elements[2])
+                z = float(line_elements[3])
+                vertex = [x, y, z]
+                vertices.append(vertex)
+                for i in range(0, 3):
+                    if vertex[i] < min_values[i]:
+                        min_values[i] = vertex[i]
+                    if vertex[i] > max_values[i]:
+                        max_values[i] = vertex[i]
+
+            if line_elements[0] == 'f':
+                v1 = int(line_elements[1]) - 1
+                v2 = int(line_elements[2]) - 1
+                v3 = int(line_elements[3]) - 1
+                a1 = int(line_elements[4]) - 1
+                a2 = int(line_elements[5]) - 1
+                a3 = int(line_elements[6]) - 1
+
+                triangle = [v1, v2, v3, a1, a2, a3]
+                triangles.append(triangle)
+            
+            if line_elements[0] == 'a':
+                attribute = float(line_elements[1])
+
+                attributes.append(attribute)
+    
+    ground_tin = GroundTin(vertices, triangles, attributes)
+    ground_tin.bounding_box_2d = [min_values[0], min_values[1], max_values[0], max_values[1]]
+    ground_tin.bounding_box_3d = [min_values[0], min_values[1], min_values[2], max_values[0], max_values[1],
+                                    max_values[2]]
+
+    return ground_tin
+
+
+
 if __name__ == "__main__":
     # run in commandline = python groundTin.py ./input/sample.obj
-    # tin_filename = sys.argv[1]
+    tin_filename = sys.argv[1]
 
     # Create a
     # ground_tin_result = GroundTin.read_from_obj("input/isolated_cubes.obj")
     # ground_tin_resultp = GroundTin.read_from_objp("input/isolated_cubes.objp")
 
     start = time()
-    ground_tin_result = GroundTin.read_from_obj(tin_filename, False)
+    ground_tin_result = read_from_objp(tin_filename)
     time_1 = time()
     print("runtime reading obj: {:.2f} seconds".format(time_1 - start))
 
-    convex_hull = ground_tin_result.get_2d_convex_hull()
-    print(convex_hull)
+    #convex_hull = ground_tin_result.get_2d_convex_hull()
+    #print(convex_hull)
 
     #Setup dummy source and receiver points
     #source = [0.75, 0.1, 0]
@@ -587,7 +589,7 @@ if __name__ == "__main__":
     # t_00 = build.get(100)
 
     # dsm test
-    triangles = np.array([[0, 2, 1, 1, -1, -1],
+    '''triangles = np.array([[0, 2, 1, 1, -1, -1],
                           [1, 2, 3, 2, -1, 0],
                           [2, 4, 3, 3, 1, -1],
                           [3, 4, 5, 4, -1, 2],
@@ -610,7 +612,7 @@ if __name__ == "__main__":
     ground_type = ['C', 'A0', 'A0', 'G', 'C', 'G', 'C', 'G']
     assoc_building = {1: 0, 2: 1}
 
-    ground_tin_result = GroundTin(vertices, triangles, ground_type, assoc_building)
+    ground_tin_result = GroundTin(vertices, triangles, ground_type, assoc_building)'''
 
     # find source triangle
     #receiver_tr = ground_tin_result.find_receiver_triangle(4, receiver)

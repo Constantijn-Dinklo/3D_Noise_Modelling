@@ -21,6 +21,10 @@ class BuildingManager:
 
                 self.buildings[building_id] = building
 
+    def add_building(self, building_id, building_bag_id, geometry, ground_level, roof_level):
+        building = Building(building_id, building_bag_id, geometry, ground_level, roof_level)
+        self.buildings[building_id] = building
+    
     def get_building(self, id):
         return self.buildings[id]
 

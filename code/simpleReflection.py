@@ -157,9 +157,9 @@ class ReflectionPath:
         Output:
         void
         """
-        for bag_id in f_dict:
-            h_dak = f_dict[bag_id]['h_dak']
-            walls = f_dict[bag_id]['walls']
+        for bag_id in self.footprints:
+            h_dak = self.footprints[bag_id]['h_dak']
+            walls = self.footprints[bag_id]['walls']
             for wall in walls:
                 ref_list = self.split_lineseg2(dim,wall)
                 for point in ref_list:
@@ -186,9 +186,9 @@ class ReflectionPath:
         """
         coords   = [ ]
         heights  = [ ]
-        for bag_id in f_dict:
-            h_dak = f_dict[bag_id]['h_dak']
-            walls = f_dict[bag_id]['walls']
+        for bag_id in self.footprints:
+            h_dak = self.footprints[bag_id]['h_dak']
+            walls = self.footprints[bag_id]['walls']
             for wall in walls:
                 test_r = misc.side_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
                 test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
@@ -226,9 +226,9 @@ class ReflectionPath:
         heights  = [ ]
         for candidate in c_list:
             #ref_list = []
-            for bag_id in f_dict:
-                h_dak = f_dict[bag_id]['h_dak']
-                walls = f_dict[bag_id]['walls']
+            for bag_id in self.footprints:
+                h_dak = self.footprints[bag_id]['h_dak']
+                walls = self.footprints[bag_id]['walls']
                 for wall in walls:
                     test_c = misc.side_test( wall[0], wall[1], candidate[1][:2]) #r[:2] makes the function to ignore an eventual 'z' value.
                     test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
@@ -254,7 +254,7 @@ class ReflectionPath:
         print('2nd-order reflection. numer of paths:',len(coords))
         return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
 
-def read_buildings(input_file,dictionary):
+def read_buildings(input_file, dictionary):
     """
     Explanation: A function that reads footprints and stores all walls as [p1,p2] and absolute heights (float) of these.
     ---------------
