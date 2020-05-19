@@ -24,7 +24,7 @@ def main(sys_args):
     print(sys_args[0])
 
     constraint_tin_file_path = sys_args[1]
-    ground_type_file_path = sys_args[2]
+    ground_type_file_path = ""#sys_args[2]
     building_file_path = ""#sys_args[3]
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
