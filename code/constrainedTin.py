@@ -1,4 +1,3 @@
-import fiona
 import matplotlib.pyplot as plt
 import misc
 import numpy as np
@@ -11,6 +10,8 @@ from shapely.geometry import shape, Polygon, LineString, Point
 from shapely.ops import transform
 from scipy.spatial import KDTree
 from time import time
+
+import fiona
 
 
 class ConstrainedTin:
@@ -181,17 +182,12 @@ class ConstrainedTin:
 
                 bound = []
                 j = 0
-                bounds = []
                 while j < len(vts_2d):
                     if j != len(vts_2d) - 1:
                         bound.append((i + j, i + j + 1))
-                        '''bounds.append(self.vts_2d[i+j])
-                        bounds.append(self.vts_2d[i + j + 1])'''
                         j += 1
                     else:
                         bound.append((i + j, i))
-                        '''bounds.append(self.vts_2d[i + j])
-                        bounds.append(self.vts_2d[i])'''
                         j += 1
 
                 self.segments.extend(bound)
@@ -374,10 +370,10 @@ class ConstrainedTin:
 
 
 if __name__ == "__main__":
-    semantics = fiona.open(r"C:\Users\Nadine\Desktop\Nad\TU delft\Q4\GEO1101\3d_geo_data\processed\semaantics_test.shp")
-    v_ground_tin_lod1 = ConstrainedTin.read_from_obj(r"W:\staff-umbrella\pathfinder\01_Scenarios\scenario000\Terrain "
-                                                     r"Data\TIN\0,3m\tin_03m.obj\tin.obj")
+    semantics = fiona.open("input/semaantics_test.shp")
+    v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin.obj")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
+    v_ground_tin_lod1.write_to_objp("output/constrainted_tin.objp")
     '''test_00 = output['vertices']
     test_01 = v_ground_tin_lod1.vts
     for i, v in enumerate(test_00):
