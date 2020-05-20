@@ -154,7 +154,7 @@ class CrossSection:
                         next_height_building = building_manager.buildings[next_building_id].roof_level
 
                         # no collinear vertical points, so we are going from one building to another building with a different height
-                        if current_material != next_material or current_height_building != next_height_building:
+                        if current_material != next_material or abs(current_height_building - next_height_building) > 0.1:
                             # add current roof height
                             cross_section_vertices.append(
                                 [(interpolated_point[0], interpolated_point[1], current_height_building), current_material])
