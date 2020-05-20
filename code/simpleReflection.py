@@ -5,21 +5,24 @@ import time
 
 class ReflectionPath:
 
-    def __init__(self,sources,receivers,footprints):
+    def __init__(self,sources,receivers,footprints,candidates,paths1st,paths2nd):
         self.sources = sources
         self.receivers = receivers
         self.footprints = footprints
+        self.candidates = candidates
+        self.paths1st = paths1st
+        self.paths2nd = paths2nd
 
     def get_line_equation(self,p1,p2):
         """
         Explanation:A function that reads two points and returns the ABC parameters of the line composed by these points.
         ---------------
         Input:
-        p1 [x(float),y(float)]
-        p2 [x(float),y(float)]
+        p1 : [x(float), y(float)] - The starting point in the line.
+        p2 : [x(float), y(float)] - The ending point in the line.
         ---------------
         Output:
-        parameters [a_norm(float),b_norm(float),c_norm(float)]
+        parameters: [a_norm(float),b_norm(float),c_norm(float)] - The a,b,c parameters of the normalised line equation.
         """
         # EQUATION OF A LINE IN THE 2D PLANE:
         # A * x + B * y + C = 0
@@ -40,11 +43,11 @@ class ReflectionPath:
         Explanation: A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
         ---------------
         Input:
-        p1 [x(float),y(float)]
-        parameters [a_norm(float),b_norm(float),c_norm(float)]
+        p1: [x(float),y(float)] - The object point that will be mirrored.
+        parameters: [a_norm(float),b_norm(float),c_norm(float)] - The a,b,c parameters of the normalised line equation.
         ---------------
         Output:
-        p_mirror [x(float),y(float)]
+        p_mirror: [x(float),y(float)] - The image (virtual) point.
         """
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
         d = parameters[0]*p1[0] + parameters[1]*p1[1] + parameters[2]
@@ -54,20 +57,20 @@ class ReflectionPath:
 
     def get_closest_point(self,p1,parameters):
         """
-        Explanation: A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
+        Explanation: A function that reads a point and the parameters of a line and returns the closest point of p1 on this line.
         ---------------
         Input:
-        p1 [x(float),y(float)]
-        parameters [a_norm(float),b_norm(float),c_norm(float)]
+        p1: [x(float),y(float)] - The object point.
+        parameters: [a_norm(float),b_norm(float),c_norm(float)] - The a,b,c parameters of the normalised line equation.
         ---------------
         Output:
-        p_mirror [x(float),y(float)]
+        p_line: [x(float),y(float)] - The closest point of p1 that lies on the line segment.
         """
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
         d = parameters[0]*p1[0] + parameters[1]*p1[1] + parameters[2]
-        p_mirror_x = p1[0] - parameters[0]*d
-        p_mirror_y = p1[1] - parameters[1]*d
-        return [p_mirror_x,p_mirror_y]
+        p_line_x = p1[0] - parameters[0]*d
+        p_line_y = p1[1] - parameters[1]*d
+        return [p_line_x,p_line_y]
 
     def line_intersect(self, line1, line2):
         """
@@ -92,20 +95,20 @@ class ReflectionPath:
         y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
         return [x,y]
     
-    def split_lineseg(self,n,lineseg):
+    def split_lineseg_n(self,n,lineseg):
         # ATTENTION !: THIS FUNCTION SPLITS ALL THE LINE SEGMENTS IN THE MODEL INTO A FIXED NUMBER OF SUB-SEGMENTS (N), REGARDLESS OF THE
         # LENGHT OF THE SEGMENT. AS A CONSEQUENCE, SMALL WALLS WILL HAVE VERY SMALL SUB-SEGMENTS, WHEREAS LONG WALLS WILL NOT.
-        # AS AN ALTERNATIVE, "split_lineseg2" IS BEING USED IN THIS PROGRAM. IT SPLITS ALL WALLS INTO SUB-SEGMENTS WITH A PRE-DEFINED LENGTH (DIM). 
+        # AS AN ALTERNATIVE, "split_lineseg_dim" IS BEING USED IN THIS PROGRAM. IT SPLITS ALL WALLS INTO SUB-SEGMENTS WITH A PRE-DEFINED LENGTH (DIM). 
         """
         Explanation: A function that takes a line segment and splits it into multiple sub-segments, according to a specific number.
         ---------------
         Input:
-        n: the number of line sub-segments in which lineseg will be divided into
-        lineseg: the line segment in matter [[x1,y1],[xn,yn]]
+        n: int - the number of line sub-segments in which lineseg will be divided into
+        lineseg: [[x1(float),y1(float)],[xn(float),yn(float)]] - the line segment in matter 
         ---------------
         Output:
-        ref_list: a list of all vertices of lineseg (polyline), including the two outermost and original ones.
-        [[x1,y1],[x2,y2],[x3,y3].....[xn,yn]]
+        ref_list: [[x1(float),y1(float)],[x2(float),y2(float)],[x3(float),y3(float)].....[xn(float),yn(float)]] - a list of all vertices
+        of lineseg (polyline), including the two outermost and original ones.
         """
         delta_x = lineseg[1][0] - lineseg[0][0] # delta_x can be positive, negative or zero, depending on the direction of the line.
         delta_y = lineseg[1][1] - lineseg[0][1] # delta_x can be positive, negative or zero, depending on the direction of the line.
@@ -118,17 +121,17 @@ class ReflectionPath:
             ref_list.append(vertex)
         return ref_list
 
-    def split_lineseg2(self,dim,lineseg):
+    def split_lineseg_dim(self,dim,lineseg):
         """
         Explanation: A function that takes a line segment and splits it into multiple sub-segments, each one of them with lenght = 'dim'
         ---------------
         Input:
-        dim: the length of each sub-segment in which lineseg will be divided into
-        lineseg: the line segment in matter [[x1,y1],[xn,yn]]
+        dim: float - the length of each sub-segment in which lineseg will be divided into
+        lineseg: [[x1(float),y1(float)],[xn(float),yn(float)]] - the line segment in matter 
         ---------------
         Output:
-        ref_list: a list of all vertices of lineseg (polyline), including the two outermost and original ones.
-        [[x1,y1],[x2,y2],[x3,y3].....[xn,yn]]
+        ref_list: [[x1(float),y1(float)],[x2(float),y2(float)],[x3(float),y3(float)].....[xn(float),yn(float)]] - a list of all vertices
+        of lineseg (polyline), including the two outermost and original ones.
         """
         delta_x = lineseg[1][0] - lineseg[0][0]
         delta_y = lineseg[1][1] - lineseg[0][1]
@@ -152,16 +155,16 @@ class ReflectionPath:
         Explanation: A function that gets all the walls from f_dict and create candidate reflection points.
         ---------------        
         Input:
-        n: the number (int) foi segments in which the wall will be divided into.
+        n: int - the number of segments in which the wall will be divided into.
         ---------------
         Output:
         void
         """
-        for bag_id in self.footprints:
-            h_dak = self.footprints[bag_id]['h_dak']
-            walls = self.footprints[bag_id]['walls']
+        for bag_id in f_dict:
+            h_dak = f_dict[bag_id]['h_dak']
+            walls = f_dict[bag_id]['walls']
             for wall in walls:
-                ref_list = self.split_lineseg2(dim,wall)
+                ref_list = self.split_lineseg_dim(dim,wall)
                 for point in ref_list:
                     point.append(h_dak)
                     candidate = [wall[0],point,wall[1]]
@@ -173,8 +176,8 @@ class ReflectionPath:
         according to buildings that are stored in f_dict (separate dictionary)
         ---------------        
         Input:
-        source s    [x,y,(z)]
-        receiver r  [x,y,(z)]
+        s: [x(float),y(float),(z)(float)] - source point.
+        r: [x(float),y(float),(z)(float)] - receiver point.
         ---------------
         Output:
         A list of all (independent) points that are capable of reflecting the sound wave from source to receiver.:
@@ -186,9 +189,9 @@ class ReflectionPath:
         """
         coords   = [ ]
         heights  = [ ]
-        for bag_id in self.footprints:
-            h_dak = self.footprints[bag_id]['h_dak']
-            walls = self.footprints[bag_id]['walls']
+        for bag_id in f_dict:
+            h_dak = f_dict[bag_id]['h_dak']
+            walls = f_dict[bag_id]['walls']
             for wall in walls:
                 test_r = misc.side_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
                 test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
@@ -210,9 +213,9 @@ class ReflectionPath:
         according to buildings that are stored in f_dict (separate dictionary)
         ---------------        
         Input:
-        number n : number of sub-segments in wich the line will be divided.
-        source s    [x,y,(z)]
-        receiver r  [x,y,(z)]
+        s: [x(float),y(float),(z)(float)] - source point.
+        r: [x(float),y(float),(z)(float)] - receiver point.
+        threshold t: float - the threshold distance from the receiver.
         ---------------
         Output:
         A list of all (independent) point lists that are capable of reflecting the sound wave from source to receiver.:
@@ -225,10 +228,9 @@ class ReflectionPath:
         coords   = [ ]
         heights  = [ ]
         for candidate in c_list:
-            #ref_list = []
-            for bag_id in self.footprints:
-                h_dak = self.footprints[bag_id]['h_dak']
-                walls = self.footprints[bag_id]['walls']
+            for bag_id in f_dict:
+                h_dak = f_dict[bag_id]['h_dak']
+                walls = f_dict[bag_id]['walls']
                 for wall in walls:
                     test_c = misc.side_test( wall[0], wall[1], candidate[1][:2]) #r[:2] makes the function to ignore an eventual 'z' value.
                     test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
@@ -412,7 +414,7 @@ if __name__ == "__main__":
     read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
     read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
 
-    reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
+    reflection_path = ReflectionPath(s_dict,r_dict,f_dict,c_list,p1_list,p2_list)
     reflection_path.get_candidate_point(0.025) # DIM 0.025
 
     write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/candidates0025.csv',c_list)
