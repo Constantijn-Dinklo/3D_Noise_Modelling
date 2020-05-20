@@ -2,20 +2,14 @@ import fiona
 import groundTin as TIN
 import misc
 import sys
+from pprint import pprint
 #import xmlParser as xml
 
 from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
 from sourceReceiver import ReceiverPoint
 from simpleReflection import ReflectionPath
-
-def xml_parser(vts, mat):
-    # Put functions here
-    pass
-
-def xml_parser(vts, mat, ext):
-    pass
-
+import crossSectionManager
 
 #This should be a temporary input type
 #def read_ground_objects()
@@ -72,7 +66,7 @@ def main(sys_args):
                     geometry = record['geometry']['coordinates'][0]
                     ground_type_manager.add_ground_type(record_id + record_index, uuid, geometry, absp_index)
 
-    hard_coded_receiver_point = (93550, 441900)
+    hard_coded_receiver_point = ((93550, 441900))
     cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
     cnossos_angle = 2.0
 
@@ -82,17 +76,24 @@ def main(sys_args):
 
     #Get all the source points that are within range of this receiver point
     source_points_dict = receiver_point.return_intersection_points()
-    source_points = source_points_dict[hard_coded_receiver_point]
+    #source_points = source_points_dict[hard_coded_receiver_point] no need for this
 
+    #cross_sections = CrossSectionManager()
+    #cross_sections.cross_sections = source_points_dict
+
+    for receiver, sources_list in source_points_dict.items():
+        receiver_triangle = tin.find_receiver_triangle(2, receiver)
+        receiver_section = crossSectionManager.CrossSectionManager(hard_coded_receiver_point, receiver_triangle, sources_list)
+
+        receiver_paths = receiver_section.get_cross_sections(tin, ground_type_manager, building_manager)
+        receiver_section.write_obj("test_object.obj")
+        # optimise the start triangle (default at 2 right now)
+        
     #Find all the reflected paths for now.
     #reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
     #for source_point in source_points:
     #    source_point_list = [source_point]
-    #    receiver_point_list = [receiver_point]
-
-
-    
-
+    #    receiver_point_list = [receiver_point] CrossSectionManager
 
 if __name__ == "__main__":
     main(sys.argv)

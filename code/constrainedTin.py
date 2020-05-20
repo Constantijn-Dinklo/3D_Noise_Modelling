@@ -193,6 +193,7 @@ class ConstrainedTin:
                 self.segments.extend(bound)
                 a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
                 self.regions.append([a, b, int(record['id']) * 100 + k, 0])
+                
                 # A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
                 # const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
                 # tr.compare(plt, A, const_tin)
