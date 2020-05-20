@@ -1,4 +1,5 @@
 
+import numpy as np
 
 def normal_of_triangle(triangle):
 
@@ -28,26 +29,27 @@ def side_test(pa, pb, pc):
         """
         return ((pa[0] - pc[0]) * (pb[1] - pc[1])) - ((pb[0] - pc[0]) * (pa[1] - pc[1]))
     
-def write_cross_section_to_obj(obj_filename, cross_edges, cross_vts, vertices=[], trs=[]):
+def write_cross_section_to_obj(obj_filename, path_list):
     print("=== Writing {} ===".format(obj_filename))
 
-    f_out = open(obj_filename, 'w')
-    for v in vertices:
-        f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
-    for v in cross_vts:
-        #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
-        f_out.write("v {:.3f} {:.3f} {:.3f}\n".format(v[0], v[1], v[2]))
+
+    with open(obj_filename, 'w') as f_out:
+        vts_count_lst = [0]
+        counter = 0
+        for path in path_list:
+            path = np.array(path)
+            path = path[:,0]
+            # has the starting vertex number
+            counter = counter + len(path)
+            vts_count_lst.append(counter)
+            for v in path:
+                #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
+                f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
         
-
-    f_out.write("o 0\n")
-
-    for tr in trs:
-        tr += 1
-        f_out.write("f " + str(tr[0]) + " " + str(tr[1]) + " " + str(tr[2]) + "\n")
-
-    f_out.write("l")
-    for line in cross_edges:
-        f_out.write(" " + str(line[0] + 1 + len(vertices)))
-    f_out.write(" " + str(cross_edges[-1][1] + 1 + len(vertices)) +  "\n")
-
-    f_out.close()
+        #print(vts_count_lst)
+        for i, path in enumerate(path_list):
+            base = vts_count_lst[i]
+            f_out.write("l")
+            for i in range(len(path)):
+                f_out.write(" " + str(base + i + 1))
+            f_out.write("\n")

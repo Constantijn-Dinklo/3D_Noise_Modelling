@@ -2,13 +2,65 @@ import misc
 import numpy as np
 class CrossSection:
 
-    def __init__(self):
-        self.source = []
+    def __init__(self, source, receiver):
+        self.source = source
+        self.receiver = receiver
         
         #Please add any other data that belongs to a cross section here eg, maybe intermidiate points?
         #self.intermidiate_points - []
 
-    def get_cross_section(self, source, receiver, receiver_tr, ground_tin, ground_type_manager, building_manager):
+    def get_next_edge(self, ground_tin, tr):
+        """
+        Explanation: returns the next edge in the triangle which the path crosses
+        ---------------
+        Input:
+            receiver : (x,y,z) - the receiver point we walk from
+            ground_tin : ground_Tin object - stores the whole tin
+            tr : integer - id of the current triangle
+        ---------------
+        Output:
+            list - two vertices of the edge.
+        """
+        edges = (
+            (ground_tin.trs[tr][0], ground_tin.trs[tr][1]),
+            (ground_tin.trs[tr][1], ground_tin.trs[tr][2]),
+            (ground_tin.trs[tr][2], ground_tin.trs[tr][0])
+            )
+        # Go over the edges
+        for i, edge in enumerate(edges):
+            # Check if the orientation is correct
+                if (misc.side_test(self.receiver, self.source, ground_tin.vts[edge[0]]) <= 0 and
+                        misc.side_test(self.receiver, self.source, ground_tin.vts[edge[1]]) >= 0):
+                    return i, edge
+        
+        print("something went wrong here")
+        assert(True)
+
+        
+    def get_material(self, tin, buildings_manager, ground_type_manager, tr):
+        """
+        Explanation: Returns the material and attribute id of the triangle
+        ---------------
+        Input:
+            tin : ground_Tin object - stores the whole tin
+            buildings_manager : building_manager object - stores all the buildings
+            ground_type_manager : ground_type_manager object - stores all ground surfaces
+            tr : interger - id of triangle
+        ---------------
+        Output:
+            string - material type
+            integer - attribute id of the building, or -1 if it is ground
+        """
+        if tin.attributes[tr] in buildings_manager.buildings:
+            building_id = tin.attributes[tr]
+            return "A0", building_id
+        else:
+            if(ground_type_manager.grd_division[tin.attributes[tr]].index == 0): 
+                return "G", -1
+            else:
+                return "C", -1
+
+    def get_cross_section(self, current_triangle, ground_tin, ground_type_manager, building_manager):
         """
         Explanation: Finds cross-section while walking to the source point
         ---------------
@@ -21,129 +73,113 @@ class CrossSection:
         Output:
             list of vertices - defining the cross-section
         """
-        print("=== cross_section ===")
-        check_tr = receiver_tr
+        #print("=== cross_section ===")
+        # define the neighbour ids
+        nbs = [5, 3, 4] # -> [v0, v1, v2, n0, n1, n2]
 
         # the first vertex is the receiver projected into its triangle
-        receiver_height = ground_tin.interpolate_triangle(check_tr, receiver)
+        receiver_height = ground_tin.interpolate_triangle(current_triangle, self.receiver)
 
-        # Finrd the material of the point
-        if ground_tin.attributes[check_tr] in building_manager.buildings:
-            cross_section_vertices = [[(receiver[0], receiver[1], receiver_height), "A0"]]
-        else:
-            if(ground_type_manager.grd_division[ground_tin.attributes[check_tr]].index == 0): 
-                cross_section_vertices = [[(receiver[0], receiver[1], receiver_height), "G"]]
-            else:
-                cross_section_vertices = [[(receiver[0], receiver[1], receiver_height), "C"]]
+        # get the material of the current triangle
+        material_triangle, material_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+        cross_section_vertices = [[(self.receiver[0], self.receiver[1], receiver_height), material_triangle]]
+
+        # Boolean to check if the path is on top of a building, or not. receiver is never in building
+        in_building = False
+
+        # keep going untill the source triangle has been found.
+        while not ground_tin.point_in_triangle(self.source, current_triangle):
+            # Make sure that we have not gotten of the TIN
+            assert (current_triangle != -1)
+            
+            # Get the outgoing edge of the triangle
+            edge_id, edge = self.get_next_edge(ground_tin, current_triangle)
+
+            # get intersection point between edge and receiver-source segment
+            interpolated_point = ground_tin.intersection_point(edge, self.source, self.receiver)
+
+            # Check if the new calculated point is not too close to the previously added point, in MH distance
+            if np.sum(abs(cross_section_vertices[-1][0] - interpolated_point)) <= 0.1:
+                #print("points are too close, nothing to add")
+                current_triangle = ground_tin.trs[current_triangle][nbs[edge_id]]
+                continue
+
+            current_material, current_building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+
+            # move triangle to the next triangle in the path
+            current_triangle = ground_tin.trs[current_triangle][nbs[edge_id]]
+
+            # Get the material and building_id of next building
+            next_material, next_building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+  
+            # Check if both this and the next triangle are ground, then append the vertex to the list
+            if current_building_id == -1 and next_building_id == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
+                cross_section_vertices.append([interpolated_point, next_material])
                 
-        nbs = [5, 3, 4]
-        count = 0
-        while not ground_tin.point_in_triangle(source, check_tr):
-            assert (check_tr != -1)
-            edges = ((ground_tin.trs[check_tr][0], ground_tin.trs[check_tr][1]),
-                     (ground_tin.trs[check_tr][1], ground_tin.trs[check_tr][2]),
-                     (ground_tin.trs[check_tr][2], ground_tin.trs[check_tr][0]))
+            # Check if this triangle is, but the next triangle is not building. if the count however is still 0, than the building is not valid. should happen too often
+            elif current_building_id != -1 and next_building_id == -1 and not in_building:
+                print("prev building was negative")
+                pass
 
-            for i, edge in enumerate(edges):
-                if (misc.side_test(receiver, source, ground_tin.vts[edge[0]]) <= 0 and
-                        misc.side_test(receiver, source, ground_tin.vts[edge[1]]) >= 0):
-
-                    # get intersection point between edge and receiver-source segment
-                    inter_pt = ground_tin.intersection_point(edge, source, receiver)
-
-                    # Check if the new calculated point is not too close to the previously added point, in MH distance
-                    if np.sum(abs(cross_section_vertices[-1][0] - inter_pt)) <= 0.1:
-                        print("points are too close, nothing to add")
-                        check_tr = ground_tin.trs[check_tr][nbs[i]]
-                        break
-                    # Check if there are any building intersection
-                    else:
-                        inter_pt = tuple(inter_pt)
-                        if ground_tin.attributes[check_tr] in building_manager.buildings:
-                            current_tr_mtl = "A0"
-                            current_bldg = ground_tin.attributes[check_tr]
-                        else:
-                            current_bldg = -1
-                            if(ground_type_manager.grd_division[ground_tin.attributes[check_tr]].index == 0): 
-                                current_tr_mtl = "G"
-                            else:
-                                current_tr_mtl = "C"
-
-                        check_tr = ground_tin.trs[check_tr][nbs[i]]
-                        if ground_tin.attributes[check_tr] in building_manager.buildings:
-                            next_tr_mtl = "A0"
-                            next_bldg = ground_tin.attributes[check_tr]
-                        else:
-                            next_bldg = -1
-                            if(ground_type_manager.grd_division[ground_tin.attributes[check_tr]].index == 0): 
-                                next_tr_mtl = "G"
-                            else:
-                                next_tr_mtl = "C"
-                                
-                        if current_bldg == -1 and next_bldg == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
-                            cross_section_vertices.append([inter_pt, next_tr_mtl])
-                            break
-                            
-                        elif current_bldg != -1 and next_bldg == -1 and count == 0:
-                            pass
-
-                        else:
-                            if count == 0:
-
-                                #print("{}".format(self.attributes[check_tr]))
-                                '''next_build_info = buildings.get(next_bldg)
-                                
-                                next_h_bldg = build_info['properties']['h_dak']'''
-
-                                next_h_bldg = building_manager.buildings[next_bldg].roof_level
-                                if next_h_bldg > inter_pt[2]:
-                                    cross_section_vertices.append([inter_pt, next_tr_mtl])
-                                    cross_section_vertices.append([(inter_pt[0], inter_pt[1], next_h_bldg),
-                                                                   next_tr_mtl])
-                                    count = 1
-                                    break
-                                else:
-                                    print("Roof height is lower than ground height, for building ", next_bldg)
-                                    break
-                            else:
-                                '''build_info = buildings.get(current_bldg)
-                                current_h_bldg = build_info['properties']['h_dak']'''
-                                
-                                current_h_bldg = building_manager.buildings[current_bldg].roof_level
-                                if current_h_bldg > inter_pt[2] and next_bldg != -1:
-                                    '''next_build_info = buildings.get(next_bldg)
-                                    next_h_bldg = build_info['properties']['h_dak']'''
-                                    next_h_bldg = building_manager.buildings[next_bldg].roof_level
-                                    # no collinear horizontal points
-                                    if current_tr_mtl == next_tr_mtl and current_h_bldg == next_h_bldg:
-                                        break
-                                    # no collinear vertical points
-                                    else:
-                                        cross_section_vertices.append([(inter_pt[0], inter_pt[1], current_h_bldg),
-                                                                       current_tr_mtl])
-                                        cross_section_vertices.append([(inter_pt[0], inter_pt[1], next_h_bldg),
-                                                                       next_tr_mtl])
-                                        break
-                                # down back to DTM
-                                elif current_h_bldg > inter_pt[2] and next_bldg == -1:
-                                    cross_section_vertices.append([(inter_pt[0], inter_pt[1], current_h_bldg),
-                                                                   current_tr_mtl])
-                                    cross_section_vertices.append([inter_pt, next_tr_mtl])
-                                    count = 0
-                                    break
-                                else:
-                                    print("Roof height is lower than ground height, for building ", current_bldg)
-                                    break
-        source_tr = check_tr
-        source_height = ground_tin.interpolate_triangle(source_tr, source)
-        if ground_tin.attributes[source_tr] in building_manager.buildings:
-            source_tr_mtl = "A0"
-        else:
-            if(ground_type_manager.grd_division[ground_tin.attributes[check_tr]].index == 0): 
-                source_tr_mtl = "G"
+            # if the next, or both points are building, than check whether its rising, lowering, and staying on roof level.
             else:
-                source_tr_mtl = "C"
 
-        cross_section_vertices.append([(source[0], source[1], source_height), source_tr_mtl])
+                # We are not in building, but are going up
+                if not in_building:
+
+                    # Get height of building
+                    next_height_building = building_manager.buildings[next_building_id].roof_level
+
+                    # if the next building is higher than the interpolated point (dtm level), we need to add the rising edge
+                    if next_height_building > interpolated_point[2]:
+                        # add ground point
+                        cross_section_vertices.append([interpolated_point, next_material])
+                        # add roof point
+                        cross_section_vertices.append([(interpolated_point[0], interpolated_point[1], next_height_building),
+                                                        next_material])
+                        
+                        in_building = True
+
+                    else:
+                        print("Roof height is lower than ground height, for building ", next_building_id)
+
+                # we are in a building
+                else:
+
+                    current_height_building = building_manager.buildings[current_building_id].roof_level
+
+                    # We will stay in Building, check if building is higher than the ground (negative buildings considered)
+                    if current_height_building > interpolated_point[2] and next_building_id != -1:
+
+                        next_height_building = building_manager.buildings[next_building_id].roof_level
+
+                        # no collinear vertical points, so we are going from one building to another building with a different height
+                        if current_material != next_material or current_height_building != next_height_building:
+                            # add current roof height
+                            cross_section_vertices.append(
+                                [(interpolated_point[0], interpolated_point[1], current_height_building), current_material])
+                            # add new roof height
+                            cross_section_vertices.append(
+                                [(interpolated_point[0], interpolated_point[1], next_height_building), next_material])
+                            
+
+                    # Will go down from building again
+                    elif current_height_building > interpolated_point[2] and next_building_id == -1:
+                        # add the roof top
+                        cross_section_vertices.append(
+                            [(interpolated_point[0], interpolated_point[1], current_height_building), current_material])
+                        # add the ground point
+                        cross_section_vertices.append([interpolated_point, next_material])
+                        in_building = False
+                    else:
+                        print("Roof height is lower than ground height, for building ", current_building_id)
+
+        # Reached source triangle, add this point as well.
+        source_height = ground_tin.interpolate_triangle(current_triangle, self.source)
+
+        source_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+
+        cross_section_vertices.append([(self.source[0], self.source[1], source_height), source_material])
+        # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
         return cross_section_vertices
