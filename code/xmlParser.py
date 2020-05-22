@@ -226,12 +226,11 @@ if __name__ == "__main__":
     # (1st order) reflected or diffracted path or barriers:
     #   xmlParser(vertices, material, extensions)
 
-    # === vertices ===
+    # === vertices and matieral ===
     # numpy array with arrays/tuples of the coordinates, this includes barriers (TIN point below the point) and reflection edges.
-    # vertices = [(x,y,z), (x,y,z), ...]
+    # vertices = [[(x,y,z), mat], [(x,y,z), mat], [...]]
 
     # === material ====
-    # List with material (string) for each vertex: ["G", "C", "A0"]
     # Which material to choose: 
     # groundType: absorbtion index 1: "C"
     # groundType: absorbtion index 0: "G"

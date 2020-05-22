@@ -2,6 +2,7 @@ import fiona
 import groundTin as TIN
 import misc
 import sys
+import numpy as np
 from pprint import pprint
 #import xmlParser as xml
 
@@ -10,6 +11,7 @@ from groundTypeManager import GroundTypeManager
 from sourceReceiver import ReceiverPoint
 from simpleReflection import ReflectionPath
 from crossSectionManager import CrossSectionManager
+from reflectionManager import ReflectionManager
 
 #This should be a temporary input type
 #def read_ground_objects()
@@ -20,6 +22,8 @@ def main(sys_args):
     constraint_tin_file_path = sys_args[1]
     ground_type_file_path = ""#sys_args[2]
     building_file_path = ""#sys_args[3]
+
+    building_gpkg_file = "input/buildings_lod_13.gpkg"
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
 
@@ -73,22 +77,17 @@ def main(sys_args):
     #Create a Receiver Point to which the sound should travel
     receiver_point = ReceiverPoint(hard_coded_receiver_point, cnossos_radius, cnossos_angle)
     receiver_point.return_segments_source('input/test_2.gml')
-
     #Get all the source points that are within range of this receiver point
     source_points_dict = receiver_point.return_intersection_points()
-    #source_points = source_points_dict[hard_coded_receiver_point] no need for this
 
-    #cross_sections = CrossSectionManager()
-    #cross_sections.cross_sections = source_points_dict
-    cross_section_manager = CrossSectionManager(source_points_dict)
+    # Get first order reflections
+    reflected_paths = ReflectionManager(source_points_dict)
+    propagations_paths, reflection_heights = reflected_paths.get_reflection_paths(tin, building_manager, building_gpkg_file)
+
+    cross_section_manager = CrossSectionManager(propagations_paths, reflection_heights)
     cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
-    cross_section_manager.write_obj("test_object.obj")
-        
-    #Find all the reflected paths for now.
-    #reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
-    #for source_point in source_points:
-    #    source_point_list = [source_point]
-    #    receiver_point_list = [receiver_point] CrossSectionManager
+    cross_section_manager.write_obj("test_object_reflect.obj")
+    
 
 if __name__ == "__main__":
     main(sys.argv)

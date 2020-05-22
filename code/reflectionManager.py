@@ -1,4 +1,4 @@
-from simpleReflection import ReflectionPath
+from simpleReflection import ReflectionPath, read_buildings
 from pprint import pprint
 #import numpy as np
 from misc import write_cross_section_to_obj
@@ -7,9 +7,10 @@ class ReflectionManager:
 
     def __init__(self, source_receivers_dict):
         self.source_receivers_dict = source_receivers_dict
-        self.first_order_paths = {}
+        self.propagation_paths = {}
+        self.reflection_heights = {}
     
-    def get_reflections(self, tin, building_manager):
+    def get_reflection_paths(self, tin, building_manager, building_filename):
         """
         Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
         ---------------
@@ -24,25 +25,21 @@ class ReflectionManager:
         """
         
         for receiver, sources_list in self.source_receivers_dict.items():
-            receiver_paths = []
-
+            self.reflection_heights[receiver] = []
+            self.propagation_paths[receiver] = []
             for source in sources_list:
+                buildings_dictionary = read_buildings(building_filename)
                 reflection_object = ReflectionPath(source, receiver)
-                path = reflection_object.get_first_order_reflection(tin, building_manager)
-                receiver_paths.append(path)
-            self.paths[receiver] = receiver_paths
-
-    def write_obj(self, filename):
-        """
-        Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj
-        ---------------
-        Input:
-            filename : string - filename, including path and extension(.obj)
-        ---------------
-        Output:
-            void (writes obj file)
-        """
-        i = 0
-        for receiver, paths in self.paths.items():
-            write_cross_section_to_obj(str(i) + filename, paths)
-            i += 1
+                paths_and_heights = reflection_object.get_first_order_reflection(buildings_dictionary) # future replace with tin and building_manager
+                if(paths_and_heights):
+                    #pprint(paths_and_heights)
+                    #[p1, p2, ..., pn], [h1, h2, ..., hn]
+                    for i in range(len(paths_and_heights[0])):
+                        #print("point: {} height: {}".format(paths_and_heights[0][i], paths_and_heights[1][i]))
+                        self.propagation_paths[receiver].append([paths_and_heights[0][i], source])
+                        self.reflection_heights[receiver].append(paths_and_heights[1][i])
+                else:
+                    self.propagation_paths[receiver].append([source])
+            #self.first_order_paths[receiver] = receiver_paths
+        #pprint(self.propagation_paths)
+        return self.propagation_paths, self.reflection_heights

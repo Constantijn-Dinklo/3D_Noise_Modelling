@@ -92,7 +92,7 @@ class ReceiverPoint:
             return
         x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
         y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
-        return x, y
+        return (x, y)
 
     def return_intersection_points(self):
         """
