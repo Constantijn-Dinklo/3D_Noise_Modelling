@@ -1,16 +1,15 @@
-
-from crossSection import CrossSection
+from simpleReflection import ReflectionPath
 from pprint import pprint
-import numpy as np
+#import numpy as np
 from misc import write_cross_section_to_obj
 
-class CrossSectionManager:
+class ReflectionManager:
 
-    def __init__(self, direct_paths_dict):
-        self.direct_paths_dict = direct_paths_dict
-        self.paths = {}
+    def __init__(self, source_receivers_dict):
+        self.source_receivers_dict = source_receivers_dict
+        self.first_order_paths = {}
     
-    def get_cross_sections(self, tin, ground_type_manager, building_manager):
+    def get_reflections(self, tin, building_manager):
         """
         Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
         ---------------
@@ -24,12 +23,12 @@ class CrossSectionManager:
             void (fills self.paths with a list of paths)
         """
         
-        for receiver, sources_list in self.direct_paths_dict.items():
+        for receiver, sources_list in self.source_receivers_dict.items():
             receiver_paths = []
-            receiver_triangle = tin.find_receiver_triangle(2, receiver)
+
             for source in sources_list:
-                receiver_section = CrossSection(source, receiver)
-                path = receiver_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager)
+                reflection_object = ReflectionPath(source, receiver)
+                path = reflection_object.get_first_order_reflection(tin, building_manager)
                 receiver_paths.append(path)
             self.paths[receiver] = receiver_paths
 

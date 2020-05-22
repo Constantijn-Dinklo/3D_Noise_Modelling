@@ -9,7 +9,7 @@ from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
 from sourceReceiver import ReceiverPoint
 from simpleReflection import ReflectionPath
-import crossSectionManager
+from crossSectionManager import CrossSectionManager
 
 #This should be a temporary input type
 #def read_ground_objects()
@@ -80,14 +80,9 @@ def main(sys_args):
 
     #cross_sections = CrossSectionManager()
     #cross_sections.cross_sections = source_points_dict
-
-    for receiver, sources_list in source_points_dict.items():
-        receiver_triangle = tin.find_receiver_triangle(2, receiver)
-        receiver_section = crossSectionManager.CrossSectionManager(hard_coded_receiver_point, receiver_triangle, sources_list)
-
-        receiver_paths = receiver_section.get_cross_sections(tin, ground_type_manager, building_manager)
-        receiver_section.write_obj("test_object.obj")
-        # optimise the start triangle (default at 2 right now)
+    cross_section_manager = CrossSectionManager(source_points_dict)
+    cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
+    cross_section_manager.write_obj("test_object.obj")
         
     #Find all the reflected paths for now.
     #reflection_path = ReflectionPath(s_dict,r_dict,f_dict)
