@@ -14,6 +14,7 @@ import crossSectionManager
 #This should be a temporary input type
 #def read_ground_objects()
 
+
 def main(sys_args):
     print(sys_args[0])
 
@@ -32,6 +33,11 @@ def main(sys_args):
         for record in semantics:
             #Not sure if this does anything right now
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
+                continue
+            elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
+                continue
+            elif (record['properties']['h_dak'] is not None and
+                  record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                 continue
             
             record_id = int(record['id'])
@@ -86,7 +92,7 @@ def main(sys_args):
         receiver_section = crossSectionManager.CrossSectionManager(hard_coded_receiver_point, receiver_triangle, sources_list)
 
         receiver_paths = receiver_section.get_cross_sections(tin, ground_type_manager, building_manager)
-        receiver_section.write_obj("test_object.obj")
+        receiver_section.write_obj("output/test_object_02.obj")
         # optimise the start triangle (default at 2 right now)
         
     #Find all the reflected paths for now.
