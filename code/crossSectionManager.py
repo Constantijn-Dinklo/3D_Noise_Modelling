@@ -48,7 +48,7 @@ class CrossSectionManager:
             #pprint("paths to sources: {}".format(paths_to_sources))
             print(" ")
             for points_to_source in paths_to_sources:
-                print("direct path: {}".format(points_to_source[-1]))
+                print("direct path: {} -> {}".format(receiver, points_to_source[-1]))
                 cross_section = []
                 # direct path:
                 receiver_section = CrossSection([points_to_source[-1]], receiver)
@@ -57,7 +57,7 @@ class CrossSectionManager:
 
                 # optional reflected path
                 if(len(points_to_source) > 1):
-                    print("reflected path: {}".format(points_to_source))
+                    print("reflected path: {} -> {}".format(receiver, points_to_source))
                     receiver_section = CrossSection(points_to_source, receiver, self.reflection_heights[receiver][reflection_counter])
                     path_reflected, extension = receiver_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager)
                     receiver_paths.append(path_reflected)

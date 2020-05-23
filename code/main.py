@@ -16,6 +16,7 @@ from reflectionManager import ReflectionManager
 #This should be a temporary input type
 #def read_ground_objects()
 
+
 def main(sys_args):
     print(sys_args[0])
 
@@ -36,6 +37,11 @@ def main(sys_args):
         for record in semantics:
             #Not sure if this does anything right now
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
+                continue
+            elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
+                continue
+            elif (record['properties']['h_dak'] is not None and
+                  record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                 continue
             
             record_id = int(record['id'])

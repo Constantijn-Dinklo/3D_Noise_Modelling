@@ -54,24 +54,6 @@ class ConstrainedTin:
         else:
             return False
 
-    def flip_triangle(self, triangle_index):
-        """
-        Explination: Flips the triangle's orientation
-        ---------------
-        Input: 
-            triangle_index - The index of the triangle that needs to be flipped
-        ---------------
-        Output: void
-        """
-        temp_incident = self.trs[triangle_index][3]
-        temp_vertex = self.trs[triangle_index][0]
-
-        self.trs[triangle_index][0] = self.trs[triangle_index][2]
-        self.trs[triangle_index][3] = self.trs[triangle_index][5]
-
-        self.trs[triangle_index][2] = temp_vertex
-        self.trs[triangle_index][5] = temp_incident
-
     def interpolate_triangle(self, tr, pt):
         """
         Explanation:
@@ -107,60 +89,14 @@ class ConstrainedTin:
         coords = (seg_00 + seg_01) + np.array(v0)
         return coords[0], coords[1]
 
-    def add_building_constraint(self, building):
-        for record in building:
-            i = len(self.vts)
-            poly = shape(record['geometry'])
-            x, y = poly.exterior.coords.xy
-            vts_2d = list(zip(x, y))[:-1]
-            self.vts_2d.extend(vts_2d)
-            # interpolate points from TIN
-            for v in vts_2d:
-                z = self.tin.interpolate_tin_linear(v[0], v[1])
-                self.vts.append((v[0], v[1], z))
-
-            bound = []
-            j = 0
-            while j < len(vts_2d):
-                if j != len(vts_2d) - 1:
-                    bound.append((i + j, i + j + 1))
-                    j += 1
-                else:
-                    bound.append((i + j, i))
-                    j += 1
-
-            self.segments.extend(bound)
-            a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
-            self.regions.append([a, b, record['id'], 0])
-
-    def add_ground_type_constraint(self, grd_type):
-        for record in grd_type:
-            i = len(self.vts)
-            poly = shape(record['geometry'])
-            vts_2d = list(poly.exterior.coords)[:-1]  # last vertex is same as first
-            self.vts_2d.extend(vts_2d)
-            # interpolate points from TIN
-            for v in vts_2d:
-                z = self.tin.interpolate_tin_linear(v[0], v[1])
-                self.vts.append((v[0], v[1], z))
-
-            bound = []
-            j = 0
-            while j < len(vts_2d):
-                if j != len(vts_2d) - 1:
-                    bound.append((i + j, i + j + 1))
-                    j += 1
-                else:
-                    bound.append((i + j, i))
-                    j += 1
-
-            self.segments.extend(bound)
-            a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
-            self.regions.append([a, b, record['id'], 0])
-
     def add_constraint(self, semantic):
         for record in semantic:
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
+                continue
+            elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
+                continue
+            elif (record['properties']['h_dak'] is not None and
+                  record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                 continue
             shapes = []
             if record['geometry']['type'] == 'MultiPolygon':
@@ -193,11 +129,6 @@ class ConstrainedTin:
                 self.segments.extend(bound)
                 a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
                 self.regions.append([a, b, int(record['id']) * 100 + k, 0])
-                
-                # A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
-                # const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
-                # tr.compare(plt, A, const_tin)
-                # plt.show()
                 k += 1
 
     def triangulate_constraints(self, semantics):
@@ -374,18 +305,4 @@ if __name__ == "__main__":
     semantics = fiona.open("input/semaantics_test.shp")
     v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin.obj")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
-    v_ground_tin_lod1.write_to_objp("output/constrainted_tin.objp")
-    '''test_00 = output['vertices']
-    test_01 = v_ground_tin_lod1.vts
-    for i, v in enumerate(test_00):
-        if i == len(test_00) - 1:
-            print('1', i)
-            break
-        elif (v[0], v[1]) == (test_01[i][0], test_01[i][1]):
-            continue
-        else:
-            print('2', i)
-            break
-    for t in output['triangles']:
-        if 784 in t:
-            print(t)'''
+    v_ground_tin_lod1.write_to_objp("output/constrainted_tin_clean.objp")
