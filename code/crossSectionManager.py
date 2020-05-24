@@ -6,10 +6,13 @@ from misc import write_cross_section_to_obj
 
 class CrossSectionManager:
 
-    def __init__(self, propagation_paths_dict, reflection_heights):
+    def __init__(self, propagation_paths_dict, reflection_building_heights, source_height, receiver_height):
         self.propagation_paths_dict = propagation_paths_dict
-        self.reflection_heights = reflection_heights
+        self.reflection_building_heights = reflection_building_heights
         self.paths = {}
+        self.extensions = {}
+        self.source_height = source_height
+        self.receiver_height = receiver_height
     
     def get_cross_sections(self, tin, ground_type_manager, building_manager):
         """
@@ -24,46 +27,34 @@ class CrossSectionManager:
         Output:
             void (fills self.paths with a list of paths)
         """
-        
-        """
-        paths_dict = {receiver: [
-            [source], 
-            [source],
-            [Reflection, source],
-            [Reflection, source]
-        ]}
-
-        Heights_dict = {receiver: [
-            h1,
-            h2,
-            h3,
-            h4
-        ]} 
-        """
 
         for receiver, paths_to_sources in self.propagation_paths_dict.items():
             receiver_paths = []
+            extensions = []
             receiver_triangle = tin.find_receiver_triangle(2, receiver)
             reflection_counter = 0
             #pprint("paths to sources: {}".format(paths_to_sources))
             #print(" ")
-            for points_to_source in paths_to_sources:
+            for points_to_source in paths_to_sources[:1]:
                 #print("direct path: {} -> {}".format(receiver, points_to_source[-1]))
                 cross_section = []
                 # direct path:
-                receiver_section = CrossSection([points_to_source[-1]], receiver)
+                receiver_section = CrossSection([points_to_source[-1]], receiver, self.source_height, self.receiver_height)
                 path_direct, extension  = receiver_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager)
                 receiver_paths.append(path_direct)
+                extensions.append(extension)
 
                 # optional reflected path
                 if(len(points_to_source) > 1):
                     #print("reflected path: {} -> {}".format(receiver, points_to_source))
-                    receiver_section = CrossSection(points_to_source, receiver, self.reflection_heights[receiver][reflection_counter])
+                    receiver_section = CrossSection(points_to_source, receiver, self.source_height, self.receiver_height, self.reflection_building_heights[receiver][reflection_counter])
                     path_reflected, extension = receiver_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager)
                     receiver_paths.append(path_reflected)
+                    extensions.append(extension)
 
             self.paths[receiver] = receiver_paths
-        #pprint(self.paths)
+            self.extensions[receiver] = extensions
+        pprint(self.extensions)
 
 
     def write_obj(self, filename):

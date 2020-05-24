@@ -31,6 +31,8 @@ class ReflectionManager:
                 buildings_dictionary = read_buildings(building_filename)
                 reflection_object = ReflectionPath(source, receiver)
                 paths_and_heights = reflection_object.get_first_order_reflection(buildings_dictionary) # future replace with tin and building_manager
+                
+                # it is false when it does not have reflections.
                 if(paths_and_heights):
                     #pprint(paths_and_heights)
                     #[p1, p2, ..., pn], [h1, h2, ..., hn]

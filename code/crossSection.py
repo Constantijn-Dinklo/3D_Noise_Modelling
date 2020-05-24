@@ -4,20 +4,20 @@ import numpy as np
 from pprint import pprint
 class CrossSection:
 
-    def __init__(self, path_to_source, receiver, reflection_height=0):
-        self.path_to_source = path_to_source
+    def __init__(self, points_to_source, receiver, source_height, receiver_height, reflection_height=0):
+        self.points_to_source = points_to_source
         self.reflection_height = reflection_height
+        self.source_height = source_height
+        self.receiver_height = receiver_height
         self.receiver = receiver
         
-        #Please add any other data that belongs to a cross section here eg, maybe intermidiate points?
-        #self.intermidiate_points - []
 
     def get_next_edge(self, ground_tin, tr, origin, destination):
         """
         Explanation: returns the next edge in the triangle which the path crosses
         ---------------
         Input:
-            receiver : (x,y,z) - the receiver point we walk from
+            receiver : tuple(x,y,z) - the receiver point we walk from
             ground_tin : ground_Tin object - stores the whole tin
             tr : integer - id of the current triangle
         ---------------
@@ -94,7 +94,7 @@ class CrossSection:
         in_building = False
         origin = self.receiver
 
-        for destination_id, destination in enumerate(self.path_to_source):
+        for destination_id, destination in enumerate(self.points_to_source):
             # keep going untill the source triangle has been found.
             #print("{} origin: {} -> destination: {}".format(destination_id, origin, destination))
             while not ground_tin.point_in_triangle(destination, current_triangle):
@@ -121,7 +121,7 @@ class CrossSection:
                 # Check if the new calculated point is not too close to the previously added point, in MH distance
                 
                 if np.sum(abs(cross_section_vertices[-1][0] - interpolated_point)) <= 0.1:
-                    print("points are too close, material: {} -> {}".format(current_material, next_material))
+                    #print("points are too close, material: {} -> {}".format(current_material, next_material))
                     if current_material == next_material:
                         continue
                     else:
@@ -204,7 +204,7 @@ class CrossSection:
                             print("Roof height is lower than ground height, for building ", current_building_id)
 
             # When destination has been reached, check if that is the source.
-            if(destination_id != len(self.path_to_source)-1):
+            if(destination_id != len(self.points_to_source)-1):
                 # set the reflection point to the origin
                 origin = destination
                 # get the height of the
@@ -226,14 +226,13 @@ class CrossSection:
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
 
-        # add source and receiver pointsa
-        extension[0] = ["source", 0.05]
-        extension[len(cross_section_vertices) - 1] = ["receiver", 2.0]
+        # add source and receiver points. source is always 0.05 meter above terrain, receiver always at 2 meters.
+        extension[0] = ["source", self.source_height]
+        extension[len(cross_section_vertices) - 1] = ["receiver", self.receiver_height]
+
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)
         if(reflection_point_id_inversed != 0):
             reflection_vertex = len(cross_section_vertices) - 1 - reflection_point_id_inversed
-            #pprint(cross_section_vertices)
-            #print("id: {}".format(reflection_vertex))
             extension[reflection_vertex] = ["wall", self.reflection_height - cross_section_vertices[reflection_vertex][0][2], "A0"]
 
         return cross_section_vertices, extension
