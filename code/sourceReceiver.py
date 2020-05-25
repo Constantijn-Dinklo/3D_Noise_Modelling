@@ -30,7 +30,6 @@ class ReceiverPoint:
             geometry = elem["geometry"]
             rec_pt = geometry["coordinates"]
             rec_list.append(rec_pt)
-
         self.receiver_segments = rec_list
 
     def return_segments_source(self, path):
@@ -120,44 +119,53 @@ class ReceiverPoint:
         void
         ---------------
         Output:
-        dictionary : a list of source points (intersection points) are saved as a value to the receiver point as a key in a dictionary
+        dictionary : key is the receiver line segment, value is a list of intersection point from nearby to far away
         """        
         dict_intersection = { }
         list_intersection = [ ]
         dict_per_source_segment = { }
-        sorted_dict = { }
-        points_of_intersection = [ ]
 
-        for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
-            following = self.return_points_circle(angle)
-            for struct_line in self.road_lines:
-                point_intersection = self.line_intersect((self.receiver, following), struct_line)
-                if point_intersection is not None:
-                    list_intersection.append(point_intersection)
-            sorted_list_intersection = sorted(list_intersection, key = lambda point: ((point[0] - self.receiver[0])**2 + (point[1] - self.receiver[1])**2)**0.5)
-            dict_per_source_segment[(self.receiver, following)] = sorted_list_intersection
-            list_intersection = [ ]
-        #print(dict_per_source_segment)    
-        return dict_intersection
+        for rcvr in self.receiver_segments:
+            for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
+                following = self.return_points_circle(angle)
+                for struct_line in self.road_lines:
+                    point_intersection = self.line_intersect((rcvr, following), struct_line)
+                    if point_intersection is not None:
+                        list_intersection.append(point_intersection)
+                if len(list_intersection) >= 1:
+                    sorted_list_intersection = sorted(list_intersection, key = lambda point: ((point[0] - rcvr[0])**2 + (point[1] - rcvr[1])**2)**0.5)
+                    dict_per_source_segment[(rcvr, following)] = sorted_list_intersection
+                    list_intersection = [ ]
+        #print(dict_per_source_segment)
+        return dict_per_source_segment
 
 if __name__ == '__main__':
     hard_coded_source = (93550, 441900)
-    cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
+    cnossos_radius = 2000.0 
     cnossos_angle = 2.0 
 
     doc = ReceiverPoint(hard_coded_source, cnossos_radius, cnossos_angle)
     read_doc = doc.return_segments_source('/Users/mprusti/Documents/geo1101/test_2.gml') # eventually global, now local
     doc_rec = doc.return_list_receivers('/Users/mprusti/Documents/geo1101/receiver_points/toetspunten/Toetspunten_rdam.shp')
-    intersected = doc.return_intersection_points()
-
-    plt.scatter(hard_coded_source[0], hard_coded_source[1], c='b')
+    intersected = doc.return_intersection_points() # --> this is a dictionary
 
     # Plot the source line segments
     source_lines = np.array(doc.road_lines)
     for line in source_lines:
         plt.plot(line[:,0], line[:,1], c='k')
 
+    # Plot the receiver line segments
+    receiver_pts = np.array(doc.receiver_segments)
+    for pts in receiver_pts:
+        plt.scatter(pts[0], pts[1], c='g')
+
     # Plot the intersection points
-    #intersected_points = np.array(intersected.get(hard_coded_source))
-    #plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
+    temp_list = [ ]
+    for key in intersected.keys():
+        list_of_values = intersected[key]
+        for value in list_of_values:
+            temp_list.append(value)
+    intersected_points = np.array(temp_list)
+    plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
+
     #plt.show()
