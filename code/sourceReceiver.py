@@ -3,6 +3,7 @@ import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 from pprint import pprint
+import fiona
 
 class ReceiverPoint:
 
@@ -13,15 +14,20 @@ class ReceiverPoint:
         self.road_lines = [ ]
         self.receiver_segments = [ ]
 
+    def return_list_receivers(self, path):
+        shape = fiona.open(path)
+        #print(shape.schema)
+        #first = 
+
     def return_segments_source(self, path):
         """
         Explanation: Changes the data structure of the coordinates from strings to floats in tuples
         ---------------
         Input:
-        root : the root of the XML file
+        path : string - the path of the XML file
         ---------------
         Output:
-        list : a list of all the coordinates are saved as (x, y), line segments with every next point in list
+        list : list - a list of all the coordinates are saved as (x, y), line segments with every next point in list
         """
         count = 0
         sets = [ ]
@@ -40,10 +46,10 @@ class ReceiverPoint:
                         coord = point.split(',') 
                         sets.append((float(coord[0]), float(coord[1])))
                         count += 1
-                        if len(line_string) == count:
-                            line_float.append(sets)
-                            count = 0
-                            sets = [ ]
+                    if len(line_string) == count:
+                        line_float.append(sets)
+                        count = 0
+                        sets = [ ]
         for elem in line_float:
             if len(elem) == 2:
                 line_segments.append(elem)
@@ -60,12 +66,10 @@ class ReceiverPoint:
         Explanation: takes the noise receiver and returns the next point on the circumsphere of the user set radius
         ---------------
         Input:
-        self : tuple of coordinates of the receiver point
-        radius : is the user set radius around the receiver point
-        radians : the size of the angle in radians between two points on the circumsphere
+        radians : float - the size of the angle in radians between two points on the circumsphere
         ---------------
         Output:
-        point : it returns the next point on the circumsphere in (x, y)
+        point : tuple - it returns the next point on the circumsphere
         """
         x_next = self.receiver[0] + self.radius * math.cos(radians)
         y_next = self.receiver[1] + self.radius * math.sin(radians)
@@ -76,11 +80,11 @@ class ReceiverPoint:
         Explanation: this functions returns the intersection points (source points) of both lines
         ---------------
         Input:
-        line1: the line segment of the receiver point
-        line2: the line segment of the source
+        line1: list - the line segment of the receiver point
+        line2: list - the line segment of the source
         ---------------
         Output:
-        point : it returns the point where both line segments intersect
+        point : tuple - it returns the point where both line segments intersect
         """
         d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (line1[1][1] - line1[0][1])
         if d:
@@ -99,15 +103,15 @@ class ReceiverPoint:
         Explanation: for every line segment of the receiver an intersection per line segment of the source is checked
         ---------------
         Input:
-        line1: list with the line segments of the receiver
-        line2: list with the line segments of the source
+        void
         ---------------
         Output:
         dictionary : a list of source points (intersection points) are saved as a value to the receiver point as a key in a dictionary
         """        
         dict_intersection = { }
         list_intersection = [ ]
-        lines_per_circle = [ ]
+        dict_per_source_segment = { }
+        sorted_dict = { }
 
         for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
             following = self.return_points_circle(angle)
@@ -115,6 +119,18 @@ class ReceiverPoint:
                 point_intersection = self.line_intersect((self.receiver, following), struct_line)
                 if point_intersection is not None:
                     list_intersection.append(point_intersection)
+                    if (self.receiver, following) in dict_per_source_segment:
+                        dict_per_source_segment[(self.receiver, following)].append(point_intersection)
+                    if (self.receiver, following) not in dict_per_source_segment:   
+                        dict_per_source_segment[(self.receiver, following)] = [point_intersection]
+
+        for item in dict_per_source_segment.items():
+            list_int = item[1]
+            orig = item[0][0]
+            dict_key = item[0]
+            sorted_list_int = sorted(list_int, key = lambda p: ((p[0] - orig[0])**2 + (p[1] - orig[1])**2)**0.5)
+            sorted_dict[dict_key] = sorted_list_int
+        
         dict_intersection[self.receiver] = list_intersection    
         return dict_intersection
 
@@ -125,6 +141,7 @@ if __name__ == '__main__':
 
     doc = ReceiverPoint(hard_coded_source, cnossos_radius, cnossos_angle)
     read_doc = doc.return_segments_source('/Users/mprusti/Documents/geo1101/test_2.gml') # eventually global, now local
+    doc_rec = doc.return_list_receivers('/Users/mprusti/Documents/geo1101/receiver_points/toetspunten/Toetspunten_rdam.shp')
     intersected = doc.return_intersection_points()
 
     plt.scatter(hard_coded_source[0], hard_coded_source[1], c='b')
@@ -137,4 +154,4 @@ if __name__ == '__main__':
     # Plot the intersection points
     intersected_points = np.array(intersected.get(hard_coded_source))
     plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
-    plt.show()
+    #plt.show()
