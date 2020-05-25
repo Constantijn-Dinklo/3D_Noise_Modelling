@@ -15,9 +15,23 @@ class ReceiverPoint:
         self.receiver_segments = [ ]
 
     def return_list_receivers(self, path):
+        """
+        Explanation: Reads a shapefile and returns a list of receiver points
+        ---------------
+        Input:
+        path : string - the path of the shapefile
+        ---------------
+        Output:
+        list : list - a list of all the coordinates are saved as (x, y), line segments with every next point in list
+        """
+        rec_list = [ ]
         shape = fiona.open(path)
-        #print(shape.schema)
-        #first = 
+        for elem in shape:
+            geometry = elem["geometry"]
+            rec_pt = geometry["coordinates"]
+            rec_list.append(rec_pt)
+
+        self.receiver_segments = rec_list
 
     def return_segments_source(self, path):
         """
@@ -112,6 +126,7 @@ class ReceiverPoint:
         list_intersection = [ ]
         dict_per_source_segment = { }
         sorted_dict = { }
+        points_of_intersection = [ ]
 
         for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
             following = self.return_points_circle(angle)
@@ -119,19 +134,10 @@ class ReceiverPoint:
                 point_intersection = self.line_intersect((self.receiver, following), struct_line)
                 if point_intersection is not None:
                     list_intersection.append(point_intersection)
-                    if (self.receiver, following) in dict_per_source_segment:
-                        dict_per_source_segment[(self.receiver, following)].append(point_intersection)
-                    if (self.receiver, following) not in dict_per_source_segment:   
-                        dict_per_source_segment[(self.receiver, following)] = [point_intersection]
-
-        for item in dict_per_source_segment.items():
-            list_int = item[1]
-            orig = item[0][0]
-            dict_key = item[0]
-            sorted_list_int = sorted(list_int, key = lambda p: ((p[0] - orig[0])**2 + (p[1] - orig[1])**2)**0.5)
-            sorted_dict[dict_key] = sorted_list_int
-        
-        dict_intersection[self.receiver] = list_intersection    
+            sorted_list_intersection = sorted(list_intersection, key = lambda point: ((point[0] - self.receiver[0])**2 + (point[1] - self.receiver[1])**2)**0.5)
+            dict_per_source_segment[(self.receiver, following)] = sorted_list_intersection
+            list_intersection = [ ]
+        #print(dict_per_source_segment)    
         return dict_intersection
 
 if __name__ == '__main__':
@@ -152,6 +158,6 @@ if __name__ == '__main__':
         plt.plot(line[:,0], line[:,1], c='k')
 
     # Plot the intersection points
-    intersected_points = np.array(intersected.get(hard_coded_source))
-    plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
+    #intersected_points = np.array(intersected.get(hard_coded_source))
+    #plt.scatter(intersected_points[:,0], intersected_points[:,1], c='r')
     #plt.show()
