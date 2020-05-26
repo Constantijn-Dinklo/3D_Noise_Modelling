@@ -17,10 +17,12 @@ from reflectionManager import ReflectionManager
 #def read_ground_objects()
 
 
-def main(sys_args):
-    print(sys_args[0])
+# def main(sys_args):
+def main():
+    # print(sys_args[0])
 
-    constraint_tin_file_path = sys_args[1]
+    # constraint_tin_file_path = sys_args[1]
+    constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     ground_type_file_path = ""#sys_args[2]
     building_file_path = ""#sys_args[3]
 
@@ -33,7 +35,7 @@ def main(sys_args):
 
     #Read in the buildings and ground types
     #This should be removed and moved to the files individually
-    with fiona.open("input/semaantics_test.shp") as semantics:
+    with fiona.open("input/semaantics_test_part_id.shp") as semantics:
         for record in semantics:
             #Not sure if this does anything right now
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
@@ -51,17 +53,19 @@ def main(sys_args):
             
             if record['properties']['bag_id'] is not None:
                 #print("=== Adding a building ===")
-                
+
+                part_id = 'b' + record['properties']['part_id']
                 bag_id = record['properties']['bag_id']
                 geometry = record['geometry']
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level)
+                building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
 
             elif record['properties']['uuid'] is not None:
                 #print("=== Adding a ground type ===")
 
                 uuid = record['properties']['uuid']
+                part_id = 'g' + uuid
                 absp_index = record['properties']['bodemfacto']
                 
                 if record['geometry']['type'] == 'MultiPolygon':
@@ -70,11 +74,11 @@ def main(sys_args):
                         holes = []
                         for i in range(1, len(p)):
                             holes.append(p[i])
-                        ground_type_manager.add_ground_type(record_id + record_index, uuid, geometry, absp_index, holes)
+                        ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index, holes)
                         record_index = record_index + 1
                 else:
                     geometry = record['geometry']['coordinates'][0]
-                    ground_type_manager.add_ground_type(record_id + record_index, uuid, geometry, absp_index)
+                    ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
 
     """
     Format for data:
@@ -205,7 +209,7 @@ def main(sys_args):
         xml file with all information.
     """
 
-    hard_coded_receiver_point = ((93550, 441900))
+    hard_coded_receiver_point = [((93550, 441900))]
 
     # Input variables:
     cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
@@ -223,12 +227,14 @@ def main(sys_args):
     reflected_paths = ReflectionManager(source_points_dict)
     propagations_paths, reflection_heights = reflected_paths.get_reflection_paths(tin, building_manager, building_gpkg_file)
 
-    cross_section_manager = CrossSectionManager(propagations_paths, reflection_heights, source_height, receiver_height)
+    cross_section_manager = CrossSectionManager(source_points_dict, propagations_paths, reflection_heights,
+                                                source_height, receiver_height)
     cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
-    cross_section_manager.write_obj("test_object_reflect.obj")
+    cross_section_manager.write_obj("test_object_reflect_01.obj")
     
 
 if __name__ == "__main__":
-    main(sys.argv)
+    # main(sys.argv)
+    main()
     # call all functions etc.
     #xml_parser(vts, mat)

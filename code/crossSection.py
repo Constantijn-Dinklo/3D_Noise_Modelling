@@ -53,11 +53,11 @@ class CrossSection:
             string - material type
             integer - attribute id of the building, or -1 if it is ground
         """
-        if tin.attributes[tr] in buildings_manager.buildings:
-            building_id = int(tin.attributes[tr])
+        if tin.attributes[tr][0] == 'b':
+            building_id = tin.attributes[tr]
             return "A0", building_id
-        else:
-            if(ground_type_manager.grd_division[int(tin.attributes[tr])].index == 0):
+        elif tin.attributes[tr][0] == 'g':
+            if(ground_type_manager.grd_division[tin.attributes[tr]].index == 0):
                 return "G", -1
             else:
                 return "C", -1
@@ -88,7 +88,8 @@ class CrossSection:
 
         # get the material of the current triangle
         material_triangle, material_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
-        cross_section_vertices = [[(self.receiver[0], self.receiver[1], receiver_height), material_triangle]]
+        cross_section_vertices = [(self.receiver[0], self.receiver[1], receiver_height)]
+        material = [material_triangle]
         
         # Boolean to check if the path is on top of a building, or not. receiver is never in building
         in_building = False
@@ -125,11 +126,14 @@ class CrossSection:
                     if current_material == next_material:
                         continue
                     else:
-                        cross_section_vertices[-1] = [interpolated_point, next_material]
+                        # cross_section_vertices[-1] = [interpolated_point, next_material]
+                        cross_section_vertices = cross_section_vertices[:-1]
+                        material = material[:-1]
                 
                 # Check if both this and the next triangle are ground, then append the vertex to the list
                 if current_building_id == -1 and next_building_id == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
-                    cross_section_vertices.append([interpolated_point, next_material])
+                    cross_section_vertices.append(tuple(interpolated_point))
+                    material.append(next_material)
 
                 # Check if this triangle is, but the next triangle is not building. if the count however is still 0, than the building is not valid. should happen too often
                 elif current_building_id != -1 and next_building_id == -1 and not in_building:
@@ -148,11 +152,12 @@ class CrossSection:
                         # if the next building is higher than the interpolated point (dtm level), we need to add the rising edge
                         if next_height_building > interpolated_point[2]:
                             # add ground point
-                            cross_section_vertices.append([interpolated_point, next_material])
+                            cross_section_vertices.append(tuple(interpolated_point))
+                            material.append(next_material)
                             # add roof point
-                            cross_section_vertices.append([(interpolated_point[0], interpolated_point[1], next_height_building),
-                                                            next_material])
-                            
+                            cross_section_vertices.append(
+                                (interpolated_point[0], interpolated_point[1], next_height_building))
+                            material.append(next_material)
                             in_building = True
 
                         else:
@@ -172,10 +177,12 @@ class CrossSection:
                             if current_material != next_material or abs(current_height_building - next_height_building) > 0.1:
                                 # add current roof height
                                 cross_section_vertices.append(
-                                    [(interpolated_point[0], interpolated_point[1], current_height_building), current_material])
+                                    (interpolated_point[0], interpolated_point[1], current_height_building))
+                                material.append(current_material)
                                 # add new roof height
                                 cross_section_vertices.append(
-                                    [(interpolated_point[0], interpolated_point[1], next_height_building), next_material])
+                                    (interpolated_point[0], interpolated_point[1], next_height_building))
+                                material.append(next_material)
                                 
 
                         # Will go down from building again
@@ -191,14 +198,18 @@ class CrossSection:
                             # Check if the ray only crosses the corner of the building, then ignore
                             if np.sum(abs(cross_section_vertices[-2][0] - interpolated_point)) <= 0.1:
                                 cross_section_vertices = cross_section_vertices[:-2]
-                                cross_section_vertices.append([interpolated_point, next_material])
+                                cross_section_vertices.append(tuple(interpolated_point))
+                                material = material[:-2]
+                                material.append(next_material)
                                 in_building = False
                             else:
                                 # add the roof top
-                                cross_section_vertices.append([(interpolated_point[0], interpolated_point[1],
-                                                                current_height_building), current_material])
+                                cross_section_vertices.append(
+                                    (interpolated_point[0], interpolated_point[1], current_height_building))
+                                material.append(current_material)
                                 # add the ground point
-                                cross_section_vertices.append([interpolated_point, next_material])
+                                cross_section_vertices.append(tuple(interpolated_point))
+                                material.append(next_material)
                                 in_building = False
                         else:
                             print("Roof height is lower than ground height, for building ", current_building_id)
@@ -210,9 +221,10 @@ class CrossSection:
                 # get the height of the
                 reflection_height_ground = ground_tin.interpolate_triangle(current_triangle, destination)
 
-                source_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+                reflection_ground_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
 
-                cross_section_vertices.append([(destination[0], destination[1], reflection_height_ground), source_material])
+                cross_section_vertices.append((destination[0], destination[1], reflection_height_ground))
+                material.append(reflection_ground_material)
                 #"id1": ["wall", 5, "A0"],     # for a reflection against a building
                 reflection_point_id_inversed = len(cross_section_vertices)-1
 
@@ -221,7 +233,8 @@ class CrossSection:
 
         source_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
 
-        cross_section_vertices.append([(destination[0], destination[1], source_height), source_material])
+        cross_section_vertices.append((destination[0], destination[1], source_height))
+        material.append(source_material)
         #
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
@@ -233,6 +246,6 @@ class CrossSection:
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)
         if(reflection_point_id_inversed != 0):
             reflection_vertex = len(cross_section_vertices) - 1 - reflection_point_id_inversed
-            extension[reflection_vertex] = ["wall", self.reflection_height - cross_section_vertices[reflection_vertex][0][2], "A0"]
+            extension[reflection_vertex] = ["wall", self.reflection_height - cross_section_vertices[reflection_vertex][2], "A0"]
 
-        return cross_section_vertices, extension
+        return cross_section_vertices, material, extension

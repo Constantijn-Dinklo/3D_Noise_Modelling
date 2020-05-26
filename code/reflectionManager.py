@@ -24,24 +24,25 @@ class ReflectionManager:
             void (fills self.paths with a list of paths)
         """
         
-        for receiver, sources_list in self.source_receivers_dict.items():
+        for receiver, sources_list_per_ray in self.source_receivers_dict.items():
             self.reflection_heights[receiver] = []
             self.propagation_paths[receiver] = []
-            for source in sources_list:
-                buildings_dictionary = read_buildings(building_filename)
-                reflection_object = ReflectionPath(source, receiver)
-                paths_and_heights = reflection_object.get_first_order_reflection(buildings_dictionary) # future replace with tin and building_manager
-                
-                # it is false when it does not have reflections.
-                if(paths_and_heights):
-                    #pprint(paths_and_heights)
-                    #[p1, p2, ..., pn], [h1, h2, ..., hn]
-                    for i in range(len(paths_and_heights[0])):
-                        #print("point: {} height: {}".format(paths_and_heights[0][i], paths_and_heights[1][i]))
-                        self.propagation_paths[receiver].append([paths_and_heights[0][i], source])
-                        self.reflection_heights[receiver].append(paths_and_heights[1][i])
-                else:
-                    self.propagation_paths[receiver].append([source])
+            for sources_list in sources_list_per_ray:
+                for source in sources_list:
+                    buildings_dictionary = read_buildings(building_filename)
+                    reflection_object = ReflectionPath(source, receiver)
+                    paths_and_heights = reflection_object.get_first_order_reflection(buildings_dictionary) # future replace with tin and building_manager
+
+                    # it is false when it does not have reflections.
+                    if(paths_and_heights):
+                        #pprint(paths_and_heights)
+                        #[p1, p2, ..., pn], [h1, h2, ..., hn]
+                        for i in range(len(paths_and_heights[0])):
+                            #print("point: {} height: {}".format(paths_and_heights[0][i], paths_and_heights[1][i]))
+                            self.propagation_paths[receiver].append([paths_and_heights[0][i], source])
+                            self.reflection_heights[receiver].append(paths_and_heights[1][i])
+                    else:
+                        self.propagation_paths[receiver].append([source])
             #self.first_order_paths[receiver] = receiver_paths
         #pprint(self.propagation_paths)
         return self.propagation_paths, self.reflection_heights
