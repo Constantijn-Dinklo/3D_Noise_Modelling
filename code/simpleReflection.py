@@ -212,7 +212,7 @@ class ReflectionPath:
         else:
             return (coords, heights) #[p1, p2, ..., pn], [h1, h2, ..., hn] 
     
-    def get_second_paths(self,s,r,t):
+    def get_second_order_reflection(self,s,r,t):
         """
         Explanation: A function that reads a source point and a receiver and computes all possible SECOND-ORDER reflection paths,
         according to buildings that are stored in f_dict (separate dictionary)
@@ -272,6 +272,29 @@ def read_buildings(input_file):
     Output:
     void.
     """
+
+    """
+    === Algoritmic structures ===
+    building_manager: dictionary with buildings
+        building_manager = {
+            int(building_id) = Building object,
+            ...
+        }
+    
+    Building (class):
+        id: (super key / unique) (also key in dictionary)
+        bag_id: building ID from BAG (not unique)
+        polygon = shapely.shape object with polygon
+        ground_level = height of ground NAP
+        roof_level = roof height NAP
+    """
+
+    dictionary = {}
+    for building_id in main.building_manager:
+        building_obj = building_manager[building_id]
+        print(building_obj)
+    
+    """
     dictionary = {}
     with fiona.open(input_file) as layer:
         for feature in layer:
@@ -304,6 +327,7 @@ def read_buildings(input_file):
                             walls.append(wall_2D)
                         dictionary[bag_id]['walls'] = walls
     return dictionary
+    """
 
 def read_points(input_file,dictionary):
     """
@@ -430,7 +454,7 @@ if __name__ == "__main__":
         for receiver in r_dict:
             print('source:',source,'receiver',receiver)
             reflection_path.get_first_order_reflection(s_dict[source],r_dict[receiver])
-            #reflection_path.get_second_paths(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
+            #reflection_path.get_second_order_reflection(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
             print()
     
     print('len(p1_list)')
