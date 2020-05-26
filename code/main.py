@@ -4,8 +4,8 @@ import misc
 import sys
 import numpy as np
 from pprint import pprint
-#import xmlParser as xml
 
+from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
 from sourceReceiver import ReceiverPoint
@@ -227,7 +227,11 @@ def main(sys_args):
     cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
     cross_section_manager.write_obj("test_object_reflect.obj")
     
+    sections, extensions = cross_section_manager.get_paths_and_extensions()
 
+    xml_manager = XmlParserManager(sections, extensions)
+    xml_manager.write_xml_files()
+    
 if __name__ == "__main__":
     main(sys.argv)
     # call all functions etc.

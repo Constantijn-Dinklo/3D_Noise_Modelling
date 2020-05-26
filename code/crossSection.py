@@ -125,11 +125,11 @@ class CrossSection:
                     if current_material == next_material:
                         continue
                     else:
-                        cross_section_vertices[-1] = [interpolated_point, next_material]
+                        cross_section_vertices[-1] = [tuple(interpolated_point), next_material]
                 
                 # Check if both this and the next triangle are ground, then append the vertex to the list
                 if current_building_id == -1 and next_building_id == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
-                    cross_section_vertices.append([interpolated_point, next_material])
+                    cross_section_vertices.append([tuple(interpolated_point), next_material])
 
                 # Check if this triangle is, but the next triangle is not building. if the count however is still 0, than the building is not valid. should happen too often
                 elif current_building_id != -1 and next_building_id == -1 and not in_building:
@@ -148,7 +148,7 @@ class CrossSection:
                         # if the next building is higher than the interpolated point (dtm level), we need to add the rising edge
                         if next_height_building > interpolated_point[2]:
                             # add ground point
-                            cross_section_vertices.append([interpolated_point, next_material])
+                            cross_section_vertices.append([tuple(interpolated_point), next_material])
                             # add roof point
                             cross_section_vertices.append([(interpolated_point[0], interpolated_point[1], next_height_building),
                                                             next_material])
@@ -191,14 +191,14 @@ class CrossSection:
                             # Check if the ray only crosses the corner of the building, then ignore
                             if np.sum(abs(cross_section_vertices[-2][0] - interpolated_point)) <= 0.1:
                                 cross_section_vertices = cross_section_vertices[:-2]
-                                cross_section_vertices.append([interpolated_point, next_material])
+                                cross_section_vertices.append([list(interpolated_point), next_material])
                                 in_building = False
                             else:
                                 # add the roof top
-                                cross_section_vertices.append([(interpolated_point[0], interpolated_point[1],
-                                                                current_height_building), current_material])
+                                cross_section_vertices.append([[interpolated_point[0], interpolated_point[1],
+                                                                current_height_building], current_material])
                                 # add the ground point
-                                cross_section_vertices.append([interpolated_point, next_material])
+                                cross_section_vertices.append([list(interpolated_point), next_material])
                                 in_building = False
                         else:
                             print("Roof height is lower than ground height, for building ", current_building_id)

@@ -54,7 +54,7 @@ class CrossSectionManager:
 
             self.paths[receiver] = receiver_paths
             self.extensions[receiver] = extensions
-        pprint(self.extensions)
+        #pprint(self.extensions)
 
 
     def write_obj(self, filename):
@@ -71,3 +71,7 @@ class CrossSectionManager:
         for receiver, paths in self.paths.items():
             write_cross_section_to_obj(str(i) + filename, paths)
             i += 1
+    
+    def get_paths_and_extensions(self):
+        return self.paths, self.extensions
+
