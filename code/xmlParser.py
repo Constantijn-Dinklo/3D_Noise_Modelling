@@ -8,10 +8,9 @@ from pprint import pprint
 
 class XmlParser:
     
-    def __init__(self, path, ext):
-        self.vts = np.array(path[:,0])
-        pprint(self.vts)
-        self.mat = path[:,1]
+    def __init__(self, path, ext, mat):
+        self.vts = np.array(path)
+        self.mat = mat
         self.ext = ext
 
 

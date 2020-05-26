@@ -38,11 +38,11 @@ def write_cross_section_to_obj(obj_filename, path_list):
         counter = 0
         for path in path_list:
             path = np.array(path)
-            path = path[:,0]
             # has the starting vertex number
             counter = counter + len(path)
             vts_count_lst.append(counter)
             for v in path:
+                #print(v)
                 #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
                 f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
         

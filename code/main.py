@@ -223,13 +223,14 @@ def main(sys_args):
     reflected_paths = ReflectionManager(source_points_dict)
     propagations_paths, reflection_heights = reflected_paths.get_reflection_paths(tin, building_manager, building_gpkg_file)
 
+    
     cross_section_manager = CrossSectionManager(propagations_paths, reflection_heights, source_height, receiver_height)
     cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
-    cross_section_manager.write_obj("test_object_reflect.obj")
+    #cross_section_manager.write_obj("test_object_reflect.obj")
     
-    sections, extensions = cross_section_manager.get_paths_and_extensions()
-
-    xml_manager = XmlParserManager(sections, extensions)
+    sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
+    
+    xml_manager = XmlParserManager(sections, extensions, materials)
     xml_manager.write_xml_files()
     
 if __name__ == "__main__":
