@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algorithm2e}
+\usepackage[noend]{algpseudocode}
+
+\makeatletter
+\makeatother
+
+\begin{document}
+\begin{algorithm}[tb]
+	\SetKwInOut{Input}{Input}
+	\SetKwInOut{Output}{Output}
+	\DontPrintSemicolon\Input{
+		a list with succeeding vertices $vts$,\\ 
+		a list with the material of each matching vertex $mat$\\ 
+		a dictionary where key is vts id and value is the extension type and information $ext$\\}
+	\Output{writes output xml file}
+	\ {a \textbf{break} statement is executed} {
+		$q_{next} \leftarrow$ the nearest point to $\mathbf{c}$, obtained quickly using $T$ \\
+		$r_{next} \leftarrow$ radius of the next ball that touches $\mathbf{p}$ and $\mathbf{q_{next}}$ and is centred on $\vec{\mathbf{n}}$ \\
+		$\mathbf{c_{next}} \leftarrow$ centre of the next ball, can be computed with $\mathbf{p}, \vec{\mathbf{n}}$, and $r_{next}$ \\
+		\If{$r_{next} = r$} {
+			\textbf{break}
+		}
+		$\mathbf{c} \leftarrow \mathbf{c_{next}}$ \\
+		$r \leftarrow r_{next}$
+	}
+	\caption{xmlParser class}
+	\label{alg:xmlParser}
+\end{algorithm}
+\end{document} 
