@@ -17,12 +17,10 @@ from reflectionManager import ReflectionManager
 #def read_ground_objects()
 
 
-# def main(sys_args):
-def main():
-    # print(sys_args[0])
+def main(sys_args):
+    print(sys_args[0])
 
-    # constraint_tin_file_path = sys_args[1]
-    constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
+    constraint_tin_file_path = sys_args[1]
     ground_type_file_path = ""#sys_args[2]
     building_file_path = ""#sys_args[3]
 
@@ -234,7 +232,6 @@ def main():
     
 
 if __name__ == "__main__":
-    # main(sys.argv)
-    main()
+    main(sys.argv)
     # call all functions etc.
     #xml_parser(vts, mat)
