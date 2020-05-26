@@ -2,6 +2,7 @@ import fiona
 import math
 import misc
 import time
+from shapely.geometry import shape
 
 class ReflectionPath:
 
@@ -154,7 +155,7 @@ class ReflectionPath:
         Explanation: A function that gets all the walls from f_dict and create candidate reflection points.
         ---------------        
         Input:
-        n: int - the number of segments in which the wall will be divided into.
+        dim: int - lenght of the segments in which the wall will be divided into.
         ---------------
         Output:
         void
@@ -171,48 +172,38 @@ class ReflectionPath:
 
     def get_first_order_reflection(self, buildings_dict):
         """
-        Explanation: A function that reads a source point and a receiver and computes all possible first-order reflection paths,
-        according to buildings that are stored in buildings_dict (separate dictionary)
+        Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
+        according to the receivers and sources that are provided from main.py
         ---------------        
         Input:
-        s: [x(float),y(float),(z)(float)] - source point.
-        r: [x(float),y(float),(z)(float)] - receiver point.
+        buildings_dict: dict - the dictionary that stores the building information, as of main.py
         ---------------
         Output:
-        A list of all (independent) points that are capable of reflecting the sound wave from source to receiver.:
-        l = [ [ p1, p2, p3, .... pn ] , [ h1, h2, h3, .... hn ] ]
-        such that:
-        p = coordinates of the reflection point [x(float),y(float)]
-        h = height value of the building in which the reflection point lies into (float)
-        the n-th element of "p_list" corresponds to the n-th element of "h_list".
+        (coords, heights): tuple - (p1, p2, ..., pn], [h1, h2, ..., hn])
+        or
+        False: boolean.
         """
         coords   = [ ]
         heights  = [ ]
-        first_order_paths = []
-        for bag_id in buildings_dict:
-            h_dak = buildings_dict[bag_id]['h_dak']
-            walls = buildings_dict[bag_id]['walls']
-            for wall in walls:
-                test_r = misc.side_test( wall[0], wall[1], self.receiver) #r[:2] makes the function to ignore an eventual 'z' value. slicing not needed, simply not used in the funciton.
-                test_s = misc.side_test( wall[0], wall[1], self.source) #s[:2] makes the function to ignore an eventual 'z' value.
+        for id, building in buildings_dict.items():
+            for wall in building['walls']:
+                test_r = misc.side_test( wall[0], wall[1], self.receiver)
+                test_s = misc.side_test( wall[0], wall[1], self.source)
                 if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
                     s_mirror = self.get_mirror_point(self.get_line_equation(wall[0], wall[1]))
                     reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
-
                     # ref is false if there is no reflection.
                     if reflection_point:
                         coords.append(reflection_point)
-                        heights.append(h_dak)
-                        #ref_z = ref
-                        #ref_z.append(h_dak)
-                        #first_order_paths.append([self.source, ref_z, self.receiver])
-        #print('1st-order reflection. number of paths:', len(coords))
+                        heights.append(building['h_dak'])
         if(len(coords) == 0): 
             return False
         else:
-            return (coords, heights) #[p1, p2, ..., pn], [h1, h2, ..., hn] 
+            return (coords, heights) #(p1, p2, ..., pn], [h1, h2, ..., hn])
     
     def get_second_order_reflection(self,s,r,t):
+        # THIS FUNCTIONS IS OUT OF DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE, AND THE DATA STRUCTURE
+        # OF THE INPUT HAS CHANGED.
         """
         Explanation: A function that reads a source point and a receiver and computes all possible SECOND-ORDER reflection paths,
         according to buildings that are stored in f_dict (separate dictionary)
@@ -262,6 +253,7 @@ class ReflectionPath:
         return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
 
 def read_buildings(input_file):
+    # ATTENTION: THE CONTENT OF THIS FUNCTION HAS BEEN PLACED IN MAIN.PY AND BUILDINGMANAGER.PY
     """
     Explanation: A function that reads footprints and stores all walls as [p1,p2] and absolute heights (float) of these.
     ---------------
@@ -271,29 +263,6 @@ def read_buildings(input_file):
     ---------------
     Output:
     void.
-    """
-
-    """
-    === Algoritmic structures ===
-    building_manager: dictionary with buildings
-        building_manager = {
-            int(building_id) = Building object,
-            ...
-        }
-    
-    Building (class):
-        id: (super key / unique) (also key in dictionary)
-        bag_id: building ID from BAG (not unique)
-        polygon = shapely.shape object with polygon
-        ground_level = height of ground NAP
-        roof_level = roof height NAP
-    """
-
-    dictionary = {}
-    for building_id in main.building_manager:
-        building_obj = building_manager[building_id]
-        print(building_obj)
-    
     """
     dictionary = {}
     with fiona.open(input_file) as layer:
@@ -327,7 +296,6 @@ def read_buildings(input_file):
                             walls.append(wall_2D)
                         dictionary[bag_id]['walls'] = walls
     return dictionary
-    """
 
 def read_points(input_file,dictionary):
     """
@@ -441,9 +409,9 @@ if __name__ == "__main__":
     p2_list = [ ]
 
     # DATASETS FOR 'MID PRESENTATION'
-    read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
-    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
-    read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
+    #read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
+    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
+    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
 
     reflection_path = ReflectionPath(s_dict,r_dict,f_dict,c_list,p1_list,p2_list)
     reflection_path.get_candidate_point(0.025) # DIM 0.025
