@@ -48,7 +48,6 @@ class BuildingManager:
     def get_building(self, id):
         return self.buildings[id]
 
-
 if __name__ == "__main__":
     buildingManager = BuildingManager()
     buildingManager.read_buildings_shp('input/lod13.shp')

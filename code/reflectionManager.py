@@ -30,7 +30,7 @@ class ReflectionManager:
             for source in sources_list:
                 #buildings_dictionary = read_buildings(building_filename)
                 reflection_object = ReflectionPath(source, receiver)
-                paths_and_heights = reflection_object.get_first_order_reflection(building_manager) # future replace with tin and building_manager
+                paths_and_heights = reflection_object.get_first_order_reflection(building_manager.buildings) # future replace with tin and building_manager
                 
                 # it is false when it does not have reflections.
                 if(paths_and_heights):
