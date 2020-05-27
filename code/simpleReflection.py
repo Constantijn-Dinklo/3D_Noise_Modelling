@@ -8,6 +8,11 @@ class ReflectionPath:
     def __init__(self, source, receiver):
         self.source = source
         self.receiver = receiver
+
+        # now storing this here.
+        self.reflection_points = []
+        self.reflection_heights = []
+
         self.footprints = {}
         self.candidates = {}
         self.paths2nd = []
@@ -201,16 +206,20 @@ class ReflectionPath:
 
                     # ref is false if there is no reflection.
                     if reflection_point:
-                        coords.append(reflection_point)
-                        heights.append(h_dak)
+                        #coords.append(reflection_point)
+                        #heights.append(h_dak)
+                        self.reflection_points.append(reflection_point)
+                        self.reflection_heights.append(h_dak)
                         #ref_z = ref
                         #ref_z.append(h_dak)
                         #first_order_paths.append([self.source, ref_z, self.receiver])
         #print('1st-order reflection. number of paths:', len(coords))
-        if(len(coords) == 0): 
+        # if there are no reflections, return false, so it is not saved.
+        if(len(self.reflection_points) == 0): 
             return False
         else:
-            return (coords, heights) #[p1, p2, ..., pn], [h1, h2, ..., hn] 
+            # This is no longer needed
+            return True #[p1, p2, ..., pn], [h1, h2, ..., hn] 
     
     def get_second_paths(self,s,r,t):
         """

@@ -90,6 +90,7 @@ class ConstrainedTin:
         return coords[0], coords[1]
 
     def add_constraint(self, semantic):
+        id_to_attr = {}
         for record in semantic:
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
                 continue
@@ -129,15 +130,20 @@ class ConstrainedTin:
                 self.segments.extend(bound)
                 a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
                 self.regions.append([a, b, int(record['id']) * 100 + k, 0])
+                if record['properties']['bag_id'] is not None:
+                    id_to_attr[int(record['id']) * 100 + k] = 'b' + record['properties']['part_id']
+                elif record['properties']['uuid'] is not None:
+                    id_to_attr[int(record['id']) * 100 + k] = 'g' + record['properties']['uuid']
                 k += 1
+        return id_to_attr
 
     def triangulate_constraints(self, semantics):
         self.from_3d_to_2d()
-        self.add_constraint(semantics)
+        id_to_attr = self.add_constraint(semantics)
         A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
         const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
-        # tr.compare(plt, A, const_tin)
-        # plt.show()
+        tr.compare(plt, A, const_tin)
+        plt.show()
         if len(const_tin['vertices']) != len(self.vts):
             for v in const_tin['vertices'][len(self.vts):]:
                 z = self.tin.interpolate_tin_linear(v[0], v[1])
@@ -150,7 +156,7 @@ class ConstrainedTin:
             self.trs.append((triangle[0][0], triangle[0][1], triangle[0][2],
                              triangle[1][0], triangle[1][1], triangle[1][2]))
         self.attr = const_tin['triangle_attributes']
-        return const_tin
+        return const_tin, id_to_attr
 
     @staticmethod
     def read_from_obj(file_path, orientation_check=True):
@@ -275,7 +281,7 @@ class ConstrainedTin:
                     triangle[2] + 1) + "\n"
                 output_file.write(triangle_str)
 
-    def write_to_objp(self, file_path):
+    def write_to_objp(self, file_path, id_to_attr):
         """
         Explination: Writes out the tin to an objp file.
         ---------------
@@ -297,12 +303,16 @@ class ConstrainedTin:
                 output_file.write(triangle_str)
 
             for attribute in self.attr:
-                attribute_str = "a " + str(attribute[0]) + "\n"  # do we have to add 1 here?
-                output_file.write(attribute_str)
+                if attribute[0] != 0.0:
+                    attribute_str = "a " + id_to_attr[int(attribute[0])] + "\n"
+                    output_file.write(attribute_str)
+                else:
+                    attribute_str = "a " + id_to_attr[1001] + "\n"
+                    output_file.write(attribute_str)
 
 
 if __name__ == "__main__":
-    semantics = fiona.open("input/semaantics_test.shp")
+    semantics = fiona.open("input/semaantics_test_part_id.shp")
     v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin.obj")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
-    v_ground_tin_lod1.write_to_objp("output/constrainted_tin_clean.objp")
+    v_ground_tin_lod1.write_to_objp("output/constrainted_tin_clean_semantics.objp", output[1])
