@@ -8,7 +8,7 @@ from pprint import pprint
 from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
-from sourceReceiver import ReceiverPoint
+from sourceReceiver import ReceiverPoints
 from simpleReflection import ReflectionPath
 from crossSectionManager import CrossSectionManager
 from reflectionManager import ReflectionManager
@@ -216,7 +216,8 @@ def main(sys_args):
     receiver_height = 2
 
     #Create a Receiver Point to which the sound should travel
-    receiver_point = ReceiverPoint(hard_coded_receiver_point, cnossos_radius, cnossos_angle)
+    receiver_point = ReceiverPoints(cnossos_radius, cnossos_angle)
+    receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
     receiver_point.return_segments_source('input/test_2.gml')
     #Get all the source points that are within range of this receiver point
     source_points_dict = receiver_point.return_intersection_points()
