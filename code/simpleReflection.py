@@ -5,13 +5,17 @@ import time
 
 class ReflectionPath:
 
-    def __init__(self,sources,receivers,footprints,candidates,paths1st,paths2nd):
-        self.sources = sources
-        self.receivers = receivers
-        self.footprints = footprints
-        self.candidates = candidates
-        self.paths1st = paths1st
-        self.paths2nd = paths2nd
+    def __init__(self, source, receiver):
+        self.source = source
+        self.receiver = receiver
+
+        # now storing this here.
+        self.reflection_points = []
+        self.reflection_heights = []
+
+        self.footprints = {}
+        self.candidates = {}
+        self.paths2nd = []
 
     def get_line_equation(self,p1,p2):
         """
@@ -38,7 +42,7 @@ class ReflectionPath:
         parameters = [a_norm,b_norm,c_norm]
         return parameters # THE PARAMETERS OF THE NORMALISED LINE.
 
-    def get_mirror_point(self,p1,parameters):
+    def get_mirror_point(self,parameters):
         """
         Explanation: A function that reads a point and the parameters of a line and returns the mirror point of p1 regarding this line.
         ---------------
@@ -50,9 +54,9 @@ class ReflectionPath:
         p_mirror: [x(float),y(float)] - The image (virtual) point.
         """
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
-        d = parameters[0]*p1[0] + parameters[1]*p1[1] + parameters[2]
-        p_mirror_x = p1[0] - 2*parameters[0]*d
-        p_mirror_y = p1[1] - 2*parameters[1]*d
+        d = parameters[0]*self.source[0] + parameters[1]*self.source[1] + parameters[2]
+        p_mirror_x = self.source[0] - 2*parameters[0]*d
+        p_mirror_y = self.source[1] - 2*parameters[1]*d
         return [p_mirror_x,p_mirror_y]
 
     def get_closest_point(self,p1,parameters):
@@ -93,7 +97,7 @@ class ReflectionPath:
             return False 
         x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
         y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
-        return [x,y]
+        return (x,y)
     
     def split_lineseg_n(self,n,lineseg):
         # ATTENTION !: THIS FUNCTION SPLITS ALL THE LINE SEGMENTS IN THE MODEL INTO A FIXED NUMBER OF SUB-SEGMENTS (N), REGARDLESS OF THE
@@ -170,10 +174,10 @@ class ReflectionPath:
                     candidate = [wall[0],point,wall[1]]
                     c_list.append(candidate)
 
-    def get_first_paths(self,s,r):
+    def get_first_order_reflection(self, buildings_dict):
         """
         Explanation: A function that reads a source point and a receiver and computes all possible first-order reflection paths,
-        according to buildings that are stored in f_dict (separate dictionary)
+        according to buildings that are stored in buildings_dict (separate dictionary)
         ---------------        
         Input:
         s: [x(float),y(float),(z)(float)] - source point.
@@ -189,23 +193,33 @@ class ReflectionPath:
         """
         coords   = [ ]
         heights  = [ ]
-        for bag_id in f_dict:
-            h_dak = f_dict[bag_id]['h_dak']
-            walls = f_dict[bag_id]['walls']
+        first_order_paths = []
+        for bag_id in buildings_dict:
+            h_dak = buildings_dict[bag_id]['h_dak']
+            walls = buildings_dict[bag_id]['walls']
             for wall in walls:
-                test_r = misc.side_test( wall[0], wall[1], r[:2]) #r[:2] makes the function to ignore an eventual 'z' value.
-                test_s = misc.side_test( wall[0], wall[1], s[:2]) #s[:2] makes the function to ignore an eventual 'z' value.
+                test_r = misc.side_test( wall[0], wall[1], self.receiver) #r[:2] makes the function to ignore an eventual 'z' value. slicing not needed, simply not used in the funciton.
+                test_s = misc.side_test( wall[0], wall[1], self.source) #s[:2] makes the function to ignore an eventual 'z' value.
                 if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
-                    s_mirror = self.get_mirror_point(s,self.get_line_equation(wall[0],wall[1]))
-                    ref = self.line_intersect(wall,[s_mirror,r[:2]])
-                    if type(ref) == list:
-                        coords.append(ref)
-                        heights.append(h_dak)
-                        ref_z = ref
-                        ref_z.append(h_dak)
-                        p1_list.append([s,ref_z,r])
-        print('1st-order reflection. numer of paths:',len(coords))
-        return [ coords, heights ] #[ [p1, p2, ..., pn], [h1, h2, ..., hn] ] 
+                    s_mirror = self.get_mirror_point(self.get_line_equation(wall[0], wall[1]))
+                    reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
+
+                    # ref is false if there is no reflection.
+                    if reflection_point:
+                        #coords.append(reflection_point)
+                        #heights.append(h_dak)
+                        self.reflection_points.append(reflection_point)
+                        self.reflection_heights.append(h_dak)
+                        #ref_z = ref
+                        #ref_z.append(h_dak)
+                        #first_order_paths.append([self.source, ref_z, self.receiver])
+        #print('1st-order reflection. number of paths:', len(coords))
+        # if there are no reflections, return false, so it is not saved.
+        if(len(self.reflection_points) == 0): 
+            return False
+        else:
+            # This is no longer needed
+            return True #[p1, p2, ..., pn], [h1, h2, ..., hn] 
     
     def get_second_paths(self,s,r,t):
         """
@@ -256,7 +270,7 @@ class ReflectionPath:
         print('2nd-order reflection. numer of paths:',len(coords))
         return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
 
-def read_buildings(input_file, dictionary):
+def read_buildings(input_file):
     """
     Explanation: A function that reads footprints and stores all walls as [p1,p2] and absolute heights (float) of these.
     ---------------
@@ -267,6 +281,7 @@ def read_buildings(input_file, dictionary):
     Output:
     void.
     """
+    dictionary = {}
     with fiona.open(input_file) as layer:
         for feature in layer:
             bag_id = feature['properties']['bag_id']
@@ -297,7 +312,7 @@ def read_buildings(input_file, dictionary):
                             wall_2D = [a[:len(a)-1],b[:len(b)-1]]
                             walls.append(wall_2D)
                         dictionary[bag_id]['walls'] = walls
-    layer.close()
+    return dictionary
 
 def read_points(input_file,dictionary):
     """
@@ -401,6 +416,7 @@ def write_output_2nd(output_file,lista):
     #MultiLineStringZ ((93528.02305619 441927.11005859 2.5, 93567.67848824 441908.81858497 0, 93539.68248698 441892 1.4))
 
 if __name__ == "__main__":
+    # This code will not work anymore, please use the code from reflectionManager.py
     start = time.time()
     f_dict = { }
     s_dict = { }
@@ -422,8 +438,8 @@ if __name__ == "__main__":
     for source in s_dict:
         for receiver in r_dict:
             print('source:',source,'receiver',receiver)
-            reflection_path.get_first_paths(s_dict[source],r_dict[receiver])
-            reflection_path.get_second_paths(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
+            reflection_path.get_first_order_reflection(s_dict[source],r_dict[receiver])
+            #reflection_path.get_second_paths(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
             print()
     
     print('len(p1_list)')

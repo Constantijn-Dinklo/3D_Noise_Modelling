@@ -56,11 +56,12 @@ class GroundTin:
         Output:
             Boolean - True if the point is inside the triangle.
         """
+        e = 10 ** (-8)
         d1 = misc.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], pt)
         d2 = misc.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], pt)
         d3 = misc.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], pt)
 
-        if d1 >= 0 and d2 >= 0 and d3 >= 0:
+        if d1 >= -e and d2 >= -e and d3 >= -e:
             return True  # the point is in the triangle
         else:
             return False
@@ -545,7 +546,8 @@ def read_from_objp(file_path):
                 triangles.append(triangle)
             
             if line_elements[0] == 'a':
-                attribute = float(line_elements[1])
+                # attribute = float(line_elements[1])
+                attribute = line_elements[1].rstrip("\n")
 
                 attributes.append(attribute)
     
