@@ -3,18 +3,61 @@ import groundTin as TIN
 import misc
 import sys
 import numpy as np
+import xml.etree.cElementTree as ET
+
 from pprint import pprint
 
 from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
-from sourceReceiver import ReceiverPoints
-from simpleReflection import ReflectionPath
+from receiverPoint import ReceiverPoint
+from reflectionPath import ReflectionPath
 from crossSectionManager import CrossSectionManager
 from reflectionManager import ReflectionManager
 
 #This should be a temporary input type
 #def read_ground_objects()
+
+def return_segments_source(path):
+    """
+    Explanation: Changes the data structure of the coordinates from strings to floats in tuples
+    ---------------
+    Input:
+    path : string - the path of the XML file
+    ---------------
+    Output:
+    list : list - a list of all the coordinates are saved as (x, y), line segments with every next point in list
+    """
+    count = 0
+    sets = []
+    line_string = []
+    line_float = []
+    line_segments = []
+
+    tree = ET.parse(path)
+    root = tree.getroot()
+    for child in root.iter():
+        if "coordinates" in child.tag:
+            coordinates = child.text
+            line_string = coordinates.split()
+            if len(line_string) > 1:
+                for point in line_string:
+                    coord = point.split(',')
+                    sets.append((float(coord[0]), float(coord[1])))
+                    count += 1
+                if len(line_string) == count:
+                    line_float.append(sets)
+                    count = 0
+                    sets = []
+    for elem in line_float:
+        if len(elem) == 2:
+            line_segments.append(elem)
+        if len(elem) > 2:
+            for i in range(len(elem) - 1):
+                first_el = elem[i]
+                next_el = elem[i + 1]
+                line_segments.append([first_el, next_el])
+    return line_segments
 
 
 def main(sys_args):
@@ -41,7 +84,7 @@ def main(sys_args):
             elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
                 continue
             elif (record['properties']['h_dak'] is not None and
-                  record['properties']['h_maaiveld'] > record['properties']['h_dak']):
+                    record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                 continue
             
             record_id = int(record['id'])
@@ -77,136 +120,12 @@ def main(sys_args):
                 else:
                     geometry = record['geometry']['coordinates'][0]
                     ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
-
-    """
-    Format for data:
-    === INPUT ===
-    TIN.objp:
-        vertices:
-        "v float(x) float(y) float(z)"
-        faces / triangles:
-        "f int(id_1) int(id_2) int(id_2) int(nb1) int(nb2) int(nb3)"
-        Attributes:
-        "a float(attribute ID)" <- why not integer?
     
-    semaantics_test.shp:
-        [describe this file]
-        Holds all buildings and groundtypes in shapefile
+    #COS: Till now we have a:
+    #   - Constrained Tin
+    #   - Building Manager
+    #   - Ground Type Manager
     
-    Buildings.shp:
-        idem
-
-    groundTypes.shp:
-        idem
-    
-    receivers.xxx:
-        receiver file
-    
-    === Algoritmic structures ===
-    building_manager: dictionary with buildings
-        building_manager = {
-            int(building_id) = Building object,
-            ...
-        }
-    
-    Building (class):
-        id: (super key / unique) (also key in dictionary)
-        bag_id: building ID from BAG (not unique)
-        polygon = shapely.shape object with polygon
-        ground_level = height of ground NAP
-        roof_level = roof height NAP
-    
-    ground_type_manager: dicitonary with groundTypes
-        building_manager = {
-            int(ground_id) = GroundType object,
-            ...
-        }
-
-    GroundType (class):
-        id = (super key / unique) (also key in dictionary)
-        uuid: unique key from original file
-        polygon = shapely.shape object with polygon
-        index = absorbtion index 
-
-    source_points_dict:
-        dictionary with receivers and their sources
-        {
-            receiver_i: [dir_1, dir_2, ..., dir_n],
-            receiver_n: ...
-        }
-        where:
-            receiver: tuple(x,y)
-            dir_i: list of found sources (in order of distance) along one direction
-            dir_i = [source_1, source_2 ...]
-            note: dir_i does not exist if that direction does not have instersections
-            note_2: dir_i can have only 1 source, but it is still a list
-        
-    propagations_paths:
-        dictionary with propagations paths holding the location of the source / receiver / reflection
-        {
-            receiver_i: [path_1, path_2, ..., path_n],
-            receiver_n: ...
-        }
-        where:
-            receiver_i: (float(x), float(y))
-            path_i: [source] or [reflection, source]
-            where:"
-                source = [float(x), float(y)]
-                reflection = [float(x), float(y)]
-            note: There can be multiple path_i with the same source since there can be more reflections. 
-    
-    reflection_heights:
-        dictionary with a list per receiver.
-        {
-            receiver_i: [height_1, height_2, ..., height_n],
-            receiver_n: ...
-        }
-        where:
-            receiver_i: (float(x), float(y))
-            height_i: [height_r_1, height_r_2, ...m height_r_n]
-            where:
-                height_r_1 = [float(x), float(y)]
-            note: for each reflection there is one height
-
-    cross_section:
-        dictionary with the paths per receiver
-        {
-            receiver_i: [path_1, path_2, ..., path_n]
-            receiver_n: ...
-        }
-        where: 
-            receiver_i: (float(x), float(y))
-            path_i: [point_1, point_2, ..., point_n]
-            where:
-                point_1 = [(float(x), float(y), float(z)), mat]
-                where:
-                    mat: string "C" / "G" / "A0" defining the material
-            note: both direct and reflected paths are the same.
-    
-    extension:
-        dictionary with extension per receiver
-        {
-            receiver_i: [ext_1, ext_2, ..., ext_n]
-            receiver_n: ...
-        }
-        where:
-            receiver_i: (float(x), float(y))
-            ext_1: {
-                point_i: [type, height above TIN, (material)],
-                point_n: ...
-            }
-            where:
-                type: string - "source" / "receiver" / "wall" / "edge" / "barrier"
-                height above TIN: float - relative height above the point
-                optional:
-                    material: string - the material of the extension
-            note: material is only supplied when the type != "source" or "receiver"     
-    
-    === Output ===
-    xml output:
-        xml file with all information.
-    """
-
     hard_coded_receiver_point = [((93550, 441900))]
 
     # Input variables:
@@ -215,16 +134,50 @@ def main(sys_args):
     source_height = 0.05
     receiver_height = 2
 
+    receiver_points = {} #COS: Might make another manager from this, but might not be needed.
+    road_lines = [] #COS: Find a better place for this?
+
     #Create a Receiver Point to which the sound should travel
-    receiver_point = ReceiverPoints(cnossos_radius, cnossos_angle)
-    receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
-    receiver_point.return_segments_source('input/test_2.gml')
+    with fiona.open('input/receivers_END2016_testarea.shp') as shape: #Open the receiver points shapefile
+        for elem in shape:
+            geometry = elem["geometry"]
+            rec_pt_coords = geometry["coordinates"]
+            rec_pt = ReceiverPoint(rec_pt_coords)
+            receiver_points[rec_pt_coords] = rec_pt
+
+    road_lines = return_segments_source('input/test_2.gml') #Read in the roads
+
+    #COS: Till now we have a:
+    #   - Constrained Tin
+    #   - Building Manager
+    #   - Ground Type Manager
+    #   - The receiver points
+    #   - The line segments
+
+    source_points = {}
+
+    #Go through all the receiver points and get their possible source points
+    for rec_pt_coords in receiver_points:
+        rec_pt = receiver_points[rec_pt_coords]
+        int_pts = rec_pt.return_intersection_points(road_lines)
+        
+        #Set all the intersection points as possible source points, not this list (int_pts) could be empty
+        source_points[rec_pt_coords] = int_pts
+
+    #print(source_points)
+
+    
+    
+    #receiver_point = ReceiverPoint((0,0), cnossos_radius, cnossos_angle)
+    #receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
+    #receiver_point.return_segments_source('input/test_2.gml')
     #Get all the source points that are within range of this receiver point
-    source_points_dict = receiver_point.return_intersection_points()
+    #source_points_dict = receiver_point.return_intersection_points()
 
     # Get first order reflections
     reflected_paths = ReflectionManager()
-    reflected_paths.get_reflection_paths(source_points_dict, tin, building_manager, building_gpkg_file)
+    reflected_paths.get_reflection_paths(source_points, tin, building_manager, building_gpkg_file)
+    exit()
     
     cross_section_manager = CrossSectionManager(source_points_dict, reflected_paths.reflection_manager,
                                                 source_height, receiver_height)

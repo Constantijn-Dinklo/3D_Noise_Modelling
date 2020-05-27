@@ -1,4 +1,4 @@
-from simpleReflection import ReflectionPath, read_buildings
+from reflectionPath import ReflectionPath, read_buildings
 from pprint import pprint
 #import numpy as np
 from misc import write_cross_section_to_obj
@@ -6,10 +6,8 @@ from misc import write_cross_section_to_obj
 class ReflectionManager:
 
     def __init__(self):
-        #self.propagation_paths = {}
-        #self.reflection_heights = {}
 
-        self.reflection_manager = {}
+        self.reflection_paths = {}
     
     def get_reflection_paths(self, source_receivers_dict, tin, building_manager, building_filename):
         """
@@ -25,13 +23,16 @@ class ReflectionManager:
             void (fills self.paths with a list of paths)
         """
         
-        for receiver, sources_list_per_ray in source_receivers_dict.items():
-            #self.reflection_heights[receiver] = []
-            #self.propagation_paths[receiver] = []
-            self.reflection_manager[receiver] = []
-            for sources_list in sources_list_per_ray:
-                for source in sources_list:
-                    
+        for receiver, sources_list_per_ray in source_receivers_dict.items():               
+            for ray_end_point, source_point_list in sources_list_per_ray.items():
+                print(receiver)
+                print(ray_end_point)
+                print(source_point_list)
+                self.reflection_paths[receiver] = []
+                
+                for source_point in source_point_list:
+                    print(source_point)
+                    return
 
                     buildings_dictionary = read_buildings(building_filename)
                     reflection_object = ReflectionPath(source, receiver)
@@ -50,6 +51,6 @@ class ReflectionManager:
                     #else:
                     #    self.propagation_paths[receiver].append([source])
 
-            #self.first_order_paths[receiver] = receiver_paths
-        #pprint(self.propagation_paths)
-        #return self.reflection_manager
+                #self.first_order_paths[receiver] = receiver_paths
+            #pprint(self.propagation_paths)
+            #return self.reflection_manager
