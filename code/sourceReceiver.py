@@ -3,16 +3,17 @@ import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 from pprint import pprint
+import fiona
 
 
-class ReceiverPoint:
+class ReceiverPoints:
 
-    def __init__(self, receiver, radius, step_angle):
-        self.receiver = receiver
+    def __init__(self, radius, step_angle):
+        # self.receiver = receiver
         self.radius = radius
         self.step_angle = step_angle
         self.road_lines = []
-        self.receiver_segments = []
+        self.receiver_points = []
 
     def return_list_receivers(self, path):
         """
@@ -30,17 +31,35 @@ class ReceiverPoint:
             geometry = elem["geometry"]
             rec_pt = geometry["coordinates"]
             rec_list.append(rec_pt)
-        self.receiver_segments = rec_list
+        self.receiver_points = rec_list
+
+    def return_list_receivers(self, path):
+        """
+        Explanation: Reads a shapefile and returns a list of receiver points
+        ---------------
+        Input:
+        path : string - the path of the shapefile
+        ---------------
+        Output:
+        list : list - a list of all the coordinates are saved as (x, y), line segments with every next point in list
+        """
+        rec_list = [ ]
+        shape = fiona.open(path)
+        for elem in shape:
+            geometry = elem["geometry"]
+            rec_pt = geometry["coordinates"]
+            rec_list.append(rec_pt)
+        self.receiver_points = rec_list
 
     def return_segments_source(self, path):
         """
         Explanation: Changes the data structure of the coordinates from strings to floats in tuples
         ---------------
         Input:
-        root : the root of the XML file
+        path : string - the path of the XML file
         ---------------
         Output:
-        list : a list of all the coordinates are saved as (x, y), line segments with every next point in list
+        list : list - a list of all the coordinates are saved as (x, y), line segments with every next point in list
         """
         count = 0
         sets = []
@@ -59,10 +78,10 @@ class ReceiverPoint:
                         coord = point.split(',')
                         sets.append((float(coord[0]), float(coord[1])))
                         count += 1
-                        if len(line_string) == count:
-                            line_float.append(sets)
-                            count = 0
-                            sets = []
+                    if len(line_string) == count:
+                        line_float.append(sets)
+                        count = 0
+                        sets = []
         for elem in line_float:
             if len(elem) == 2:
                 line_segments.append(elem)
@@ -79,12 +98,10 @@ class ReceiverPoint:
         Explanation: takes the noise receiver and returns the next point on the circumsphere of the user set radius
         ---------------
         Input:
-        self : tuple of coordinates of the receiver point
-        radius : is the user set radius around the receiver point
-        radians : the size of the angle in radians between two points on the circumsphere
+        radians : float - the size of the angle in radians between two points on the circumsphere
         ---------------
         Output:
-        point : it returns the next point on the circumsphere in (x, y)
+        point : tuple - it returns the next point on the circumsphere
         """
         x_next = rcvr[0] + self.radius * math.cos(radians)
         y_next = rcvr[1] + self.radius * math.sin(radians)
@@ -95,11 +112,11 @@ class ReceiverPoint:
         Explanation: this functions returns the intersection points (source points) of both lines
         ---------------
         Input:
-        line1: the line segment of the receiver point
-        line2: the line segment of the source
+        line1: list - the line segment of the receiver point
+        line2: list - the line segment of the source
         ---------------
         Output:
-        point : it returns the point where both line segments intersect
+        point : tuple - it returns the point where both line segments intersect
         """
         d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (
                 line1[1][1] - line1[0][1])
@@ -121,17 +138,17 @@ class ReceiverPoint:
         Explanation: for every line segment of the receiver an intersection per line segment of the source is checked
         ---------------
         Input:
-        line1: list with the line segments of the receiver
-        line2: list with the line segments of the source
+        void
         ---------------
         Output:
-        dictionary : a list of source points (intersection points) are saved as a value to the receiver point as a key in a dictionary
+        dictionary : a list of source points (intersection points) are saved as a value to the receiver point as a key
+        in a dictionary
         """
         list_intersection_per_ray = []
         list_intersection_per_receiver = []
         dict_per_source_segment = {}
 
-        for rcvr in self.receiver:
+        for rcvr in self.receiver_points:
             for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
                 following = self.return_points_circle(rcvr, angle)
                 for struct_line in self.road_lines:
@@ -152,21 +169,32 @@ class ReceiverPoint:
 
 if __name__ == '__main__':
     hard_coded_source = (93550, 441900)
-    cnossos_radius = 2000.0  # should be 2000.0 --> 2km, for now 100 is used to test
+    cnossos_radius = 2000.0
     cnossos_angle = 2.0
 
-    doc = ReceiverPoint(hard_coded_source, cnossos_radius, cnossos_angle)
-    read_doc = doc.return_segments_source('/Users/mprusti/Documents/geo1101/test_2.gml')  # eventually global, now local
-    intersected = doc.return_intersection_points()
-
-    plt.scatter(hard_coded_source[0], hard_coded_source[1], c='b')
+    doc = ReceiverPoints(cnossos_radius, cnossos_angle)
+    doc.return_segments_source('/Users/mprusti/Documents/geo1101/test_2.gml')  # eventually global, now local
+    doc.return_list_receivers(
+        '/Users/mprusti/Documents/geo1101/receiver_points/toetspunten/Toetspunten_rdam.shp')
+    intersected = doc.return_intersection_points()  # --> this is a dictionary
 
     # Plot the source line segments
     source_lines = np.array(doc.road_lines)
     for line in source_lines:
         plt.plot(line[:, 0], line[:, 1], c='k')
 
+    # Plot the receiver line segments
+    receiver_pts = np.array(doc.receiver_segments)
+    for pts in receiver_pts:
+        plt.scatter(pts[0], pts[1], c='g')
+
     # Plot the intersection points
-    intersected_points = np.array(intersected.get(hard_coded_source))
+    temp_list = []
+    for key in intersected.keys():
+        list_of_values = intersected[key]
+        for value in list_of_values:
+            temp_list.append(value)
+    intersected_points = np.array(temp_list)
     plt.scatter(intersected_points[:, 0], intersected_points[:, 1], c='r')
-    plt.show()
+
+    # plt.show()
