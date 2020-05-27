@@ -43,26 +43,19 @@ def interpolate_edge(edge_0, edge_1, pt):
     float - interpolated value
     """
 
-    delta_x = edge_0[0] - pt[0]
-    delta_y = edge_0[1] - pt[1]
-    segment_x = edge_0[0] - edge_1[0]
-    segment_y = edge_0[1] - edge_1[1]
+    delta_x = abs(edge_0[0] - pt[0])
+    delta_y = abs(edge_0[1] - pt[1])
+    segment_x = abs(edge_0[0] - edge_1[0])
+    segment_y = abs(edge_0[1] - edge_1[1])
 
-    w0_ = (delta_x**2 + delta_y**2)**0.5 / (segment_x**2 + segment_y**2)**0.5
-
-    if delta_x > delta_y and segment_x != 0:
+    if delta_x > delta_y:
         w0 = delta_x / segment_x
-    elif delta_x <= delta_y and segment_y != 0:
-        w0 = delta_y / segment_y
-    elif delta_x > delta_y and segment_x == 0:
-        w0 = delta_y / segment_y
     else:
-        w0 = delta_x / segment_x
+        w0 = delta_y / segment_y
 
-    w1 = 1 - w0_
-    t = w1 * edge_0[2] + w0_ * edge_1[2]
+    w1 = 1 - w0
 
-    return w1 * edge_0[2] + w0_ * edge_1[2]
+    return w1 * edge_0[2] + w0 * edge_1[2]
 
 def reverse_bisect_left(a, x, lo=0, hi=None):
     """Borrowed from the bissect library - Return the index where to insert
