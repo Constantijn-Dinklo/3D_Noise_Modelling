@@ -9,6 +9,11 @@ class ReflectionPath:
     def __init__(self, source, receiver):
         self.source = source
         self.receiver = receiver
+
+        # now storing this here.
+        self.reflection_points = []
+        self.reflection_heights = []
+
         self.footprints = {}
         self.candidates = {}
         self.paths2nd = []
@@ -195,7 +200,7 @@ def get_closest_point(p1,parameters):
     Output:
     p_line: [x(float),y(float)] - The closest point of p1 that lies on the line segment.
     """
-    
+
     """
     # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
     d = parameters[0]*p1[0] + parameters[1]*p1[1] + parameters[2]

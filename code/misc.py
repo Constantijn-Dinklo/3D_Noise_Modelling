@@ -28,6 +28,54 @@ def side_test(pa, pb, pc):
         2 *  the area of the triangle
         """
         return ((pa[0] - pc[0]) * (pb[1] - pc[1])) - ((pb[0] - pc[0]) * (pa[1] - pc[1]))
+
+def interpolate_edge(edge_0, edge_1, pt):
+    """
+    Explanation:
+    Find the interpolated value on an edge
+    ---------------
+    Input:
+    edge_0: (x, y, z) - first endpoint coordinates
+    edge_1: (x, y, z) - second endpoint coordinates
+    pt: (x, y) - point on the edge to be interpolated
+    ---------------
+    Output:
+    float - interpolated value
+    """
+
+    delta_x = abs(edge_0[0] - pt[0])
+    delta_y = abs(edge_0[1] - pt[1])
+    segment_x = abs(edge_0[0] - edge_1[0])
+    segment_y = abs(edge_0[1] - edge_1[1])
+
+    if delta_x > delta_y:
+        w0 = delta_x / segment_x
+    else:
+        w0 = delta_y / segment_y
+
+    w1 = 1 - w0
+
+    return w1 * edge_0[2] + w0 * edge_1[2]
+
+def reverse_bisect_left(a, x, lo=0, hi=None):
+    """Borrowed from the bissect library - Return the index where to insert
+    item x in list a, assuming a is sorted.
+    The return value i is such that all e in a[:i] have e < x, and all e in
+    a[i:] have e >= x.  So if x already appears in the list, a.insert(x) will
+    insert just before the leftmost x already there.
+    Optional args lo (default 0) and hi (default len(a)) bound the
+    slice of a to be searched.
+    """
+
+    if lo < 0:
+        raise ValueError('lo must be non-negative')
+    if hi is None:
+        hi = len(a)
+    while lo < hi:
+        mid = (lo+hi)//2
+        if a[mid] > x: lo = mid+1
+        else: hi = mid
+    return lo
     
 def write_cross_section_to_obj(obj_filename, path_list):
     print("=== Writing {} ===".format(obj_filename))
@@ -38,11 +86,12 @@ def write_cross_section_to_obj(obj_filename, path_list):
         counter = 0
         for path in path_list:
             path = np.array(path)
-            path = path[:,0]
             # has the starting vertex number
             counter = counter + len(path)
             vts_count_lst.append(counter)
+            #print(path)
             for v in path:
+                #print(v)
                 #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
                 f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
         

@@ -4,11 +4,11 @@ import misc
 import sys
 import numpy as np
 from pprint import pprint
-#import xmlParser as xml
 
+from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
 from groundTypeManager import GroundTypeManager
-from sourceReceiver import ReceiverPoint
+from sourceReceiver import ReceiverPoints
 from simpleReflection import ReflectionPath
 from crossSectionManager import CrossSectionManager
 from reflectionManager import ReflectionManager
@@ -33,7 +33,7 @@ def main(sys_args):
 
     #Read in the buildings and ground types
     #This should be removed and moved to the files individually
-    with fiona.open("input/semaantics_test.shp") as semantics:
+    with fiona.open("input/semaantics_test_part_id.shp") as semantics:
         for record in semantics:
             #Not sure if this does anything right now
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
@@ -51,6 +51,7 @@ def main(sys_args):
             
             if record['properties']['bag_id'] is not None:
                 #print("=== Adding a building ===")
+                part_id = 'b' + record['properties']['part_id']
                 bag_id = record['properties']['bag_id']
                 geometry = record['geometry']
                 geom_coord = record['geometry']['coordinates']
@@ -78,11 +79,12 @@ def main(sys_args):
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
                 building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level, walls)
-
+            
             elif record['properties']['uuid'] is not None:
                 #print("=== Adding a ground type ===")
 
                 uuid = record['properties']['uuid']
+                part_id = 'g' + uuid
                 absp_index = record['properties']['bodemfacto']
                 
                 if record['geometry']['type'] == 'MultiPolygon':
@@ -91,11 +93,11 @@ def main(sys_args):
                         holes = []
                         for i in range(1, len(p)):
                             holes.append(p[i])
-                        ground_type_manager.add_ground_type(record_id + record_index, uuid, geometry, absp_index, holes)
+                        ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index, holes)
                         record_index = record_index + 1
                 else:
                     geometry = record['geometry']['coordinates'][0]
-                    ground_type_manager.add_ground_type(record_id + record_index, uuid, geometry, absp_index)
+                    ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
 
     """
     Format for data:
@@ -226,7 +228,7 @@ def main(sys_args):
         xml file with all information.
     """
 
-    hard_coded_receiver_point = ((93550, 441900))
+    hard_coded_receiver_point = [((93550, 441900))]
 
     # Input variables:
     cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
@@ -235,20 +237,27 @@ def main(sys_args):
     receiver_height = 2
 
     #Create a Receiver Point to which the sound should travel
-    receiver_point = ReceiverPoint(hard_coded_receiver_point, cnossos_radius, cnossos_angle)
+    receiver_point = ReceiverPoints(cnossos_radius, cnossos_angle)
+    receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
     receiver_point.return_segments_source('input/test_2.gml')
     #Get all the source points that are within range of this receiver point
     source_points_dict = receiver_point.return_intersection_points()
 
     # Get first order reflections
-    reflected_paths = ReflectionManager(source_points_dict)
-    propagations_paths, reflection_heights = reflected_paths.get_reflection_paths(tin, building_manager, building_gpkg_file)
-
-    cross_section_manager = CrossSectionManager(propagations_paths, reflection_heights, source_height, receiver_height)
-    cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
-    cross_section_manager.write_obj("test_object_reflect.obj")
+    reflected_paths = ReflectionManager()
+    reflected_paths.get_reflection_paths(source_points_dict, tin, building_manager, building_gpkg_file)
     
+    cross_section_manager = CrossSectionManager(source_points_dict, reflected_paths.reflection_manager,
+                                                source_height, receiver_height)
+    cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
+    cross_section_manager.write_obj("test_object_reflect_01.obj")
 
+    sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
+    
+    xml_manager = XmlParserManager(sections, extensions, materials)
+    #xml_manager.write_xml_files()
+
+    
 if __name__ == "__main__":
     main(sys.argv)
     # call all functions etc.

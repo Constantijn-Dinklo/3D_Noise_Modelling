@@ -5,12 +5,13 @@ from misc import write_cross_section_to_obj
 
 class ReflectionManager:
 
-    def __init__(self, source_receivers_dict):
-        self.source_receivers_dict = source_receivers_dict
-        self.propagation_paths = {}
-        self.reflection_heights = {}
+    def __init__(self):
+        #self.propagation_paths = {}
+        #self.reflection_heights = {}
+
+        self.reflection_manager = {}
     
-    def get_reflection_paths(self, tin, building_manager, building_filename):
+    def get_reflection_paths(self, source_receivers_dict, tin, building_manager, building_filename):
         """
         Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
         ---------------
@@ -42,6 +43,7 @@ class ReflectionManager:
                         self.reflection_heights[receiver].append(paths_and_heights[1][i])
                 else:
                     self.propagation_paths[receiver].append([source])
+
             #self.first_order_paths[receiver] = receiver_paths
         #pprint(self.propagation_paths)
-        return self.propagation_paths, self.reflection_heights
+        #return self.reflection_manager
