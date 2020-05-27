@@ -148,7 +148,8 @@ class ReceiverPoints:
         list_intersection_per_receiver = []
         dict_per_source_segment = {}
 
-        for rcvr in self.receiver_points:
+        for rcvr in self.receiver_points[:10]:
+            print(rcvr)
             for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
                 following = self.return_points_circle(rcvr, angle)
                 for struct_line in self.road_lines:

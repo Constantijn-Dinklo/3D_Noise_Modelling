@@ -20,7 +20,7 @@ class XmlParserManager:
                 
                 xml = XmlParser(path, extension, material)
                 xml.normalize_path()
-                #print("=== write output/path_{}_{}.xml ===".format(j, i))
+                print("=== write output/path_{}_{}.xml ===".format(j, i))
                 xml.write_xml("output/path_{}_{}.xml".format(j, i), True)
                 self.prepared_paths[receiver].append(xml)
 
