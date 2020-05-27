@@ -5,14 +5,15 @@ import time
 
 class ReflectionPath:
 
-    def __init__(self, source, receiver):
+    def __init__(self, source):
         self.source = source
-        self.receiver = receiver
+        #self.receiver = receiver < no need to store this
 
         # now storing this here.
         self.reflection_points = []
         self.reflection_heights = []
 
+        # for single reflection this is not required, should be deleted later.
         self.footprints = {}
         self.candidates = {}
         self.paths2nd = []
@@ -174,35 +175,35 @@ class ReflectionPath:
                     candidate = [wall[0],point,wall[1]]
                     c_list.append(candidate)
 
-    def get_first_order_reflection(self, buildings_dict):
+    def get_first_order_reflection(self, buildings_dict, receiver):
         """
         Explanation: A function that reads a source point and a receiver and computes all possible first-order reflection paths,
         according to buildings that are stored in buildings_dict (separate dictionary)
         ---------------        
         Input:
-        s: [x(float),y(float),(z)(float)] - source point.
-        r: [x(float),y(float),(z)(float)] - receiver point.
+        buildings_dict : BuildingManager object - stores all the building objects
         ---------------
         Output:
-        A list of all (independent) points that are capable of reflecting the sound wave from source to receiver.:
-        l = [ [ p1, p2, p3, .... pn ] , [ h1, h2, h3, .... hn ] ]
-        such that:
-        p = coordinates of the reflection point [x(float),y(float)]
-        h = height value of the building in which the reflection point lies into (float)
-        the n-th element of "p_list" corresponds to the n-th element of "h_list".
+        Stores reflection points, and their corresponding heights in the class.
+        return True if reflections are found, False if not
         """
-        coords   = [ ]
-        heights  = [ ]
-        first_order_paths = []
+        # TODO remove the commented lines
+        # can be removed, not used
+        #coords   = [ ]
+        #heights  = [ ]
+        #first_order_paths = []
         for bag_id in buildings_dict:
             h_dak = buildings_dict[bag_id]['h_dak']
             walls = buildings_dict[bag_id]['walls']
             for wall in walls:
-                test_r = misc.side_test( wall[0], wall[1], self.receiver) #r[:2] makes the function to ignore an eventual 'z' value. slicing not needed, simply not used in the funciton.
-                test_s = misc.side_test( wall[0], wall[1], self.source) #s[:2] makes the function to ignore an eventual 'z' value.
-                if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
+                test_r = misc.side_test( wall[0], wall[1], receiver)
+                test_s = misc.side_test( wall[0], wall[1], self.source) 
+                if test_r > 0 and test_s > 0: # This statement guarantees that the source and receiver are both on the outer side of the wall
+
+                    # Get the mirrored source over the wall segment
                     s_mirror = self.get_mirror_point(self.get_line_equation(wall[0], wall[1]))
-                    reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
+                    # find the intersection point, returns False is they do not intersect.
+                    reflection_point = self.line_intersect(wall,[s_mirror, receiver])
 
                     # ref is false if there is no reflection.
                     if reflection_point:
