@@ -51,14 +51,35 @@ def main(sys_args):
             
             if record['properties']['bag_id'] is not None:
                 #print("=== Adding a building ===")
-
                 part_id = 'b' + record['properties']['part_id']
                 bag_id = record['properties']['bag_id']
                 geometry = record['geometry']
+                geom_coord = record['geometry']['coordinates']
+                geom_type = record['geometry']['type']
+                if geom_type == 'Polygon':
+                    for polygon_index in range(len(geom_coord)):
+                        polygon_object = geom_coord[polygon_index]
+                        walls = []
+                        for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
+                            a = list(polygon_object[coord_index])
+                            b = list(polygon_object[coord_index+1])
+                            wall_2D = [a[:len(a)-1],b[:len(b)-1]]
+                            walls.append(wall_2D)
+                if geom_type == 'MultiPolygon':
+                    for multi_polygon_index in range(len(geom_coord)):
+                        multi_polygon_object = geom_coord[multi_polygon_index]
+                        for polygon_index in range(len(multi_polygon_object)):
+                            polygon_object = multi_polygon_object[polygon_index]
+                            walls = []
+                            for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
+                                a = list(polygon_object[coord_index])
+                                b = list(polygon_object[coord_index+1])
+                                wall_2D = [a[:len(a)-1],b[:len(b)-1]]
+                                walls.append(wall_2D)             
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
-
+                building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level, walls)
+            
             elif record['properties']['uuid'] is not None:
                 #print("=== Adding a ground type ===")
 
