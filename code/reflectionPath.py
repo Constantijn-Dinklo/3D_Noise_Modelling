@@ -6,18 +6,13 @@ from shapely.geometry import shape
 
 class ReflectionPath:
 
-    def __init__(self, source):
+    def __init__(self, source, receiver):
         self.source = source
-        #self.receiver = receiver < no need to store this
+        self.receiver = receiver
 
         # now storing this here.
         self.reflection_points = []
         self.reflection_heights = []
-
-        # for single reflection this is not required, should be deleted later.
-        self.footprints = {}
-        self.candidates = {}
-        self.paths2nd = []
 
     def is_point_in_lineseg(self,point,lineseg):
         """
@@ -82,7 +77,7 @@ class ReflectionPath:
         p2_new = [x_new, y_new]
         return p2_new
 
-    def get_mirror_point(self,parameters):
+    def get_mirror_point(self, line_parameters, point = False):
         """
         Explanation: A function that reads the self.source point and the parameters of a line and returns the mirror point of p1 regarding this line.
         ---------------
@@ -92,10 +87,13 @@ class ReflectionPath:
         Output:
         p_mirror: [x(float),y(float)] - The image (virtual) point.
         """
+        if point == False:
+            point = self.source
+
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
-        d = parameters[0]*self.source[0] + parameters[1]*self.source[1] + parameters[2]
-        p_mirror_x = self.source[0] - 2*parameters[0]*d
-        p_mirror_y = self.source[1] - 2*parameters[1]*d
+        d = line_parameters[0]*point[0] + line_parameters[1]*point[1] + line_parameters[2]
+        p_mirror_x = point[0] - 2*line_parameters[0]*d
+        p_mirror_y = point[1] - 2*line_parameters[1]*d
         return [p_mirror_x,p_mirror_y]
 
     def line_intersect(self, line1, line2):
@@ -140,7 +138,7 @@ class ReflectionPath:
         denom = (line1[0][0]-line1[1][0])*(line2[0][1]-line2[1][1])-(line1[0][1]-line1[1][1])*(line2[0][0]-line2[1][0])
         return [num_x/denom,num_y/denom]
 
-    def get_first_order_reflection(self, buildings_dict, receiver):
+    def get_first_order_reflection(self, buildings_dict):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
@@ -152,23 +150,20 @@ class ReflectionPath:
         Stores reflection points, and their corresponding heights in the class.
         return True if reflections are found, False if not
         """
-        # TODO remove the commented lines
-        # can be removed, not used
-        #coords   = [ ]
-        #heights  = [ ]
-        #first_order_paths = []
-        for bag_id in buildings_dict:
-            h_dak = buildings_dict[bag_id]['h_dak']
-            walls = buildings_dict[bag_id]['walls']
-            for wall in walls:
-                test_r = misc.side_test( wall[0], wall[1], receiver)
-                test_s = misc.side_test( wall[0], wall[1], self.source) 
+        #Loop through all the buildings
+        for id, building in buildings_dict.items():
+            #h_dak = buildings_dict[bag_id]['h_dak']
+            #walls = buildings_dict[bag_id]['walls']
+            for wall in building.walls:
+                test_r = misc.side_test( wall[0], wall[1], self.receiver)
+                test_s = misc.side_test( wall[0], wall[1], self.source)
+                
+                #COS: Not sure if this is actually true!!!!
                 if test_r > 0 and test_s > 0: # This statement guarantees that the source and receiver are both on the outer side of the wall
-
                     # Get the mirrored source over the wall segment
-                    s_mirror = self.get_mirror_point(self.get_line_equation(wall[0], wall[1]))
+                    s_mirror = self.get_mirror_point(self.get_parametric_line_equation(wall[0], wall[1]))
                     # find the intersection point, returns False is they do not intersect.
-                    reflection_point = self.line_intersect(wall,[s_mirror, receiver])
+                    reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
 
                     # ref is false if there is no reflection.
                     if reflection_point:
@@ -187,12 +182,13 @@ class ReflectionPath:
                             is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-                            coords.append(reflection_point)
-                            heights.append(building.roof_level)
-        if(len(coords) == 0): 
-            return False
-        else:
-            return (coords, heights) #(p1, p2, ..., pn], [h1, h2, ..., hn])
+                            
+                            self.reflection_points.append(reflection_point)
+                            self.reflection_heights.append(building.roof_level)
+        if len(self.reflection_points) > 0:
+            return True
+        return False
+
 
 # THE FUNCTIONS BELOW ARE NOT USED IN THE MAIN ALGORITHM AND WERE, THEREFORE, PUT OUTSIDE THE CLASS.
 # SINCE IT IS INTERESING TO KEEP THEM AS A RECORD OF THE CODING PROCESS, ESPECIALLY FOR WRITING THE FINAL REPORT, THEY ARE STILL STORED HERE.
