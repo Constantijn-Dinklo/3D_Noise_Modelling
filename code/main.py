@@ -169,22 +169,22 @@ def main(sys_args):
             break
 
         count = count + 1
-
-    #receiver_point = ReceiverPoint((0,0), cnossos_radius, cnossos_angle)
-    #receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
-    #receiver_point.return_segments_source('input/test_2.gml')
-    #Get all the source points that are within range of this receiver point
-    #source_points_dict = receiver_point.return_intersection_points()
-
+    
+    #Create the cross sections for all the direct paths
+    cross_section_manager = CrossSectionManager()
+    #cross_section_manager.get_cross_sections_direct(source_points, source_height, receiver_height, tin, ground_type_manager, building_manager)
+    
     # Get first order reflections
     reflected_paths = ReflectionManager()
     reflected_paths.get_reflection_paths(source_points, building_manager)
-        
+
+    #Loop through all the reflection paths
+    for receiver, ray_paths in reflected_paths.reflection_paths.items():
+        for ray_end, source_paths in ray_paths.items():
+            for source, path in source_paths.items():
+                cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager)
     
-    cross_section_manager = CrossSectionManager()
-    cross_section_manager.get_cross_sections_direct(source_points, source_height, receiver_height, tin, ground_type_manager, building_manager)
-    exit()
-    
+
     cross_section_manager.write_obj("test_object_reflect_01.obj")
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()

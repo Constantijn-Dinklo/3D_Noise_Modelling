@@ -183,8 +183,8 @@ class ReflectionPath:
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
                             
-                            self.reflection_points.append(reflection_point)
-                            self.reflection_heights.append(building.roof_level)
+                            self.reflection_points.append([reflection_point])
+                            self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
             return True
         return False

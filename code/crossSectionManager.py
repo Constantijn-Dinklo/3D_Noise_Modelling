@@ -11,14 +11,18 @@ class CrossSectionManager:
         self.cross_sections = {}
 
         self.receiver_triangles = {}
-
-    def get_cross_section_rf(self, reflection_path):
-        pass
     
     def get_cross_section(self, receiver, path, tin, ground_type_manager, building_manager):
         #Initialize the cross section
         #receiver = path[0]
         source_point = path[-1]
+        
+        #Should be changed
+        if len(source_point) > 2:
+            source_height = source_point[2]
+        else:
+            source_height = 0
+
         cross_section = CrossSection(path, receiver)
 
         #Find the triangle of the tin in which the receiver is located.
@@ -29,12 +33,14 @@ class CrossSectionManager:
             self.receiver_triangles[receiver] = receiver_triangle
 
         #Create the cross section from the receiver to the source point        
-        cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_point[2], receiver[2])
+        cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver[2])
 
         if receiver not in self.cross_sections.keys():
             self.cross_sections[receiver] = []
         
         self.cross_sections[receiver].append(cross_section)
+        
+        return cross_section
     
     def get_cross_sections_direct(self, direct_paths, source_height, tin, ground_type_manager, building_manager):
         """
@@ -57,10 +63,18 @@ class CrossSectionManager:
         for receiver, ray_intersects in direct_paths.items():
             #For each ray, grab all the source points between the receiver and the ray_end
             for ray_end, source_points in ray_intersects.items():
-                #Go through all the source points in the list
-                for source_point in source_points:
-                    source_point = (source_point[0], source_point[1], source_height)
-                    self.get_cross_section(receiver, [source_point], tin, ground_type_manager, building_manager)
+                #Create cross section for the furthest away point
+                furthest_source_point = source_points[-1]
+                furthest_source_point = (furthest_source_point[0], furthest_source_point[1], source_height)
+                cross_section = self.get_cross_section(receiver, [furthest_source_point], tin, ground_type_manager, building_manager)
+
+                #Go through all the other source points in the list
+                for source_point in source_points[:-1]:
+                    #split the cross section, using CrossSection class method
+                    pass
+                    
+                    #source_point = (source_point[0], source_point[1], source_height)
+                    #self.get_cross_section(receiver, [source_point], tin, ground_type_manager, building_manager)
 
 
         return
@@ -68,13 +82,6 @@ class CrossSectionManager:
 
         # create a key in the dictionary for this receiver.
 #            self.cross_section_manager[receiver] = []
-
-        # find the receiver triangle to walk from. (TODO: optimize the starting triangle)
-        if receiver in self.receiver_triangles.keys():
-            receiver_triangle = self.receiver_triangles[receiver]
-        else:
-            receiver_triangle = tin.find_receiver_triangle(2, receiver)
-            self.receiver_triangles[receiver] = receiver_triangle
 
         # Loop over all the list of collinear paths for each source
         for points_to_source in paths_to_sources:
@@ -140,18 +147,20 @@ class CrossSectionManager:
                         
                         self.cross_section_manager[receiver].append(cross_section_collinear_point)
     
-        # Reflected paths
-        #for receiver, reflections in propagation_paths_dict_reflect.items():
-            # for each reflection_object in the list of reflection objects
-        #    for reflection_object in reflections:
-                # for each reflection point for this source, create the path
-        #        for i in range(len(reflection_object.reflection_points)):
-        #            points_to_source = [reflection_object.reflection_points[i], reflection_object.source]
-        #            cross_section = CrossSection(points_to_source, receiver, reflection_object.reflection_heights[i])
-        #            cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver_height)
+    #This is a quick implementation!!! SHOULD BE CHECKED!!!
+    def create_cross_section_rp(self, reflection_path, tin, ground_type_manager, building_manager):
+        
+        receiver = reflection_path.receiver
+        source = reflection_path.source
 
-        #            self.cross_section_manager[receiver].append(cross_section)
+        for reflection_point_list in reflection_path.reflection_points:
+            path = []
+            for reflection_point in reflection_point_list:
+                path.append(reflection_point)
+            path.append(source)
 
+            self.get_cross_section(receiver, path, tin, ground_type_manager, building_manager)
+    
     def write_obj(self, filename):
         """
         Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj

@@ -22,13 +22,10 @@ class ReflectionManager:
         """
         
         #Loop through all the source po ints from all outgoing rays from the receiver
-        #print("Receiver:", receiver)
         for ray_end_point, source_point_list in source_list_per_ray.items():
-            #print("Ray end point:", ray_end_point)
-            #print("Source points:", source_point_list)
+            
             #Loop through all the source points from one outoing ray from the receiver    
             for source_point in source_point_list:
-                #print("Source point:", source_point)
 
                 #Create a reflection path from source to receiver and get all possible reflections
                 reflection_object = ReflectionPath(source_point, receiver)
