@@ -169,10 +169,13 @@ def main(sys_args):
             break
 
         count = count + 1
+
+    #For each receiver, there is a set of rays
+    #For each ray, there is a list of sources
     
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
-    #cross_section_manager.get_cross_sections_direct(source_points, source_height, receiver_height, tin, ground_type_manager, building_manager)
+    cross_section_manager.get_cross_sections_direct(source_points, source_height, tin, ground_type_manager, building_manager)
     
     # Get first order reflections
     reflected_paths = ReflectionManager()

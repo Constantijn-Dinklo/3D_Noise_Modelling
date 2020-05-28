@@ -71,6 +71,7 @@ class CrossSectionManager:
                 #Go through all the other source points in the list
                 for source_point in source_points[:-1]:
                     #split the cross section, using CrossSection class method
+                    print("===============SPLIT CROSS SECTION================")
                     pass
                     
                     #source_point = (source_point[0], source_point[1], source_height)
