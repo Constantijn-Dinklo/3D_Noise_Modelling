@@ -252,3 +252,7 @@ class CrossSection:
         self.materials = material
         self.extension = extension
         #return cross_section_vertices, material, extension
+
+    def split_cross_section(self, split_index):
+        #split this cross section on this index
+        pass
