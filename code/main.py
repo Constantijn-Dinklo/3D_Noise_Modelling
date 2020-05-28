@@ -97,32 +97,10 @@ def main(sys_args):
                 part_id = 'b' + record['properties']['part_id']
                 bag_id = record['properties']['bag_id']
                 geometry = record['geometry']
-                geom_coord = record['geometry']['coordinates']
-                geom_type = record['geometry']['type']
-                if geom_type == 'Polygon':
-                    for polygon_index in range(len(geom_coord)):
-                        polygon_object = geom_coord[polygon_index]
-                        walls = []
-                        for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
-                            a = list(polygon_object[coord_index])
-                            b = list(polygon_object[coord_index+1])
-                            wall_2D = [a[:len(a)-1],b[:len(b)-1]]
-                            walls.append(wall_2D)
-                if geom_type == 'MultiPolygon':
-                    for multi_polygon_index in range(len(geom_coord)):
-                        multi_polygon_object = geom_coord[multi_polygon_index]
-                        for polygon_index in range(len(multi_polygon_object)):
-                            polygon_object = multi_polygon_object[polygon_index]
-                            walls = []
-                            for coord_index in range(len(polygon_object[:(len(polygon_object)-1)])):
-                                a = list(polygon_object[coord_index])
-                                b = list(polygon_object[coord_index+1])
-                                wall_2D = [a[:len(a)-1],b[:len(b)-1]]
-                                walls.append(wall_2D)             
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level, walls)
-            
+                building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level)
+
             elif record['properties']['uuid'] is not None:
                 #print("=== Adding a ground type ===")
 
@@ -184,16 +162,14 @@ def main(sys_args):
         int_pts = rec_pt.return_intersection_points(road_lines)
         
         #Set all the intersection points as possible source points, not this list (int_pts) could be empty
-        source_points[rec_pt_coords] = int_pts
+        if len(int_pts.keys()) > 0:
+            source_points[rec_pt_coords] = int_pts
+        
         if count == 100:
             break
 
         count = count + 1
 
-    #print(source_points)
-
-    
-    
     #receiver_point = ReceiverPoint((0,0), cnossos_radius, cnossos_angle)
     #receiver_point.return_list_receivers('input/receivers_END2016_testarea.shp')
     #receiver_point.return_segments_source('input/test_2.gml')
@@ -203,19 +179,19 @@ def main(sys_args):
     # Get first order reflections
     reflected_paths = ReflectionManager()
     reflected_paths.get_reflection_paths(source_points, building_manager)
+        
+    
+    cross_section_manager = CrossSectionManager()
+    cross_section_manager.get_cross_sections_direct(source_points, source_height, receiver_height, tin, ground_type_manager, building_manager)
     exit()
     
-    cross_section_manager = CrossSectionManager(source_points_dict, reflected_paths.reflection_manager,
-                                                source_height, receiver_height)
-    cross_section_manager.get_cross_sections(tin, ground_type_manager, building_manager)
     cross_section_manager.write_obj("test_object_reflect_01.obj")
 
-    sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
-    
-    xml_manager = XmlParserManager(sections, extensions, materials)
-    #xml_manager.write_xml_files()
+    #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
+    print("xml_parser")
+    xml_manager = XmlParserManager()
+    xml_manager.write_xml_files(cross_section_manager)
 
-    
 if __name__ == "__main__":
     main(sys.argv)
     # call all functions etc.

@@ -6,7 +6,6 @@ from misc import write_cross_section_to_obj
 class ReflectionManager:
 
     def __init__(self):
-
         self.reflection_paths = {}
     
     def get_reflection_path(self, receiver, source_list_per_ray, building_manager):
@@ -22,30 +21,41 @@ class ReflectionManager:
             void (fills self.reflection_paths with a list of paths)
         """
         
-        #Loop through all the source points from all outgoing rays from the receiver
+        #Loop through all the source po ints from all outgoing rays from the receiver
+        #print("Receiver:", receiver)
         for ray_end_point, source_point_list in source_list_per_ray.items():
+            #print("Ray end point:", ray_end_point)
+            #print("Source points:", source_point_list)
             #Loop through all the source points from one outoing ray from the receiver    
             for source_point in source_point_list:
+                #print("Source point:", source_point)
 
                 #Create a reflection path from source to receiver and get all possible reflections
                 reflection_object = ReflectionPath(source_point, receiver)
-                reflection_object.get_first_order_reflection(building_manager.buildings)
+                at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager.buildings)
 
-                self.reflection_paths[receiver] = reflection_object
+                #If at least 1 reflection was found, store it
+                if at_least_one_reflection:
+                    if receiver not in self.reflection_paths.keys():
+                        self.reflection_paths[receiver] = {}
+                    if ray_end_point not in self.reflection_paths[receiver].keys():
+                        self.reflection_paths[receiver][ray_end_point] = {}
+                    
+                    self.reflection_paths[receiver][ray_end_point][source_point] = reflection_object
     
     def get_reflection_paths(self, source_receivers_dict, building_manager):
         """
-        Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
+        Explanation: Finds reflection points for all source - receiver sets.
         ---------------
         Input:
-            receiver : (x,y,z) - the receiver point we walk from
-            source : (x,y,z) - the source point we want to walk to
-            tr_receiver : integer - triangle id of triangle underneath receiver point
-            buildings : Fiona's Collection where each record/building holds a 'geometry' and a 'property' key
+            source_receivers_dict : dictionary - stores a list of sources for each receiver.
+            tin : GroundTin object - stores the DTM in a triangle datastructure
+            ground_type_manager : GroundTypeManager object - stores all the groundtype objects
+            building_filename : string - name of the builings shapefile, this will be deleted later. (TODO)
         ---------------
         Output:
             void (fills self.paths with a list of paths)
         """
-        
         for receiver, sources_list_per_ray in source_receivers_dict.items():
             self.get_reflection_path(receiver, sources_list_per_ray, building_manager)
+        
