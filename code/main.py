@@ -59,21 +59,8 @@ def return_segments_source(path):
                 line_segments.append([first_el, next_el])
     return line_segments
 
-
-def main(sys_args):
-    print(sys_args[0])
-
-    constraint_tin_file_path = sys_args[1]
-    ground_type_file_path = ""#sys_args[2]
-    building_file_path = ""#sys_args[3]
-
-    building_gpkg_file = "input/buildings_lod_13.gpkg"
-
-    tin = TIN.read_from_objp(constraint_tin_file_path)
-
-    ground_type_manager = GroundTypeManager()
-    building_manager = BuildingManager()
-
+def read_building_and_ground(building_manager, ground_type_manager):
+    
     #Read in the buildings and ground types
     #This should be removed and moved to the files individually
     with fiona.open("input/semaantics_test_part_id.shp") as semantics:
@@ -119,6 +106,22 @@ def main(sys_args):
                 else:
                     geometry = record['geometry']['coordinates'][0]
                     ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
+
+def main(sys_args):
+    print(sys_args[0])
+
+    constraint_tin_file_path = sys_args[1]
+    ground_type_file_path = ""#sys_args[2]
+    building_file_path = ""#sys_args[3]
+
+    building_gpkg_file = "input/buildings_lod_13.gpkg"
+
+    tin = TIN.read_from_objp(constraint_tin_file_path)
+
+    ground_type_manager = GroundTypeManager()
+    building_manager = BuildingManager()
+
+    read_building_and_ground(building_manager, ground_type_manager)
     
     #COS: Till now we have a:
     #   - Constrained Tin
@@ -154,6 +157,10 @@ def main(sys_args):
     #   - The line segments
 
     source_points = {}
+    #source_points structure!
+    #For each receiver, there is a set of rays
+    #For each ray, there is a list of sources
+    #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
 
     #Go through all the receiver points and get their possible source points
     count = 0
@@ -169,11 +176,6 @@ def main(sys_args):
             break
 
         count = count + 1
-
-    #source_points structure!
-    #For each receiver, there is a set of rays
-    #For each ray, there is a list of sources
-    #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
     
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
