@@ -9,7 +9,31 @@ class ReflectionManager:
 
         self.reflection_paths = {}
     
-    def get_reflection_paths(self, source_receivers_dict, tin, building_manager, building_filename):
+    def get_reflection_path(self, receiver, source_list_per_ray, building_manager):
+        """
+        Explanation: Finds cross-sections between the receiver and all source points in the source_list_per_ray dictionary.
+        ---------------
+        Input:
+            receiver : (x,y,z) - the receiver point we walk from
+            source_list_per_ray : {(ray_end): [source_points]} - A dictionary where all the source points are listed per outgoing ray from the receiver
+            building_manager : BuildingManager - The manager that holds all the building information
+        ---------------
+        Output:
+            void (fills self.reflection_paths with a list of paths)
+        """
+        
+        #Loop through all the source points from all outgoing rays from the receiver
+        for ray_end_point, source_point_list in source_list_per_ray.items():
+            #Loop through all the source points from one outoing ray from the receiver    
+            for source_point in source_point_list:
+
+                #Create a reflection path from source to receiver and get all possible reflections
+                reflection_object = ReflectionPath(source_point, receiver)
+                reflection_object.get_first_order_reflection(building_manager.buildings)
+
+                self.reflection_paths[receiver] = reflection_object
+    
+    def get_reflection_paths(self, source_receivers_dict, building_manager):
         """
         Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
         ---------------
@@ -23,34 +47,5 @@ class ReflectionManager:
             void (fills self.paths with a list of paths)
         """
         
-        for receiver, sources_list_per_ray in source_receivers_dict.items():               
-            for ray_end_point, source_point_list in sources_list_per_ray.items():
-                print(receiver)
-                print(ray_end_point)
-                print(source_point_list)
-                self.reflection_paths[receiver] = []
-                
-                for source_point in source_point_list:
-                    print(source_point)
-                    return
-
-                    buildings_dictionary = read_buildings(building_filename)
-                    reflection_object = ReflectionPath(source, receiver)
-                    reflections_found = reflection_object.get_first_order_reflection(buildings_dictionary) # future replace with tin and building_manager
-
-                    # it is false when it does not have reflections.
-                    if(reflections_found):
-                        # If a reflections is found, save the object.
-                        self.reflection_manager[receiver].append(reflection_object)
-                        #pprint(paths_and_heights)
-                        #[p1, p2, ..., pn], [h1, h2, ..., hn]
-                        #for i in range(len(paths_and_heights[0])):
-                            #print("point: {} height: {}".format(paths_and_heights[0][i], paths_and_heights[1][i]))
-                        #    self.propagation_paths[receiver].append([paths_and_heights[0][i], source])
-                        #    self.reflection_heights[receiver].append(paths_and_heights[1][i])
-                    #else:
-                    #    self.propagation_paths[receiver].append([source])
-
-                #self.first_order_paths[receiver] = receiver_paths
-            #pprint(self.propagation_paths)
-            #return self.reflection_manager
+        for receiver, sources_list_per_ray in source_receivers_dict.items():
+            self.get_reflection_path(receiver, sources_list_per_ray, building_manager)
