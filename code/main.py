@@ -170,8 +170,10 @@ def main(sys_args):
 
         count = count + 1
 
+    #source_points structure!
     #For each receiver, there is a set of rays
     #For each ray, there is a list of sources
+    #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
     
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
