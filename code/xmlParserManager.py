@@ -8,7 +8,7 @@ class XmlParserManager:
 
     def write_xml_files(self, cross_sections_manager):
         j = 0
-        cross_sections_dict = cross_sections_manager.cross_section_manager
+        cross_sections_dict = cross_sections_manager.cross_sections
         for receiver, cross_sections in cross_sections_dict.items():
             self.prepared_paths[receiver] = []
             for i, cross_section in enumerate(cross_sections):
