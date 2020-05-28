@@ -7,101 +7,110 @@ from misc import interpolate_edge, reverse_bisect_left, write_cross_section_to_o
 
 class CrossSectionManager:
 
-    def __init__(self, propagation_paths_dict_direct, propagation_paths_dict_reflect,
-                 source_height, receiver_height):
-        self.propagation_paths_dict_direct = propagation_paths_dict_direct
-        self.propagation_paths_dict_reflect = propagation_paths_dict_reflect
-        #self.reflection_building_heights = reflection_building_heights
-        self.paths = {}
-        self.extensions = {}
-        self.materials = {}
-        self.source_height = source_height
-        self.receiver_height = receiver_height
+    def __init__(self):
+        self.cross_section_manager = {}
 
-    def get_cross_sections(self, tin, ground_type_manager, building_manager):
+    def get_cross_sections(self, propagation_paths_dict_direct, propagation_paths_dict_reflect,
+                 source_height, receiver_height, tin, ground_type_manager, building_manager):
         """
-        Explanation: Finds cross-sections while walking to the source point, for all sections from the receiver.
+        Explanation: Finds cross sections for all propagation paths, both direct and reflected. and saves them in a dicitonary with cross_sections objects.
         ---------------
         Input:
-            receiver : (x,y,z) - the receiver point we walk from
-            source : (x,y,z) - the source point we want to walk to
-            tr_receiver : integer - triangle id of triangle underneath receiver point
-            buildings : Fiona's Collection where each record/building holds a 'geometry' and a 'property' key
+            propagation_paths_dict_direct : dictionary - receiver is key, value is a list with the sources 
+            propagation_paths_dict_reflect : dictionary - receiver is key, value is a list with the reflection point and the source
+            source_height : float - height above ground for the source (defines in main.py)
+            receiver_height : float - height above ground for the receiver (defined in main.py)
+            tin : GroundTin object - stores the DTM in a triangle datastructure
+            ground_type_manager : GroundTypeManager object - stores all the groundtype objects
+            building_manager : BuildingManager object - stores all the building objects
         ---------------
         Output:
-            void (fills self.paths with a list of paths)
+            void (fills self.cross_section_manager for each receiver with a list of paths)
         """
 
-        for receiver, paths_to_sources in self.propagation_paths_dict_direct.items():
-            self.paths[receiver] = []
-            self.extensions[receiver] = []
-            self.materials[receiver] = []
+        # direct paths
+        for receiver, paths_to_sources in propagation_paths_dict_direct.items():
+            # create a key in the dictionary for this receiver.
+            self.cross_section_manager[receiver] = []
 
+            # find the receiver triangle to walk from. (TODO: optimize the starting triangle)
             receiver_triangle = tin.find_receiver_triangle(2, receiver)
-            reflection_counter = 0
 
-            # pprint("paths to sources: {}".format(paths_to_sources))
-            # print(" ")
+            # Loop over all the list of collinear paths for each source
             for points_to_source in paths_to_sources:
-                # print("direct path: {} -> {}".format(receiver, points_to_source[-1]))
-                cross_section = []
-                # direct path:
-                receiver_section = CrossSection([points_to_source[-1]], receiver, self.source_height,
-                                                self.receiver_height)
-                path_direct, material, extension = receiver_section.get_cross_section(receiver_triangle, tin,
-                                                                                      ground_type_manager,
-                                                                                      building_manager)
-                self.paths[receiver].append(path_direct)
-                self.extensions[receiver].append(extension)
-                self.materials[receiver].append(material)
 
+                # Get the cross section for the point furthest away
+                cross_section = CrossSection([points_to_source[-1]], receiver)
+                cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver_height)
+                
+                # append the direct path directly
+                self.cross_section_manager[receiver].append(cross_section)
+
+                # If there are collinear points, the list is more than 1 point.
                 if (len(points_to_source) > 1):
+
+                    # if the list is longer, go over each point, and slice the path such that its until the intermediate source.
                     for point in points_to_source[:-1]:
-                        extension = {}
+
                         # find where the intermediate sources lie in the 'complete' cross-section
-                        if path_direct[-1][0] - path_direct[0][0] < 0:
-                            split_idx = reverse_bisect_left(path_direct, point)
-                        elif path_direct[-1][0] - path_direct[0][0] == 0 and path_direct[-1][1] - path_direct[0][1] < 0:
-                            split_idx = reverse_bisect_left(path_direct, point)
+
+                        # check if the cross section is going in the positive or negative direction
+                        if cross_section.vertices[-1][0] - cross_section.vertices[0][0] < 0:
+                            split_idx = reverse_bisect_left(cross_section.vertices, point)
+
+                        # if the path is parallel with the x axis, check if the y axis is in negative direction.
+                        elif cross_section.vertices[-1][0] - cross_section.vertices[0][0] == 0 and cross_section.vertices[-1][1] - cross_section.vertices[0][1] < 0:
+                            split_idx = reverse_bisect_left(cross_section.vertices, point)
+
+                        # the x direction is positive, or y is in positive direction
                         else:
-                            split_idx = bisect.bisect_left(path_direct, point)
-                        if point == path_direct[split_idx][:2]:  # better to add a distance threshold
-                            self.paths[receiver].append(path_direct[split_idx:])
-                            extension[0] = ["source", self.source_height]
-                            extension[split_idx + 1] = ["receiver", self.receiver_height]
-                            self.extensions[receiver].append(extension)
-                            self.materials[receiver].append(material[split_idx:])
+                            split_idx = bisect.bisect_left(cross_section.vertices, point)
+
+                        # what is split idx
+
+                        # check if the intermediate point is exactly (should be nearby) the last edge of the sliced path ( in x,y coordinates)
+                        if point == cross_section.vertices[split_idx][:2]:  # better to add a distance threshold
+                            # create new cross_section for intermediate point
+                            cross_section_collinear_point = CrossSection([point], receiver)
+                            cross_section_collinear_point.vertices = cross_section.vertices[split_idx:]
+                            cross_section_collinear_point.extension = {
+                                0: ["source", source_height],
+                                #split_idx + 1: ["receiver", receiver_height]
+                                len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
+                            }
+                            cross_section_collinear_point.materials = cross_section.material[split_idx:]
+
+                            self.cross_section_manager[receiver].append(cross_section_collinear_point)
+
+                        # If the intermediate point is not on the edge, than interpolate the height and add this point (at the beginning, since it starts at the source.)
                         else:
-                            part_path_direct = path_direct[split_idx:]
-                            source_ground_height = interpolate_edge(path_direct[split_idx - 1], path_direct[split_idx],
-                                                                    point)
+                            part_path_direct = cross_section.vertices[split_idx:]
+                            source_ground_height = interpolate_edge(cross_section.vertices[split_idx - 1], cross_section.vertices[split_idx], point)
                             part_path_direct = [(point[0], point[1], source_ground_height)] + part_path_direct
-                            self.paths[receiver].append(part_path_direct)
-                            extension[0] = ["source", self.source_height]
-                            extension[split_idx + 1] = ["receiver", self.receiver_height]
-                            self.extensions[receiver].append(extension)
-                            part_path_direct_material = [material[split_idx]] + material[split_idx:]
-                            self.materials[receiver].append(part_path_direct_material)
 
-            for receiver, reflections in self.propagation_paths_dict_reflect.items():
+                            cross_section_collinear_point = CrossSection([point], receiver)
+                            cross_section_collinear_point.vertices = part_path_direct
+                            cross_section_collinear_point.extension = {
+                                0: ["source", source_height],
+                                #split_idx + 1: ["receiver", receiver_height]
+                                len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
+                            }
+                            part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
+                            cross_section_collinear_point.materials = part_path_direct_material
+                            
+                            self.cross_section_manager[receiver].append(cross_section_collinear_point)
+        
+        # Reflected paths
+        for receiver, reflections in propagation_paths_dict_reflect.items():
+            # for each reflection_object in the list of reflection objects
+            for reflection_object in reflections:
+                # for each reflection point for this source, create the path
+                for i in range(len(reflection_object.reflection_points)):
+                    points_to_source = [reflection_object.reflection_points[i], reflection_object.source]
+                    cross_section = CrossSection(points_to_source, receiver, reflection_object.reflection_heights[i])
+                    cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver_height)
 
-                reflection_counter = 0
-                # pprint("paths to sources: {}".format(paths_to_sources))
-                # print(" ")
-                for reflection_object in reflections:
-                    # print("reflected path: {} -> {}".format(receiver, points_to_source))
-                    source = reflection_object.source
-                    for i in range(len(reflection_object.reflection_points)):
-                        points_to_source = [reflection_object.reflection_points[i], source]
-                        receiver_section = CrossSection(points_to_source, receiver, self.source_height,
-                                                        self.receiver_height,
-                                                        reflection_object.reflection_heights[i])
-                        path_reflected, material, extension = receiver_section.get_cross_section(receiver_triangle, tin,
-                                                                                                    ground_type_manager,
-                                                                                                    building_manager)
-                        self.paths[receiver].append(path_reflected)
-                        self.extensions[receiver].append(extension)
-                        self.materials[receiver].append(material)
+                    self.cross_section_manager[receiver].append(cross_section)
 
     def write_obj(self, filename):
         """
@@ -114,10 +123,7 @@ class CrossSectionManager:
             void (writes obj file)
         """
         i = 0
-        for receiver, paths in self.paths.items():
-            write_cross_section_to_obj(str(i) + filename, paths)
+        for receiver, cross_sections in self.cross_section_manager.items():
+            write_cross_section_to_obj(str(i) + filename, cross_sections)
             i += 1
-    
-    def get_paths_and_extensions(self):
-        return self.paths, self.extensions, self.materials
 

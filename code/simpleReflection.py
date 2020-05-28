@@ -6,14 +6,15 @@ from shapely.geometry import shape
 
 class ReflectionPath:
 
-    def __init__(self, source, receiver):
+    def __init__(self, source):
         self.source = source
-        self.receiver = receiver
+        #self.receiver = receiver < no need to store this
 
         # now storing this here.
         self.reflection_points = []
         self.reflection_heights = []
 
+        # for single reflection this is not required, should be deleted later.
         self.footprints = {}
         self.candidates = {}
         self.paths2nd = []
@@ -139,29 +140,37 @@ class ReflectionPath:
         denom = (line1[0][0]-line1[1][0])*(line2[0][1]-line2[1][1])-(line1[0][1]-line1[1][1])*(line2[0][0]-line2[1][0])
         return [num_x/denom,num_y/denom]
 
-    def get_first_order_reflection(self, buildings_dict):
+    def get_first_order_reflection(self, buildings_dict, receiver):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
         ---------------        
         Input:
-        buildings_dict: dict - the dictionary that stores the building information, as of main.py
+        buildings_dict : BuildingManager object - stores all the building objects
         ---------------
         Output:
-        (coords, heights): tuple - (p1, p2, ..., pn], [h1, h2, ..., hn])
-        or
-        False: boolean.
+        Stores reflection points, and their corresponding heights in the class.
+        return True if reflections are found, False if not
         """
-        coords   = [ ]
-        heights  = [ ]
-        for id, building in buildings_dict.items():
-            for wall in building.walls:
-                test_r = misc.side_test( wall[0], wall[1], self.receiver)
-                test_s = misc.side_test( wall[0], wall[1], self.source)
-                if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
-                    s_mirror = self.get_mirror_point(self.get_parametric_line_equation(wall[0], wall[1]))
-                    reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
-                    # ref is false if there is no reflection or the reflection point does not meet the one-degree requirement.
+        # TODO remove the commented lines
+        # can be removed, not used
+        #coords   = [ ]
+        #heights  = [ ]
+        #first_order_paths = []
+        for bag_id in buildings_dict:
+            h_dak = buildings_dict[bag_id]['h_dak']
+            walls = buildings_dict[bag_id]['walls']
+            for wall in walls:
+                test_r = misc.side_test( wall[0], wall[1], receiver)
+                test_s = misc.side_test( wall[0], wall[1], self.source) 
+                if test_r > 0 and test_s > 0: # This statement guarantees that the source and receiver are both on the outer side of the wall
+
+                    # Get the mirrored source over the wall segment
+                    s_mirror = self.get_mirror_point(self.get_line_equation(wall[0], wall[1]))
+                    # find the intersection point, returns False is they do not intersect.
+                    reflection_point = self.line_intersect(wall,[s_mirror, receiver])
+
+                    # ref is false if there is no reflection.
                     if reflection_point:
                         angle = 1.0 # Hardcoded Angle
                         # LEFT POINT

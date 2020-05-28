@@ -77,14 +77,15 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
         else: hi = mid
     return lo
     
-def write_cross_section_to_obj(obj_filename, path_list):
+def write_cross_section_to_obj(obj_filename, cross_sections):
     print("=== Writing {} ===".format(obj_filename))
 
 
     with open(obj_filename, 'w') as f_out:
         vts_count_lst = [0]
         counter = 0
-        for path in path_list:
+        for cross_section in cross_sections:
+            path = cross_section.vertices
             path = np.array(path)
             # has the starting vertex number
             counter = counter + len(path)
@@ -96,7 +97,8 @@ def write_cross_section_to_obj(obj_filename, path_list):
                 f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
         
         #print(vts_count_lst)
-        for i, path in enumerate(path_list):
+        for i, cross_section in enumerate(cross_sections):
+            path = cross_section.vertices
             base = vts_count_lst[i]
             f_out.write("l")
             for i in range(len(path)):

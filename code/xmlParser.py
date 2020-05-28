@@ -13,10 +13,9 @@ class XmlParser:
         self.mat = mat
         self.ext = ext
 
-
     def normalize_path(self):
         """
-        Explination: Move 3D Casrtesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
+        Explination: Move 3D Cartesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
         ---------------
         Input: void
         ---------------
@@ -24,8 +23,6 @@ class XmlParser:
         """
         # move all vertices relative to first vertex
         self.vts -= self.vts[0]
-        # make all vertices positive, makes is easier to read and process
-        self.vts = abs(self.vts)
 
     def get_offsets_perpendicular(self, start, end):
         """
