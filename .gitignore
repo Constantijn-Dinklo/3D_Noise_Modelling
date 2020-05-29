@@ -128,5 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-#Don't include the input files
+#Don't include the input/output files
 input/
+output/
