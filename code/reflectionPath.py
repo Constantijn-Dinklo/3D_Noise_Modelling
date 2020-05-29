@@ -14,10 +14,6 @@ class ReflectionPath:
         self.reflection_points = []
         self.reflection_heights = []
 
-        self.footprints = {}
-        self.candidates = {}
-        self.paths2nd = []
-
     def is_point_in_lineseg(self,point,lineseg):
         """
         Explanation: A function that tests if a point that is known to be part of a line is within a specific line segment of
@@ -81,7 +77,7 @@ class ReflectionPath:
         p2_new = [x_new, y_new]
         return p2_new
 
-    def get_mirror_point(self,parameters):
+    def get_mirror_point(self, line_parameters, point = False):
         """
         Explanation: A function that reads the self.source point and the parameters of a line and returns the mirror point of p1 regarding this line.
         ---------------
@@ -91,10 +87,13 @@ class ReflectionPath:
         Output:
         p_mirror: [x(float),y(float)] - The image (virtual) point.
         """
+        if point == False:
+            point = self.source
+
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
-        d = parameters[0]*self.source[0] + parameters[1]*self.source[1] + parameters[2]
-        p_mirror_x = self.source[0] - 2*parameters[0]*d
-        p_mirror_y = self.source[1] - 2*parameters[1]*d
+        d = line_parameters[0]*point[0] + line_parameters[1]*point[1] + line_parameters[2]
+        p_mirror_x = point[0] - 2*line_parameters[0]*d
+        p_mirror_y = point[1] - 2*line_parameters[1]*d
         return [p_mirror_x,p_mirror_y]
 
     def line_intersect(self, line1, line2):
@@ -145,23 +144,28 @@ class ReflectionPath:
         according to the receivers and sources that are provided from main.py
         ---------------        
         Input:
-        buildings_dict: dict - the dictionary that stores the building information, as of main.py
+        buildings_dict : BuildingManager object - stores all the building objects
         ---------------
         Output:
-        (coords, heights): tuple - (p1, p2, ..., pn], [h1, h2, ..., hn])
-        or
-        False: boolean.
+        Stores reflection points, and their corresponding heights in the class.
+        return True if reflections are found, False if not
         """
-        coords   = [ ]
-        heights  = [ ]
+        #Loop through all the buildings
         for id, building in buildings_dict.items():
+            #h_dak = buildings_dict[bag_id]['h_dak']
+            #walls = buildings_dict[bag_id]['walls']
             for wall in building.walls:
                 test_r = misc.side_test( wall[0], wall[1], self.receiver)
                 test_s = misc.side_test( wall[0], wall[1], self.source)
-                if test_r > 0 and test_s > 0: # This statement guarantees that S-REF and REF-R are entirely outside the polygon.
+                
+                #COS: Not sure if this is actually true!!!!
+                if test_r > 0 and test_s > 0: # This statement guarantees that the source and receiver are both on the outer side of the wall
+                    # Get the mirrored source over the wall segment
                     s_mirror = self.get_mirror_point(self.get_parametric_line_equation(wall[0], wall[1]))
+                    # find the intersection point, returns False is they do not intersect.
                     reflection_point = self.line_intersect(wall,[s_mirror, self.receiver])
-                    # ref is false if there is no reflection or the reflection point does not meet the one-degree requirement.
+
+                    # ref is false if there is no reflection.
                     if reflection_point:
                         angle = 1.0 # Hardcoded Angle
                         # LEFT POINT
@@ -184,12 +188,13 @@ class ReflectionPath:
                                 is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-                            coords.append(reflection_point)
-                            heights.append(building.roof_level)
-        if(len(coords) == 0): 
-            return False
-        else:
-            return (coords, heights) #(p1, p2, ..., pn], [h1, h2, ..., hn])
+                            
+                            self.reflection_points.append([reflection_point])
+                            self.reflection_heights.append([building.roof_level])
+        if len(self.reflection_points) > 0:
+            return True
+        return False
+
 
 # THE FUNCTIONS BELOW ARE NOT USED IN THE MAIN ALGORITHM AND WERE, THEREFORE, PUT OUTSIDE THE CLASS.
 # SINCE IT IS INTERESING TO KEEP THEM AS A RECORD OF THE CODING PROCESS, ESPECIALLY FOR WRITING THE FINAL REPORT, THEY ARE STILL STORED HERE.

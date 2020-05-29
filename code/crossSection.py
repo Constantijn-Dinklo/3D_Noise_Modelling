@@ -4,13 +4,14 @@ import numpy as np
 from pprint import pprint
 class CrossSection:
 
-    def __init__(self, points_to_source, receiver, source_height, receiver_height, reflection_height=0):
+    def __init__(self, points_to_source, receiver, reflection_height=0):
         self.points_to_source = points_to_source
         self.reflection_height = reflection_height
-        self.source_height = source_height
-        self.receiver_height = receiver_height
         self.receiver = receiver
         
+        self.vertices = []
+        self.materials = []
+        self.extension = {}
 
     def get_next_edge(self, ground_tin, tr, origin, destination):
         """
@@ -62,18 +63,18 @@ class CrossSection:
             else:
                 return "C", -1
 
-    def get_cross_section(self, current_triangle, ground_tin, ground_type_manager, building_manager):
+    def get_cross_section(self, current_triangle, ground_tin, ground_type_manager, building_manager, source_height, receiver_height):
         """
         Explanation: Finds cross-section while walking to the source point
         ---------------
         Input:
-            receiver : (x,y,z) - the receiver point we walk from
-            source : (x,y,z) - the source point we want to walk to
-            tr_receiver : integer - triangle id of triangle underneath receiver point
-            buildings : Fiona's Collection where each record/building holds a 'geometry' and a 'property' key
+            current_triangle : integer - the receiver triangle we walk from
+            ground_tin : GroundTin object - stores the DTM in a triangle datastructure
+            ground_type_manager : GroundTypeManager object - stores all the groundtype objects
+            building_manager : BuildingManager object - stores all the building objects
         ---------------
         Output:
-            list of vertices - defining the cross-section
+            void (saves the DSM, materials and extension in the class)
         """
         #print("=== cross_section ===")
         # define the neighbour ids
@@ -84,11 +85,11 @@ class CrossSection:
         reflection_point_id_inversed = 0
 
         # the first vertex is the receiver projected into its triangle
-        receiver_height = ground_tin.interpolate_triangle(current_triangle, self.receiver)
+        receiver_height_ground = ground_tin.interpolate_triangle(current_triangle, self.receiver)
 
         # get the material of the current triangle
         material_triangle, material_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
-        cross_section_vertices = [(self.receiver[0], self.receiver[1], receiver_height)]
+        cross_section_vertices = [(self.receiver[0], self.receiver[1], receiver_height_ground)]
         material = [material_triangle]
         
         # Boolean to check if the path is on top of a building, or not. receiver is never in building
@@ -228,23 +229,30 @@ class CrossSection:
                 reflection_point_id_inversed = len(cross_section_vertices)-1
 
         # Reached source triangle, add this point as well.
-        source_height = ground_tin.interpolate_triangle(current_triangle, destination)
+        source_height_ground = ground_tin.interpolate_triangle(current_triangle, destination)
 
         source_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
 
-        cross_section_vertices.append((destination[0], destination[1], source_height))
+        cross_section_vertices.append((destination[0], destination[1], source_height_ground))
         material.append(source_material)
         #
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
 
         # add source and receiver points. source is always 0.05 meter above terrain, receiver always at 2 meters.
-        extension[0] = ["source", self.source_height]
-        extension[len(cross_section_vertices) - 1] = ["receiver", self.receiver_height]
+        extension[0] = ["source", source_height]
+        extension[len(cross_section_vertices) - 1] = ["receiver", receiver_height]
 
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)
         if(reflection_point_id_inversed != 0):
             reflection_vertex = len(cross_section_vertices) - 1 - reflection_point_id_inversed
             extension[reflection_vertex] = ["wall", self.reflection_height - cross_section_vertices[reflection_vertex][2], "A0"]
 
-        return cross_section_vertices, material, extension
+        self.vertices = cross_section_vertices
+        self.materials = material
+        self.extension = extension
+        #return cross_section_vertices, material, extension
+
+    def split_cross_section(self, split_index):
+        #split this cross section on this index
+        pass
