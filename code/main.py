@@ -169,23 +169,25 @@ def main(sys_args):
         if len(int_pts.keys()) > 0:
             source_points[rec_pt_coords] = int_pts
 
-
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
-    cross_section_manager.get_cross_sections_direct(source_points, source_height, tin, ground_type_manager, building_manager, receiver_height)
+    print("=== get direct cross sections ===")
+    cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
     # Get first order reflections
+    print("=== get reflection points ===")
     reflected_paths = ReflectionManager()
     reflected_paths.get_reflection_paths(source_points, building_manager)
 
     #Loop through all the reflection paths
+    print("=== get reflection cross sections ===")
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
-                cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager, receiver_height)
+                cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
-    #cross_section_manager.write_obj("test_object_reflect_01.obj")
+    cross_section_manager.write_obj("test_object_reflect_01.obj")
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("xml_parser")
