@@ -86,7 +86,8 @@ def read_building_and_ground(building_manager, ground_type_manager):
                 geometry = record['geometry']
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                building_manager.add_building(record_id + record_index, bag_id, geometry, ground_level, roof_level)
+                print(part_id)
+                building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
 
             elif record['properties']['uuid'] is not None:
                 #print("=== Adding a ground type ===")
@@ -114,8 +115,6 @@ def main(sys_args):
     ground_type_file_path = ""#sys_args[2]
     building_file_path = ""#sys_args[3]
 
-    building_gpkg_file = "input/buildings_lod_13.gpkg"
-
     tin = TIN.read_from_objp(constraint_tin_file_path)
 
     ground_type_manager = GroundTypeManager()
@@ -140,10 +139,11 @@ def main(sys_args):
     road_lines = [] #COS: Find a better place for this?
 
     #Create a Receiver Point to which the sound should travel
-    with fiona.open('input/receivers_END2016_testarea.shp') as shape: #Open the receiver points shapefile
+    with fiona.open('input/receiver_points_scenario_000.shp') as shape: #Open the receiver points shapefile
         for elem in shape:
             geometry = elem["geometry"]
             rec_pt_coords = geometry["coordinates"]
+            print(rec_pt_coords)
             rec_pt = ReceiverPoint(rec_pt_coords)
             receiver_points[rec_pt_coords] = rec_pt
 
@@ -163,7 +163,7 @@ def main(sys_args):
     #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
 
     #Go through all the receiver points and get their possible source points
-    count = 0
+    #count = 0
     for rec_pt_coords in receiver_points:
         rec_pt = receiver_points[rec_pt_coords]
         int_pts = rec_pt.return_intersection_points(road_lines)
@@ -172,14 +172,17 @@ def main(sys_args):
         if len(int_pts.keys()) > 0:
             source_points[rec_pt_coords] = int_pts
         
-        if count == 100:
-            break
+        #if count == 100:
+        #    break
 
-        count = count + 1
+        #count = count + 1
     
+    for building in building_manager.buildings:
+        print(building)
+
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
-    cross_section_manager.get_cross_sections_direct(source_points, source_height, tin, ground_type_manager, building_manager)
+    cross_section_manager.get_cross_sections_direct(source_points, source_height, tin, ground_type_manager, building_manager, receiver_height)
     
     # Get first order reflections
     reflected_paths = ReflectionManager()
@@ -189,10 +192,10 @@ def main(sys_args):
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
-                cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager)
+                cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager, receiver_height)
     
 
-    cross_section_manager.write_obj("test_object_reflect_01.obj")
+    #cross_section_manager.write_obj("test_object_reflect_01.obj")
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("xml_parser")
