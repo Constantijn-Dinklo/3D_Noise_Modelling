@@ -52,22 +52,28 @@ def get_noise_levels(levels_per_receiver, receivers_coords):
     return sum_per_receiver
 
 
-def write_to_shp(sum_per_receiver):
+def write_to_shp(sum_per_receiver, filepath):
     receiver_schema = {'geometry': 'Point', 'properties': OrderedDict([('id', 'int'), ('soundLevel', 'float')])}
     receivers_crs = from_epsg(28992)
     output_driver = 'ESRI Shapefile'
-    with fiona.open('output/semantic_receiver_pts.shp', 'w', driver=output_driver, crs=receivers_crs,
+    with fiona.open(filepath, 'w', driver=output_driver, crs=receivers_crs,
                     schema=receiver_schema) as c:
         for receiver in sum_per_receiver:
             c.write(receiver)
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    #main(sys.argv)
+    input_file = sys.argv[1]
+    input_2_file = sys.argv[2]
+    output_file = sys.argv[3]
+
     file_db = 'input/temp_out (1).txt'
-    raw_data = read_file_db(file_db)
+    raw_data = read_file_db(input_file)
+
     file_receivers = 'input/receiver_dict.txt'
-    map_id = read_file_receivers(file_receivers)
+    map_id = read_file_receivers(input_2_file)
+
     levels_summed = get_noise_levels(raw_data, map_id)
-    write_to_shp(levels_summed)
+    write_to_shp(levels_summed, output_file)
 
