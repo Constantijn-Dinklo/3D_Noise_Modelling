@@ -1,3 +1,0 @@
-\babel@toc {english}{}
-\contentsline {chapter}{Bibliography}{2}{appendix*.3}%
-\contentsfinish 
