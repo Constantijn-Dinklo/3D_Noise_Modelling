@@ -9,21 +9,10 @@ class CrossSectionManager:
 
     def __init__(self):
         self.cross_sections = {}
-
         self.receiver_triangles = {}
     
-    def get_cross_section(self, receiver, path, tin, ground_type_manager, building_manager, receiver_height):
-        #Initialize the cross section
-        #receiver = path[0]
-        source_point = path[-1]
-        
-        #Should be changed
-        if len(source_point) > 2:
-            source_height = source_point[2]
-        else:
-            source_height = 0
-
-        cross_section = CrossSection(path, receiver)
+    def get_cross_section(self, receiver, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights=0):
+        cross_section = CrossSection(path, receiver, reflection_heights)
 
         #Find the triangle of the tin in which the receiver is located.
         if receiver in self.receiver_triangles.keys():
@@ -42,9 +31,42 @@ class CrossSectionManager:
         
         return cross_section
     
-    def get_cross_sections_direct(self, direct_paths, source_height, tin, ground_type_manager, building_manager, receiver_height):
+    def get_intermediate_cross_section_collinear_source(self, source_point, cross_section, source_height, receiver_height, receiver):
+
+            # find where the intermediate sources lie in the 'complete' cross-section
+
+            # check if the cross section is going in the positive or negative direction
+            if cross_section.vertices[-1][0] - cross_section.vertices[0][0] < 0:
+                split_idx = reverse_bisect_left(cross_section.vertices, source_point)
+
+            # if the path is parallel with the x axis, check if the y axis is in negative direction.
+            elif cross_section.vertices[-1][0] - cross_section.vertices[0][0] == 0 and cross_section.vertices[-1][1] - cross_section.vertices[0][1] < 0:
+                split_idx = reverse_bisect_left(cross_section.vertices, source_point)
+
+            # the x direction is positive, or y is in positive direction
+            else:
+                split_idx = bisect.bisect_left(cross_section.vertices, source_point)
+
+            part_path_direct = cross_section.vertices[split_idx:]
+            source_ground_height = interpolate_edge(cross_section.vertices[split_idx - 1], cross_section.vertices[split_idx], source_point)
+            part_path_direct = [(source_point[0], source_point[1], source_ground_height)] + part_path_direct
+
+            cross_section_collinear_point = CrossSection([source_point], receiver, 0)
+            cross_section_collinear_point.vertices = part_path_direct
+            cross_section_collinear_point.extension = {
+                0: ["source", source_height],
+                len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
+            }
+            part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
+            cross_section_collinear_point.materials = part_path_direct_material
+            
+            # Key must already exist, so no need to check.
+            self.cross_sections[receiver].append(cross_section_collinear_point)
+            return
+    
+    def get_cross_sections_direct(self, direct_paths, tin, ground_type_manager, building_manager, source_height, receiver_height):
         """
-        Explanation: Finds cross sections for all propagation paths, both direct and reflected. and saves them in a dicitonary with cross_sections objects.
+        Explanation: Finds cross sections for all propagation paths, both direct. and saves them in a dicitonary with cross_sections objects.
         ---------------
         Input:
             propagation_paths_dict_direct : dictionary - receiver is key, value is a list with the sources 
@@ -65,24 +87,51 @@ class CrossSectionManager:
             for ray_end, source_points in ray_intersects.items():
                 #Create cross section for the furthest away point
                 furthest_source_point = source_points[-1]
-                furthest_source_point = (furthest_source_point[0], furthest_source_point[1], source_height)
-                cross_section = self.get_cross_section(receiver, [furthest_source_point], tin, ground_type_manager, building_manager, receiver_height)
+                cross_section = self.get_cross_section(receiver, [furthest_source_point], tin, ground_type_manager, building_manager, source_height, receiver_height)
 
-                #Go through all the other source points in the list
+                # create cross sections for intermediate source points, if available
                 for source_point in source_points[:-1]:
-                    #split the cross section, using CrossSection class method
-                    print("===============SPLIT CROSS SECTION================")
-                    pass
-                    
-                    #source_point = (source_point[0], source_point[1], source_height)
-                    #self.get_cross_section(receiver, [source_point], tin, ground_type_manager, building_manager)
-
+                    #print("got collinear path")
+                    self.get_intermediate_cross_section_collinear_source(
+                        source_point, 
+                        cross_section, 
+                        source_height, 
+                        receiver_height, 
+                        receiver
+                        )
 
         return
 
+    def get_cross_sections_reflection(self, reflection_path, tin, ground_type_manager, building_manager, source_height, receiver_height):
 
-        # create a key in the dictionary for this receiver.
-#            self.cross_section_manager[receiver] = []
+        # can work with single and multi order reflection.
+        # for each reflection
+        for i, reflection_points_list in enumerate(reflection_path.reflection_points):
+            #take the heights
+            reflection_heights = reflection_path.reflection_heights[i]
+            path = reflection_points_list
+            path.append(reflection_path.source)
+
+            self.get_cross_section(reflection_path.receiver, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights)
+    
+    def write_obj(self, filename):
+        """
+        Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj
+        ---------------
+        Input:
+            filename : string - filename, including path and extension(.obj)
+        ---------------
+        Output:
+            void (writes obj file)
+        """
+        i = 0
+        for receiver, cross_sections in self.cross_sections.items():
+            write_cross_section_to_obj(str(i) + filename, cross_sections)
+            i += 1
+
+    """
+    Old stuff
+    #            self.cross_section_manager[receiver] = []
 
         # Loop over all the list of collinear paths for each source
         for points_to_source in paths_to_sources:
@@ -147,33 +196,7 @@ class CrossSectionManager:
                         cross_section_collinear_point.materials = part_path_direct_material
                         
                         self.cross_section_manager[receiver].append(cross_section_collinear_point)
-    
+    """
     #This is a quick implementation!!! SHOULD BE CHECKED!!!
-    def create_cross_section_rp(self, reflection_path, tin, ground_type_manager, building_manager, receiver_height):
-        
-        receiver = reflection_path.receiver
-        source = reflection_path.source
-
-        for reflection_point_list in reflection_path.reflection_points:
-            path = []
-            for reflection_point in reflection_point_list:
-                path.append(reflection_point)
-            path.append(source)
-
-            self.get_cross_section(receiver, path, tin, ground_type_manager, building_manager, receiver_height)
     
-    def write_obj(self, filename):
-        """
-        Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj
-        ---------------
-        Input:
-            filename : string - filename, including path and extension(.obj)
-        ---------------
-        Output:
-            void (writes obj file)
-        """
-        i = 0
-        for receiver, cross_sections in self.cross_sections.items():
-            write_cross_section_to_obj(str(i) + filename, cross_sections)
-            i += 1
 

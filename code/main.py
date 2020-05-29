@@ -86,7 +86,7 @@ def read_building_and_ground(building_manager, ground_type_manager):
                 geometry = record['geometry']
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                print(part_id)
+                #print(part_id)
                 building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
 
             elif record['properties']['uuid'] is not None:
@@ -164,7 +164,7 @@ def main(sys_args):
 
     #Go through all the receiver points and get their possible source points
     #count = 0
-    for rec_pt_coords in receiver_points:
+    for rec_pt_coords in receiver_points.keys():
         rec_pt = receiver_points[rec_pt_coords]
         int_pts = rec_pt.return_intersection_points(road_lines)
         
@@ -177,30 +177,33 @@ def main(sys_args):
 
         #count = count + 1
     
-    for building in building_manager.buildings:
-        print(building)
+    #for building in building_manager.buildings:
+    #    print(building)
 
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
-    cross_section_manager.get_cross_sections_direct(source_points, source_height, tin, ground_type_manager, building_manager, receiver_height)
+    print("=== get direct cross sections ===")
+    cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
     # Get first order reflections
+    print("=== get reflection points ===")
     reflected_paths = ReflectionManager()
     reflected_paths.get_reflection_paths(source_points, building_manager)
 
     #Loop through all the reflection paths
+    print("=== get reflection cross sections ===")
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
-                cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager, receiver_height)
+                cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
-    #cross_section_manager.write_obj("test_object_reflect_01.obj")
+    cross_section_manager.write_obj("test_object_reflect_01.obj")
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("xml_parser")
     xml_manager = XmlParserManager()
-    xml_manager.write_xml_files(cross_section_manager)
+    #xml_manager.write_xml_files(cross_section_manager)
 
 if __name__ == "__main__":
     main(sys.argv)
