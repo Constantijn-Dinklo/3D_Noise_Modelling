@@ -167,15 +167,21 @@ class ReflectionPath:
                         # LEFT POINT
                         is_left_valid = False
                         for any_wall in building.walls:
-                            left_point  = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,angle)])
-                            local_left = self.is_point_in_lineseg(left_point,any_wall)
-                            is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_left_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_left_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_left_r > 0 and test_left_s > 0:
+                                left_point  = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,angle)])
+                                local_left = self.is_point_in_lineseg(left_point,any_wall)
+                                is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # RIGHT POINT
                         is_right_valid = False
                         for any_wall in building.walls:
-                            right_point = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,-angle)])                        
-                            local_right = self.is_point_in_lineseg(right_point,any_wall)
-                            is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_right_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_right_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_right_r > 0 and test_right_s > 0:                            
+                                right_point = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,-angle)])                        
+                                local_right = self.is_point_in_lineseg(right_point,any_wall)
+                                is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
                             coords.append(reflection_point)
