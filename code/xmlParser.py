@@ -4,18 +4,18 @@ import bisect
 import misc
 # to be removed later, for debugging
 import matplotlib.pyplot as plt
+from pprint import pprint
 
 class XmlParser:
     
-    def __init__(self, vts, mat, ext):
-        self.vts = np.array(vts)
+    def __init__(self, path, ext, mat):
+        self.vts = np.array(path)
         self.mat = mat
         self.ext = ext
 
-
     def normalize_path(self):
         """
-        Explination: Move 3D Casrtesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
+        Explination: Move 3D Cartesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
         ---------------
         Input: void
         ---------------
@@ -23,8 +23,6 @@ class XmlParser:
         """
         # move all vertices relative to first vertex
         self.vts -= self.vts[0]
-        # make all vertices positive, makes is easier to read and process
-        self.vts = abs(self.vts)
 
     def get_offsets_perpendicular(self, start, end):
         """
@@ -200,25 +198,20 @@ class XmlParser:
 
 if __name__ == "__main__":
 
-    vertices = [
-        (7.6, 0.8, 0.6000000000000002), 
-        (7.232432432432432, 0.7675675675675676, 0.7675675675675676), 
-        (6.72258064516129, 0.7225806451612904, 0.7225806451612904), 
-        (5.394594594594595, 0.6054054054054054, 0.6054054054054054), 
-        (4.529032258064516, 0.5290322580645161, 1.0), 
-        (3.556756756756757, 0.44324324324324327, 0.5567567567567567), 
-        (2.335483870967742, 0.335483870967742, 0.664516129032258), 
-        (2.2, 0.32352941176470595, 0.9262808349146111), 
-        (2.2, 0.32352941176470595, 2.0),
-        (1.8, 0.2882352941176471, 2.0), 
-        (1.8, 0.2882352941176471, 3.0), 
-        (1.2, 0.23529411764705882, 3.0), 
-        (1.2, 0.23529411764705882, 0.7823529411764707), 
-        (0.8, 0.2, 0.5)
+    path = [
+        [[93606.0, 441900.0, -4.904254700249789], 'G'],
+        [[ 9.36058074e+04,  4.41900000e+05, -4.91151646e+00], 'G'],
+        [[ 9.36036186e+04,  4.41900000e+05, -4.60547266e+00], 'G'],
+        [[ 9.36022807e+04,  4.41900000e+05, -4.52621185e+00], 'G'],
+        [[ 9.36001751e+04,  4.41900000e+05, -4.55178834e+00], 'G'],
+        [[ 9.35981648e+04,  4.41900000e+05, -4.62516807e+00], 'G'],
+        [[ 9.35943784e+04,  4.41900000e+05, -4.62364169e+00], 'G'],
+        [[ 9.3591028e+04,  4.4190000e+05, -4.6534186e+00], 'G'],
+        [[ 9.35896109e+04,  4.41900000e+05, -4.65267961e+00], 'G'],
+        [[ 9.35891827e+04,  4.41900000e+05, -4.66882258e+00], 'G']
         ]
 
-    Materials = ["G", "G", "G", "G", "G", "G", "G", "A0", "A0", "A0", "A0", "A0", "A0", "G"]
-    extension = {}
+    #Materials = ["G", "G", "G", "G", "G", "G", "G", "A0", "A0", "A0", "A0", "A0", "A0", "G"]
     # input:
     # The xmlParser part will deviate differently over direct path than over the others. therefore the function can be called as follows:
     # Direct path:
@@ -226,13 +219,11 @@ if __name__ == "__main__":
     # (1st order) reflected or diffracted path or barriers:
     #   xmlParser(vertices, material, extensions)
 
-    # === vertices ===
+    # === vertices and material ===
     # numpy array with arrays/tuples of the coordinates, this includes barriers (TIN point below the point) and reflection edges.
-    # vertices = [(x,y,z), (x,y,z), ...]
+    # vertices = [[(x,y,z), mat], [(x,y,z), mat], [...]]
 
-    # === material ====
-    # List with material (string) for each vertex: ["G", "C", "A0"]
-    # Which material to choose: 
+    # where mat: string
     # groundType: absorbtion index 1: "C"
     # groundType: absorbtion index 0: "G"
     # Building in DSM: "A0"
@@ -249,21 +240,20 @@ if __name__ == "__main__":
     #   "last":["receiver", 2]
     # }
 
-    source = [0, 0, 2]
-    receiver = [8, 16, 3]
-
-    extension[0] = ["source", source[2] - vertices[0][2]]
-    extension[len(vertices)-1] = ["receiver", receiver[2] - vertices[-1][2]]
+    extension = {
+        0: ['source', 0.05], 
+        9: ['receiver', 2]}
     
-
+    path = np.array(path)
+    pprint(path)
     #xml_section = XmlParser(vertices, Materials, extension)
-    xml_section = XmlParser(vertices, Materials, extension)
+    xml_section = XmlParser(path, extension)
     
     xml_section.normalize_path()
 
     xml_section.douglas_Peucker(0.3)
 
-    #xml_section.write_xml("test.xml", True)
+    xml_section.write_xml("test.xml", True)
 
     xml_section.visualize_path()
 

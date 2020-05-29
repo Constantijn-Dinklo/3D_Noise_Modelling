@@ -1,7 +1,5 @@
 from building import Building
-
 import fiona
-
 
 class BuildingManager:
 
@@ -27,7 +25,6 @@ class BuildingManager:
     
     def get_building(self, id):
         return self.buildings[id]
-
 
 if __name__ == "__main__":
     buildingManager = BuildingManager()

@@ -363,18 +363,18 @@ def write_bbox(bbox):
 
 if __name__ == "__main__":
     start = time()
-    get_bbox('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/_Bounding Box/scenario000_boundingbox_int5.gml')
+    get_bbox('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario002/Bounding_Box/boundingbox_5m.gml')
     bbox_bl = [bbox[0], bbox[2]] # Xmin, Ymin
     bbox_br = [bbox[1], bbox[2]] # Xmax, Ymin
     bbox_tr = [bbox[1], bbox[3]] # Xmax, Ymax
     bbox_tl = [bbox[0], bbox[3]] # Xmin, Ymax
-    read_obj("//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/00_InputData/Terrain data/TIN/0,3m/tin_03m.obj/37fz1.obj")
+    read_obj("//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/00_InputData/Terrain data/TIN/1,0m/tin_1m.obj/37hn1.obj")
     clipping()
     print('len(v_list_input):',len(v_list_input))
     print('len(f_list_input):',len(f_list_input))
     print('len(v_list_output):',len(v_list_output))
     print('len(f_list_output):',len(f_list_output))
-    write_obj('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Terrain Data/TIN/0,3m/tin_03m.obj/bbox.obj')
-    write_bbox('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA//01_Scenarios/scenario000/Terrain Data/TIN/0,3m/tin_03m.obj/tin.obj')
+    write_obj('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario002/Terrain_Data/TIN/1,0m/tin_37hn1.obj')
+    #write_bbox('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario002/Terrain_Data/TIN/1,0m/bbox_37hn1.obj')
     end = time()
     print(round((end - start),2),'s')
