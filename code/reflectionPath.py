@@ -188,7 +188,6 @@ class ReflectionPath:
                                 is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-                            
                             self.reflection_points.append([reflection_point])
                             self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
@@ -524,43 +523,4 @@ def write_output_2nd(output_file,lista):
     """
 
 if __name__ == "__main__":
-    # THIS CODE DOES NOT WORK ANYMORE, PLEASE USE THE CODE FROM reflectionManager.py
-    """
-    start = time.time()
-    f_dict = { }
-    s_dict = { }
-    r_dict = { }
-    c_list = [ ]
-    p1_list = [ ]
-    p2_list = [ ]
-
-    # DATASETS FOR 'MID PRESENTATION'
-    #read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
-
-    reflection_path = ReflectionPath(s_dict,r_dict,f_dict,c_list,p1_list,p2_list)
-    reflection_path.get_candidate_point(0.025) # DIM 0.025
-
-    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/candidates0025.csv',c_list)
-
-    for source in s_dict:
-        for receiver in r_dict:
-            print('source:',source,'receiver',receiver)
-            reflection_path.get_first_order_reflection(s_dict[source],r_dict[receiver])
-            #reflection_path.get_second_order_reflection(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
-            print()
-    
-    print('len(p1_list)')
-    print(len(p1_list))
-    print()
-    print('len(p2_list)')
-    print(len(p2_list))
-
-    write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_1st.csv',p1_list)
-    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_2nd_dim00025_t01.csv',p2_list)
-
-    end = time.time()
-    processing_time = end - start
-    print('processing time:',round(processing_time,2),'s')
-    """
+    pass

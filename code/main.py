@@ -195,7 +195,7 @@ def main(sys_args):
                 cross_section_manager.create_cross_section_rp(path, tin, ground_type_manager, building_manager, receiver_height)
     
 
-    #cross_section_manager.write_obj("test_object_reflect_01.obj")
+    cross_section_manager.write_obj("test_object_reflect_01.obj")
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("xml_parser")
