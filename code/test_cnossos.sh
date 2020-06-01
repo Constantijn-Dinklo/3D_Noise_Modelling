@@ -61,3 +61,5 @@ do
 done
 
 python $CODE_PATH/noiseMaps.py $TEMP_OUT $receiver_dict $output_shape_file
+
+rm -rf $TEMP_OUT
