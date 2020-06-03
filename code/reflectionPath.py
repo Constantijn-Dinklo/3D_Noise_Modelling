@@ -182,30 +182,28 @@ class ReflectionPath:
                         # LEFT POINT
                         is_left_valid = False
                         for any_wall in building.walls:
-                            left_point = self.x_line_intersect(any_wall, [self.source,
-                                                                          self.get_rotated_point(self.source,
-                                                                                                 reflection_point,
-                                                                                                 angle)])
-                            local_left = self.is_point_in_lineseg(left_point, any_wall)
-                            is_left_valid = is_left_valid or local_left  # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_left_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_left_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_left_r > 0 and test_left_s > 0:
+                                left_point  = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,angle)])
+                                local_left = self.is_point_in_lineseg(left_point,any_wall)
+                                is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # RIGHT POINT
                         is_right_valid = False
                         for any_wall in building.walls:
-                            right_point = self.x_line_intersect(any_wall, [self.source,
-                                                                           self.get_rotated_point(self.source,
-                                                                                                  reflection_point,
-                                                                                                  -angle)])
-                            local_right = self.is_point_in_lineseg(right_point, any_wall)
-                            is_right_valid = is_right_valid or local_right  # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_right_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_right_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_right_r > 0 and test_right_s > 0:                            
+                                right_point = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,-angle)])                        
+                                local_right = self.is_point_in_lineseg(right_point,any_wall)
+                                is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
-                        if is_left_valid and is_right_valid:  # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-
+                        if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
                             self.reflection_points.append([reflection_point])
                             self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
             return True
         return False
-
 
 # THE FUNCTIONS BELOW ARE NOT USED IN THE MAIN ALGORITHM AND WERE, THEREFORE, PUT OUTSIDE THE CLASS.
 # SINCE IT IS INTERESING TO KEEP THEM AS A RECORD OF THE CODING PROCESS, ESPECIALLY FOR WRITING THE FINAL REPORT, THEY ARE STILL STORED HERE.
@@ -541,41 +539,4 @@ def write_output_2nd(output_file, lista):
         fout.write(line)
     fout.close()
     #MultiLineStringZ ((93528.02305619 441927.11005859 2.5, 93567.67848824 441908.81858497 0, 93539.68248698 441892 1.4))
-    """
-
-
-if __name__ == "__main__":
-    # THIS CODE DOES NOT WORK ANYMORE, PLEASE USE THE CODE FROM reflectionManager.py
-    """
-    start = time.time()
-    f_dict = { }
-    s_dict = { }
-    r_dict = { }
-    c_list = [ ]
-    p1_list = [ ]
-    p2_list = [ ]
-    # DATASETS FOR 'MID PRESENTATION'
-    #read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
-    reflection_path = ReflectionPath(s_dict,r_dict,f_dict,c_list,p1_list,p2_list)
-    reflection_path.get_candidate_point(0.025) # DIM 0.025
-    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/candidates0025.csv',c_list)
-    for source in s_dict:
-        for receiver in r_dict:
-            print('source:',source,'receiver',receiver)
-            reflection_path.get_first_order_reflection(s_dict[source],r_dict[receiver])
-            #reflection_path.get_second_order_reflection(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
-            print()
-
-    print('len(p1_list)')
-    print(len(p1_list))
-    print()
-    print('len(p2_list)')
-    print(len(p2_list))
-    write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_1st.csv',p1_list)
-    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_2nd_dim00025_t01.csv',p2_list)
-    end = time.time()
-    processing_time = end - start
-    print('processing time:',round(processing_time,2),'s')
     """
