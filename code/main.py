@@ -122,6 +122,7 @@ def main(sys_args):
     building_manager = BuildingManager()
 
     read_building_and_ground(building_manager, ground_type_manager)
+    building_manager.create_rtree()
     
     #COS: Till now we have a:
     #   - Constrained Tin

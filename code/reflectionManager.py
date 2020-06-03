@@ -30,7 +30,7 @@ class ReflectionManager:
 
                 # Create a reflection path from source to receiver and get all possible reflections
                 reflection_object = ReflectionPath(source_point, receiver)
-                at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager.buildings)
+                at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager)
 
                 # If at least 1 reflection was found, store it
                 if at_least_one_reflection:

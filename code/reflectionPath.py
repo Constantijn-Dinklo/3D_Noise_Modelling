@@ -149,7 +149,7 @@ class ReflectionPath:
                     line2[0][0] - line2[1][0])
         return [num_x / denom, num_y / denom]
 
-    def get_first_order_reflection(self, buildings_dict):
+    def get_first_order_reflection(self, building_manager, radius_buffer=2000):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
@@ -162,9 +162,14 @@ class ReflectionPath:
         return True if reflections are found, False if not
         """
         # Loop through all the buildings
-        for id, building in buildings_dict.items():
+        # for id, building in buildings_dict.items():
             # h_dak = buildings_dict[bag_id]['h_dak']
             # walls = buildings_dict[bag_id]['walls']
+        query_geom = self.receiver.buffer(radius_buffer)  # 2000 m buffer around receiver
+        chosen_buildings = building_manager.buildings_tree.query(query_geom)
+        for chosen_building in chosen_buildings:
+            building_id = building_manager.polygon_id_to_building_id[id(chosen_building)]
+            building = building_manager.buildings[building_id]
             for wall in building.walls:
                 test_r = misc.side_test(wall[0], wall[1], self.receiver)
                 test_s = misc.side_test(wall[0], wall[1], self.source)
