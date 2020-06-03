@@ -3,6 +3,7 @@ import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
 from pprint import pprint
+from shapely.geometry import Polygon, LineString, Point
 import fiona
 
 CNOSSOS_RADIUS = 2000.0
@@ -81,14 +82,18 @@ class ReceiverPoint:
             following = self.return_points_circle(angle)
 
             #Create a line from receiver to end point
-            current_receiver_line = [self.receiver_coords, following] #A list for now, since struct_line is also a list.
+            current_receiver_line = LineString((self.receiver_coords, following))
+
+            # Find roads within a certain buffer from ray
+            query_geom = current_receiver_line.buffer(1)  # 1 m buffer around ray
+            chosen_roads = road_lines.query(query_geom)
             
             list_intersection_per_ray = []
             #Check all line segments for intersection points from this angle
-            for struct_line in road_lines:
-                point_intersection = self.line_intersect(current_receiver_line, struct_line)
-                if point_intersection is not None:
-                    list_intersection_per_ray.append(point_intersection)
+            for struct_line in chosen_roads:
+                if current_receiver_line.intersects(struct_line):
+                    point_intersection = current_receiver_line.intersection(struct_line)
+                    list_intersection_per_ray.append(list(point_intersection.coords)[0])
             
             #If at least 1 intersection point was found, store it.
             if len(list_intersection_per_ray) >= 1:

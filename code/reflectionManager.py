@@ -8,8 +8,8 @@ class ReflectionManager:
 
     def __init__(self):
         self.reflection_paths = {}
-
-    def get_reflection_path(self, receiver, source_list_per_ray, building_manager):
+    
+    def get_reflection_path(self, receiver, source_list_per_ray, building_manager, tin, minimal_height_difference):
         """
         Explanation: Finds cross-sections between the receiver and all source points in the source_list_per_ray dictionary.
         ---------------
@@ -30,7 +30,7 @@ class ReflectionManager:
 
                 # Create a reflection path from source to receiver and get all possible reflections
                 reflection_object = ReflectionPath(source_point, receiver)
-                at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager.buildings)
+                at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager, tin, minimal_height_difference)
 
                 # If at least 1 reflection was found, store it
                 if at_least_one_reflection:
@@ -40,8 +40,8 @@ class ReflectionManager:
                         self.reflection_paths[receiver][ray_end_point] = {}
 
                     self.reflection_paths[receiver][ray_end_point][source_point] = reflection_object
-
-    def get_reflection_paths(self, source_receivers_dict, building_manager):
+    
+    def get_reflection_paths(self, source_receivers_dict, building_manager, tin, minimal_height_difference):
         """
         Explanation: Finds reflection points for all source - receiver sets.
         ---------------
@@ -55,4 +55,5 @@ class ReflectionManager:
             void (fills self.paths with a list of paths)
         """
         for receiver, sources_list_per_ray in source_receivers_dict.items():
-            self.get_reflection_path(receiver, sources_list_per_ray, building_manager)
+            self.get_reflection_path(receiver, sources_list_per_ray, building_manager, tin, minimal_height_difference)
+

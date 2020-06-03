@@ -3,6 +3,7 @@ import math
 import misc
 import time
 from shapely.geometry import shape
+import numpy as np
 
 
 class ReflectionPath:
@@ -149,7 +150,50 @@ class ReflectionPath:
                     line2[0][0] - line2[1][0])
         return [num_x / denom, num_y / denom]
 
-    def get_first_order_reflection(self, buildings_dict):
+    def check_validity(self, building_id, buildings_dict, tin, reflection_point, building_height, minimal_height_difference):
+        triangle_index_building = np.where(tin.attributes == building_id)
+        triangle_index_building = triangle_index_building[0][0]
+        #print("random tr index of building: {}".format(triangle_index_building))
+        # find the triangle where the reflection point is in (it is on the line though.)
+        reflection_triangle = tin.find_receiver_triangle(triangle_index_building, reflection_point)
+        #print("correct tr of building: {}".format(tin.attributes[reflection_triangle]))
+
+        # can be either on the building side, or on the outerside
+        # If the triangle is on the inside, get the triangle on the outside
+        if(tin.attributes[reflection_triangle] == building_id):
+            #print("triangle is on inside")
+            # the triangle is on the inside of the building
+            # now get neighbor
+            edges = (
+                (tin.vts[tin.trs[reflection_triangle][0]], tin.vts[tin.trs[reflection_triangle][1]]),
+                (tin.vts[tin.trs[reflection_triangle][1]], tin.vts[tin.trs[reflection_triangle][2]]),
+                (tin.vts[tin.trs[reflection_triangle][2]], tin.vts[tin.trs[reflection_triangle][0]])
+            )
+            # find which edge intersects with the point.
+            neighbor = -1
+            for i, edge in enumerate(edges):
+                # side the side test is very much close to 0, it is the right edge
+                if(abs(misc.side_test(edge[0], edge[1], reflection_point)) < 0.05): neighbor = i
+            assert(neighbor != -1)
+            nbs = [5, 3, 4]
+            reflection_triangle = tin.trs[reflection_triangle][nbs[neighbor]]
+
+        #print("triangle type on outside: {}".format(tin.attributes[reflection_triangle]))
+        # we should have the correct triangle at hand
+        if(tin.attributes[reflection_triangle][0] == 'b'):
+            #print("other triangle is building")
+            # it is a building
+            outside_building_height = buildings_dict[tin.attributes[reflection_triangle]].roof_level
+            if(building_height - outside_building_height > minimal_height_difference):
+                # building is atleast 20 centimeters higher then
+                return True
+            else:
+                return False
+        else:
+            # not a building, so its fine (should be, there should not be buildings below ground level in the dataset)
+            return True
+
+    def get_first_order_reflection(self, buildings_dict, tin, minimal_height_difference):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
@@ -162,9 +206,15 @@ class ReflectionPath:
         return True if reflections are found, False if not
         """
         # Loop through all the buildings
-        for id, building in buildings_dict.items():
+        # for id, building in buildings_dict.items():
             # h_dak = buildings_dict[bag_id]['h_dak']
             # walls = buildings_dict[bag_id]['walls']
+        query_geom = self.receiver.buffer(radius_buffer)  # 2000 m buffer around receiver
+        chosen_buildings = building_manager.buildings_tree.query(query_geom)
+        for chosen_building in chosen_buildings:
+            building_id = building_manager.polygon_id_to_building_id[id(chosen_building)]
+            building = building_manager.buildings[building_id]
+
             for wall in building.walls:
                 test_r = misc.side_test(wall[0], wall[1], self.receiver)
                 test_s = misc.side_test(wall[0], wall[1], self.source)
@@ -182,30 +232,30 @@ class ReflectionPath:
                         # LEFT POINT
                         is_left_valid = False
                         for any_wall in building.walls:
-                            left_point = self.x_line_intersect(any_wall, [self.source,
-                                                                          self.get_rotated_point(self.source,
-                                                                                                 reflection_point,
-                                                                                                 angle)])
-                            local_left = self.is_point_in_lineseg(left_point, any_wall)
-                            is_left_valid = is_left_valid or local_left  # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_left_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_left_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_left_r > 0 and test_left_s > 0:
+                                left_point  = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,angle)])
+                                local_left = self.is_point_in_lineseg(left_point,any_wall)
+                                is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # RIGHT POINT
                         is_right_valid = False
                         for any_wall in building.walls:
-                            right_point = self.x_line_intersect(any_wall, [self.source,
-                                                                           self.get_rotated_point(self.source,
-                                                                                                  reflection_point,
-                                                                                                  -angle)])
-                            local_right = self.is_point_in_lineseg(right_point, any_wall)
-                            is_right_valid = is_right_valid or local_right  # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                            test_right_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
+                            test_right_s = misc.side_test( any_wall[0], any_wall[1], self.source)
+                            if test_right_r > 0 and test_right_s > 0:                            
+                                right_point = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,-angle)])                        
+                                local_right = self.is_point_in_lineseg(right_point,any_wall)
+                                is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
-                        if is_left_valid and is_right_valid:  # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-
-                            self.reflection_points.append([reflection_point])
-                            self.reflection_heights.append([building.roof_level])
+                        if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
+                            # Check if reflection is valid, ie if there is no other building in front.
+                            if(self.check_validity(building_id, buildings_dict, tin, reflection_point, building.roof_level, minimal_height_difference)):
+                                self.reflection_points.append([reflection_point])
+                                self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
             return True
         return False
-
 
 # THE FUNCTIONS BELOW ARE NOT USED IN THE MAIN ALGORITHM AND WERE, THEREFORE, PUT OUTSIDE THE CLASS.
 # SINCE IT IS INTERESING TO KEEP THEM AS A RECORD OF THE CODING PROCESS, ESPECIALLY FOR WRITING THE FINAL REPORT, THEY ARE STILL STORED HERE.
@@ -541,41 +591,4 @@ def write_output_2nd(output_file, lista):
         fout.write(line)
     fout.close()
     #MultiLineStringZ ((93528.02305619 441927.11005859 2.5, 93567.67848824 441908.81858497 0, 93539.68248698 441892 1.4))
-    """
-
-
-if __name__ == "__main__":
-    # THIS CODE DOES NOT WORK ANYMORE, PLEASE USE THE CODE FROM reflectionManager.py
-    """
-    start = time.time()
-    f_dict = { }
-    s_dict = { }
-    r_dict = { }
-    c_list = [ ]
-    p1_list = [ ]
-    p2_list = [ ]
-    # DATASETS FOR 'MID PRESENTATION'
-    #read_buildings('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/buildings_lod_13.gpkg',f_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/sources.gpkg',s_dict)
-    #read_points('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/receivers.gpkg',r_dict)
-    reflection_path = ReflectionPath(s_dict,r_dict,f_dict,c_list,p1_list,p2_list)
-    reflection_path.get_candidate_point(0.025) # DIM 0.025
-    write_candidates('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/candidates0025.csv',c_list)
-    for source in s_dict:
-        for receiver in r_dict:
-            print('source:',source,'receiver',receiver)
-            reflection_path.get_first_order_reflection(s_dict[source],r_dict[receiver])
-            #reflection_path.get_second_order_reflection(s_dict[source],r_dict[source],0.1) # THRESHOLD 0.1
-            print()
-
-    print('len(p1_list)')
-    print(len(p1_list))
-    print()
-    print('len(p2_list)')
-    print(len(p2_list))
-    write_output_1st('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_1st.csv',p1_list)
-    write_output_2nd('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/03_midpresentation/path_2nd_dim00025_t01.csv',p2_list)
-    end = time.time()
-    processing_time = end - start
-    print('processing time:',round(processing_time,2),'s')
     """

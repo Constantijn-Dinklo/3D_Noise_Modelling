@@ -6,6 +6,10 @@ import numpy as np
 import xml.etree.cElementTree as ET
 
 from pprint import pprint
+from shapely.geometry import Polygon, LineString, Point
+from shapely.strtree import STRtree
+
+from time import time
 
 from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
@@ -51,12 +55,12 @@ def return_segments_source(path):
                     sets = []
     for elem in line_float:
         if len(elem) == 2:
-            line_segments.append(elem)
+            line_segments.append(LineString((elem[0], elem[1])))
         if len(elem) > 2:
             for i in range(len(elem) - 1):
                 first_el = elem[i]
                 next_el = elem[i + 1]
-                line_segments.append([first_el, next_el])
+                line_segments.append(LineString((first_el, next_el)))
     return line_segments
 
 def read_building_and_ground(file_path, building_manager, ground_type_manager):
@@ -108,6 +112,7 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                     ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
 
 def main(sys_args):
+    start = time()
     print(sys_args[0])
 
     #Input files
@@ -120,12 +125,17 @@ def main(sys_args):
     cross_section_obj_file_path = "test_object_reflect_01.obj"
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
+    print("read file in {} seconds".format(time() - start))
+    watch = time()
 
     ground_type_manager = GroundTypeManager()
     building_manager = BuildingManager()
 
     read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
+    building_manager.create_rtree()
     
+    print("read buildings in: {}".format(time() - watch))
+    watch = time()
     #COS: Till now we have a:
     #   - Constrained Tin
     #   - Building Manager
@@ -138,6 +148,7 @@ def main(sys_args):
     cnossos_angle = 2.0
     source_height = 0.05
     receiver_height = 2
+    minimal_building_height_threshold = 0.3 # this is the minimal distance the 
 
     receiver_points = {} #COS: Might make another manager from this, but might not be needed.
     road_lines = [] #COS: Find a better place for this?
@@ -151,7 +162,6 @@ def main(sys_args):
             receiver_points[rec_pt_coords] = rec_pt
 
     road_lines = return_segments_source(road_lines_file_path) #Read in the roads
-    exit()
 
     #COS: Till now we have a:
     #   - Constrained Tin
@@ -165,28 +175,43 @@ def main(sys_args):
     #For each receiver, there is a set of rays
     #For each ray, there is a list of sources
     #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
+    print("read receiver points in: {}".format(time() - watch))
+    watch = time()
+
+    # create a tree for roads
+    tree_roads = STRtree(road_lines)
 
     #Go through all the receiver points and get their possible source points
     for rec_pt_coords in receiver_points:
         rec_pt = receiver_points[rec_pt_coords]
-        int_pts = rec_pt.return_intersection_points(road_lines)
+        int_pts = rec_pt.return_intersection_points(tree_roads)
         
         #Set all the intersection points as possible source points, not this list (int_pts) could be empty
         if len(int_pts.keys()) > 0:
             source_points[rec_pt_coords] = int_pts
+
+    print("sources in: {}".format(time() - watch))
+    watch = time()
+
 
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
     print("=== get direct cross sections ===")
     cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
+    
+    print("direct cross_sections in: {}".format(time() - watch))
+    watch = time()
+
     # Get first order reflections
-    print("=== get reflection points ===")
     reflected_paths = ReflectionManager()
-    reflected_paths.get_reflection_paths(source_points, building_manager)
+    reflected_paths.get_reflection_paths(source_points, building_manager, tin, minimal_building_height_threshold)
+    
+    print("reflected paths in: {}".format(time() - watch))
+    watch = time()
 
     #Loop through all the reflection paths
-    print("=== get reflection cross sections ===")
+    #print("=== get reflection cross sections ===")
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
@@ -194,11 +219,20 @@ def main(sys_args):
     
 
     cross_section_manager.write_obj(cross_section_obj_file_path)
+   
+    print("get reflected cross sections in: {}".format(time() - watch))
+    watch = time()
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("=== Write XML files ===")
     xml_manager = XmlParserManager()
     xml_manager.write_xml_files(cross_section_manager)
+
+    print("write xml in: {}".format(time() - watch))
+    watch = time()
+    
+    print("total runtime in: {}".format(time() - start))
+
 
 if __name__ == "__main__":
     main(sys.argv)
