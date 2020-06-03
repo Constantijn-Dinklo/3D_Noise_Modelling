@@ -102,7 +102,7 @@ class GroundTin:
         Output:
             integer - triangle id of triangle underneath source point
         """
-        print("=== find_receiver_triangle ===")
+        #print("=== find_receiver_triangle ===")
         tr = tr_init
         for i in range(1000):  # max 1000 triangles to walk.
             # do the side test for all sides, returns the value

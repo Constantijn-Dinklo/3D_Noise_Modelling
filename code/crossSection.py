@@ -218,9 +218,13 @@ class CrossSection:
                 # set the reflection point to the origin
                 origin = destination
                 # get the height of the tin at the reflection point
-                reflection_height_ground = ground_tin.interpolate_triangle(current_triangle, destination)
 
                 reflection_ground_material, building_id = self.get_material(ground_tin, building_manager, ground_type_manager, current_triangle)
+
+                if(building_id != -1):
+                    reflection_height_ground = building_manager.buildings[next_building_id].roof_level
+                else:
+                    reflection_height_ground = ground_tin.interpolate_triangle(current_triangle, destination)
 
                 cross_section_vertices.append((destination[0], destination[1], reflection_height_ground))
                 material.append(reflection_ground_material)
