@@ -1,4 +1,5 @@
 
+import math
 import numpy as np
 
 def normal_of_triangle(triangle):
@@ -12,6 +13,123 @@ def normal_of_triangle(triangle):
 
     normal_vector = [uy*vz-uz*vy, uz*vx-ux*vz, ux*vy-uy*vx]
     return normal_vector
+
+
+def parametric_line_equation(p1, p2):
+    """
+    Explanation: A function that reads two points and returns the ABC parameters of the line composed by these points.
+    ---------------
+    Input:
+    p1 : [x(float), y(float)] - The starting point in the line.
+    p2 : [x(float), y(float)] - The ending point in the line.
+    ---------------
+    Output:
+    parameters: [a_norm(float),b_norm(float),c_norm(float)] - The a,b,c parameters of the normalised line equation.
+    """
+    # EQUATION OF A LINE IN THE 2D PLANE:
+    # A * x + B * y + C = 0
+    a = p2[1] - p1[1]
+    b = -(p2[0] - p1[0])
+    c = -a * p1[0] - b * p1[1]
+    m = math.sqrt(a * a + b * b)
+    a_norm = a / m
+    b_norm = b / m
+    c_norm = c / m
+    # EQUATION OF A LINE IN THE 2D PLANE WITH NORMALISED (UNIT) NORMAL VECTORs:
+    # A' * x + B' * y + C' = 0
+    parameters = [a_norm, b_norm, c_norm]
+    return parameters  # THE PARAMETERS OF THE NORMALISED LINE.
+
+def point_on_line(point, lineseg):
+    """
+    Explanation: A function that tests if a point that is known to be part of a line is within a specific line segment of
+    that particular line.
+    ---------------
+    Input:
+    point: [x(float), y(float)] - A point.
+    lineseg: [[x(float), y(float)],[x(float), y(float)]] - A line segment.
+    ---------------
+    Output:
+    point: [x(float), y(float)] - The intersection point.
+    """
+    x_min = min(lineseg[0][0], lineseg[1][0])
+    x_max = max(lineseg[0][0], lineseg[1][0])
+    y_min = min(lineseg[0][1], lineseg[1][1])
+    y_max = max(lineseg[0][1], lineseg[1][1])
+    return point[0] > x_min and point[0] < x_max and point[1] > y_min and point[1] < y_max
+
+def line_intersect(line1, line2):
+    """
+    Explanation: this functions returns the intersection points (source points) of both lines
+    ---------------
+    Input:
+    line1: the line segment of the receiver point
+    line2: the line segment of the source
+    ---------------
+    Output:
+    point : it returns the point where both line segments intersect
+    """
+    d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (
+                line1[1][1] - line1[0][1])
+    if d:
+        uA = ((line2[1][0] - line2[0][0]) * (line1[0][1] - line2[0][1]) - (line2[1][1] - line2[0][1]) * (
+                    line1[0][0] - line2[0][0])) / d
+        uB = ((line1[1][0] - line1[0][0]) * (line1[0][1] - line2[0][1]) - (line1[1][1] - line1[0][1]) * (
+                    line1[0][0] - line2[0][0])) / d
+    else:
+        return False
+    if not (0 <= uA <= 1 and 0 <= uB <= 1):
+        return False
+    x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
+    y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
+    return (x, y)
+
+def x_line_intersect(line1, line2):
+    """
+    Explanation: A function that returns the intersection point between two xlines. It doesn't matter if the line segments
+    are really intercepting each other; if they are not, the interception point is virtual, as like it will be the extension of
+    as least one of these lines. This is important for testing reflection points and, therefore, the algorithm cannot use
+    line_intersect, since this last one will return False if the lines do not intercept each other indeed.
+    ---------------
+    Input:
+    line1 : [[x(float), y(float)],[x(float), y(float)]] - A line segment.
+    line2 : [[x(float), y(float)],[x(float), y(float)]] - A line segment.
+    ---------------
+    Output:
+    point: [x(float), y(float)] - The intersection point.
+    """
+    num_x = (line1[0][0] * line1[1][1] - line1[0][1] * line1[1][0]) * (line2[0][0] - line2[1][0]) - (
+                line1[0][0] - line1[1][0]) * (line2[0][0] * line2[1][1] - line2[0][1] * line2[1][0])
+    num_y = (line1[0][0] * line1[1][1] - line1[0][1] * line1[1][0]) * (line2[0][1] - line2[1][1]) - (
+                line1[0][1] - line1[1][1]) * (line2[0][0] * line2[1][1] - line2[0][1] * line2[1][0])
+    denom = (line1[0][0] - line1[1][0]) * (line2[0][1] - line2[1][1]) - (line1[0][1] - line1[1][1]) * (
+                line2[0][0] - line2[1][0])
+    return [num_x / denom, num_y / denom]
+
+def get_rotated_point(p1, p2, angle):
+    """
+    Explanation: A function that reads point p1 (centre), p2, and an angle and returns p2', i.e. the rotated point.
+    ---------------
+    Input:
+    p1 : [x(float), y(float)] - The centre of rotation.
+    p2 : [x(float), y(float)] - The starting point of rotation, i.e. the point to be rotated.
+    angle : float - The angle of rotation (in degrees)
+    Attention: a positive angle rotates to the left (counterclockwise), whereas a negative angle rotates to the right (clockwise)
+    ---------------
+    Output:
+    p2_new: [x(float), y(float)] - The rotated point
+    """
+    x = p2[0] - p1[
+        0]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
+    y = p2[1] - p1[
+        1]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
+    x_new = x * math.cos(math.radians(angle)) - y * math.sin(math.radians(angle)) + p1[
+        0]  # p1[0] is then added to return to the 'global origin'
+    y_new = x * math.sin(math.radians(angle)) + y * math.cos(math.radians(angle)) + p1[
+        1]  # p1[1] is then added to return to the 'global origin'
+    p2_new = [x_new, y_new]
+    return p2_new
+
 
 def side_test(pa, pb, pc):
         """
@@ -76,31 +194,3 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
         if a[mid] > x: lo = mid+1
         else: hi = mid
     return lo
-    
-def write_cross_section_to_obj(obj_filename, cross_sections):
-    print("=== Writing {} ===".format(obj_filename))
-
-
-    with open(obj_filename, 'w') as f_out:
-        vts_count_lst = [0]
-        counter = 0
-        for cross_section in cross_sections:
-            path = cross_section.vertices
-            path = np.array(path)
-            # has the starting vertex number
-            counter = counter + len(path)
-            vts_count_lst.append(counter)
-            #print(path)
-            for v in path:
-                #print(v)
-                #f_out.write("v " + str(float(v[0])) + " " + str(float(v[1])) + " " + str(float(v[2])) + "\n")
-                f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
-        
-        #print(vts_count_lst)
-        for i, cross_section in enumerate(cross_sections):
-            path = cross_section.vertices
-            base = vts_count_lst[i]
-            f_out.write("l")
-            for i in range(len(path)):
-                f_out.write(" " + str(base + i + 1))
-            f_out.write("\n")

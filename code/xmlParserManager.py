@@ -1,5 +1,4 @@
 from xmlParser import XmlParser
-from pprint import pprint
 
 class XmlParserManager:
 
@@ -17,9 +16,7 @@ class XmlParserManager:
                 extension = cross_section.extension
                 path = cross_section.vertices
                 material = cross_section.materials
-                
-                #pprint(material)
-                
+                                
                 xml = XmlParser(path, extension, material)
                 #xml.normalize_path()
                 output_file_path = "output/xml/path_{}_{}.xml".format(j, i)

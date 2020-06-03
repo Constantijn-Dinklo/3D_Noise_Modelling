@@ -2,6 +2,7 @@ import misc
 import numpy as np
 
 from pprint import pprint
+
 class CrossSection:
 
     def __init__(self, points_to_source, receiver, reflection_heights):
@@ -255,8 +256,3 @@ class CrossSection:
         self.vertices = cross_section_vertices
         self.materials = material
         self.extension = extension
-        #return cross_section_vertices, material, extension
-
-    def split_cross_section(self, split_index):
-        #split this cross section on this index
-        pass

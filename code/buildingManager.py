@@ -1,6 +1,6 @@
-from building import Building
 import fiona
 
+from building import Building
 from shapely.strtree import STRtree
 
 class BuildingManager:
@@ -30,11 +30,3 @@ class BuildingManager:
 
     def create_rtree(self):
         self.buildings_tree = STRtree(self.buildings_geometry)
-    
-    def get_building(self, id):
-        return self.buildings[id]
-
-if __name__ == "__main__":
-    buildingManager = BuildingManager()
-    buildingManager.read_buildings_shp('input/lod13.shp')
-    # print(buildingManager.buildings)

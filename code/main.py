@@ -1,23 +1,23 @@
 import fiona
 import groundTin as TIN
 import misc
-import sys
 import numpy as np
+import sys
 import xml.etree.cElementTree as ET
+
+from buildingManager import BuildingManager
+from crossSectionManager import CrossSectionManager
+from groundTypeManager import GroundTypeManager
+from receiverPoint import ReceiverPoint
+from reflectionManager import ReflectionManager
+from reflectionPath import ReflectionPath
+from xmlParserManager import XmlParserManager
 
 from pprint import pprint
 from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
-
 from time import time
 
-from xmlParserManager import XmlParserManager
-from buildingManager import BuildingManager
-from groundTypeManager import GroundTypeManager
-from receiverPoint import ReceiverPoint
-from reflectionPath import ReflectionPath
-from crossSectionManager import CrossSectionManager
-from reflectionManager import ReflectionManager
 
 #This should be a temporary input type
 #def read_ground_objects()
@@ -136,20 +136,7 @@ def main(sys_args):
     
     print("read buildings in: {}".format(time() - watch))
     watch = time()
-    #COS: Till now we have a:
-    #   - Constrained Tin
-    #   - Building Manager
-    #   - Ground Type Manager
     
-    hard_coded_receiver_point = [((93550, 441900))]
-
-    # Input variables:
-    cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
-    cnossos_angle = 2.0
-    source_height = 0.05
-    receiver_height = 2
-    minimal_building_height_threshold = 0.3 # this is the minimal distance the 
-
     receiver_points = {} #COS: Might make another manager from this, but might not be needed.
     road_lines = [] #COS: Find a better place for this?
 
@@ -160,23 +147,16 @@ def main(sys_args):
             rec_pt_coords = geometry["coordinates"]
             rec_pt = ReceiverPoint(rec_pt_coords)
             receiver_points[rec_pt_coords] = rec_pt
+    print("read receiver points in: {}".format(time() - watch))
+    watch = time()
 
     road_lines = return_segments_source(road_lines_file_path) #Read in the roads
 
-    #COS: Till now we have a:
-    #   - Constrained Tin
-    #   - Building Manager
-    #   - Ground Type Manager
-    #   - The receiver points
-    #   - The line segments
-
-    source_points = {}
     #source_points structure!
     #For each receiver, there is a set of rays
     #For each ray, there is a list of sources
     #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
-    print("read receiver points in: {}".format(time() - watch))
-    watch = time()
+    source_points = {}
 
     # create a tree for roads
     tree_roads = STRtree(road_lines)
@@ -194,16 +174,18 @@ def main(sys_args):
     watch = time()
 
 
+    source_height = 0.05
+    receiver_height = 2
     #Create the cross sections for all the direct paths
-    cross_section_manager = CrossSectionManager()
+    cross_section_manager = CrossSectionManager(source_height, receiver_height)
     print("=== get direct cross sections ===")
     cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
-    
     
     print("direct cross_sections in: {}".format(time() - watch))
     watch = time()
 
-    # Get first order reflections
+    minimal_building_height_threshold = 0.3 # this is the minimal distance the 
+    # Get first order reflections   
     reflected_paths = ReflectionManager()
     reflected_paths.get_reflection_paths(source_points, building_manager, tin, minimal_building_height_threshold)
     
@@ -218,7 +200,7 @@ def main(sys_args):
                 cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
-    cross_section_manager.write_obj(cross_section_obj_file_path)
+    #cross_section_manager.write_obj(cross_section_obj_file_path)
    
     print("get reflected cross sections in: {}".format(time() - watch))
     watch = time()
@@ -236,5 +218,3 @@ def main(sys_args):
 
 if __name__ == "__main__":
     main(sys.argv)
-    # call all functions etc.
-    #xml_parser(vts, mat)
