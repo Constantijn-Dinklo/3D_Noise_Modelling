@@ -4,9 +4,9 @@ import numpy as np
 from pprint import pprint
 class CrossSection:
 
-    def __init__(self, points_to_source, receiver, reflection_height=0):
+    def __init__(self, points_to_source, receiver, reflection_heights):
         self.points_to_source = points_to_source
-        self.reflection_height = reflection_height
+        self.reflection_heights = reflection_heights
         self.receiver = receiver
         
         self.vertices = []
@@ -246,7 +246,7 @@ class CrossSection:
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)
         if(reflection_point_id_inversed != 0):
             reflection_vertex = len(cross_section_vertices) - 1 - reflection_point_id_inversed
-            extension[reflection_vertex] = ["wall", self.reflection_height - cross_section_vertices[reflection_vertex][2], "A0"]
+            extension[reflection_vertex] = ["wall", self.reflection_heights[0] - cross_section_vertices[reflection_vertex][2], "A0"]
 
         self.vertices = cross_section_vertices
         self.materials = material
