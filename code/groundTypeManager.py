@@ -1,7 +1,6 @@
-from groundType import GroundType
-
 import fiona
 
+from groundType import GroundType
 
 class GroundTypeManager:
 
@@ -16,9 +15,7 @@ class GroundTypeManager:
                 g_geom_shape = ground_info['geometry']
                 g_absp_index = ground_info['properties']['bodemfactor']
 
-                ground = GroundType(ground_id, ground_uuid, g_geom_shape, g_absp_index)
-
-                self.grd_division[ground_id] = ground
+                self.add_ground_type(ground_id, ground_uuid, g_geom_shape, g_absp_index)
 
     def read_grd_type_shp(self, path_to_shp):
         with fiona.open(path_to_shp) as records:
@@ -28,20 +25,8 @@ class GroundTypeManager:
                 g_geom_shape = ground_info['geometry']
                 g_absp_index = ground_info['properties']['bodemfacto']
 
-                ground = GroundType(ground_id, ground_uuid, g_geom_shape, g_absp_index)
-
-                self.grd_division[ground_id] = ground
+                self.add_ground_type(ground_id, ground_uuid, g_geom_shape, g_absp_index)
 
     def add_ground_type(self, ground_id, uuid, geometry, absp_index, holes=[]):
         ground = GroundType(ground_id, uuid, geometry, absp_index, holes)
         self.grd_division[ground_id] = ground
-    
-    def get_ground(self, id):
-        return self.grd_division[id]
-
-
-if __name__ == "__main__":
-    groundTypeManager = GroundTypeManager()
-    groundTypeManager.read_grd_type_gpkg('input/37fz1_bodemvlakken_6.0.gpkg')
-
-    # print(groundTypeManager.grd_division)

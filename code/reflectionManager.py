@@ -1,7 +1,5 @@
 from reflectionPath import ReflectionPath, read_buildings
 from pprint import pprint
-# import numpy as np
-from misc import write_cross_section_to_obj
 
 
 class ReflectionManager:

@@ -1,15 +1,18 @@
 import bisect
-from crossSection import CrossSection
-from pprint import pprint
 import numpy as np
-from misc import interpolate_edge, reverse_bisect_left, write_cross_section_to_obj
 
+from crossSection import CrossSection
+from misc import interpolate_edge, reverse_bisect_left
+from pprint import pprint
 
 class CrossSectionManager:
 
-    def __init__(self):
+    def __init__(self, source_default_height, receiver_default_height):
         self.cross_sections = {}
         self.receiver_triangles = {}
+
+        self.source_default_height = source_default_height
+        self.receiver_default_height= receiver_default_height
     
     def get_cross_section(self, receiver, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights=0):
         cross_section = CrossSection(path, receiver, reflection_heights)
@@ -18,7 +21,7 @@ class CrossSectionManager:
         if receiver in self.receiver_triangles.keys():
             receiver_triangle = self.receiver_triangles[receiver]
         else:
-            init_tr = tin.find_init_triangle(receiver)
+            init_tr = tin.find_vts_near_pt(receiver)
             receiver_triangle = tin.find_receiver_triangle(init_tr, receiver)
             self.receiver_triangles[receiver] = receiver_triangle
 
@@ -34,36 +37,36 @@ class CrossSectionManager:
     
     def get_intermediate_cross_section_collinear_source(self, source_point, cross_section, source_height, receiver_height, receiver):
 
-            # find where the intermediate sources lie in the 'complete' cross-section
+        # find where the intermediate sources lie in the 'complete' cross-section
 
-            # check if the cross section is going in the positive or negative direction
-            if cross_section.vertices[-1][0] - cross_section.vertices[0][0] < 0:
-                split_idx = reverse_bisect_left(cross_section.vertices, source_point)
+        # check if the cross section is going in the positive or negative direction
+        if cross_section.vertices[-1][0] - cross_section.vertices[0][0] < 0:
+            split_idx = reverse_bisect_left(cross_section.vertices, source_point)
 
-            # if the path is parallel with the x axis, check if the y axis is in negative direction.
-            elif cross_section.vertices[-1][0] - cross_section.vertices[0][0] == 0 and cross_section.vertices[-1][1] - cross_section.vertices[0][1] < 0:
-                split_idx = reverse_bisect_left(cross_section.vertices, source_point)
+        # if the path is parallel with the x axis, check if the y axis is in negative direction.
+        elif cross_section.vertices[-1][0] - cross_section.vertices[0][0] == 0 and cross_section.vertices[-1][1] - cross_section.vertices[0][1] < 0:
+            split_idx = reverse_bisect_left(cross_section.vertices, source_point)
 
-            # the x direction is positive, or y is in positive direction
-            else:
-                split_idx = bisect.bisect_left(cross_section.vertices, source_point)
+        # the x direction is positive, or y is in positive direction
+        else:
+            split_idx = bisect.bisect_left(cross_section.vertices, source_point)
 
-            part_path_direct = cross_section.vertices[split_idx:]
-            source_ground_height = interpolate_edge(cross_section.vertices[split_idx - 1], cross_section.vertices[split_idx], source_point)
-            part_path_direct = [(source_point[0], source_point[1], source_ground_height)] + part_path_direct
+        part_path_direct = cross_section.vertices[split_idx:]
+        source_ground_height = interpolate_edge(cross_section.vertices[split_idx - 1], cross_section.vertices[split_idx], source_point)
+        part_path_direct = [(source_point[0], source_point[1], source_ground_height)] + part_path_direct
 
-            cross_section_collinear_point = CrossSection([source_point], receiver, 0)
-            cross_section_collinear_point.vertices = part_path_direct
-            cross_section_collinear_point.extension = {
-                0: ["source", source_height],
-                len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
-            }
-            part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
-            cross_section_collinear_point.materials = part_path_direct_material
-            
-            # Key must already exist, so no need to check.
-            self.cross_sections[receiver].append(cross_section_collinear_point)
-            return
+        cross_section_collinear_point = CrossSection([source_point], receiver, 0)
+        cross_section_collinear_point.vertices = part_path_direct
+        cross_section_collinear_point.extension = {
+            0: ["source", source_height],
+            len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
+        }
+        part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
+        cross_section_collinear_point.materials = part_path_direct_material
+        
+        # Key must already exist, so no need to check.
+        self.cross_sections[receiver].append(cross_section_collinear_point)
+        return
     
     def get_cross_sections_direct(self, direct_paths, tin, ground_type_manager, building_manager, source_height, receiver_height):
         """
@@ -127,77 +130,28 @@ class CrossSectionManager:
         """
         i = 0
         for receiver, cross_sections in self.cross_sections.items():
-            write_cross_section_to_obj(str(i) + filename, cross_sections)
+            self.write_cross_section_to_obj(str(i) + filename, cross_sections)
             i += 1
 
-    """
-    Old stuff
-    #            self.cross_section_manager[receiver] = []
+    def write_cross_section_to_obj(self, obj_filename, cross_sections):
+        print("=== Writing {} ===".format(obj_filename))
 
-        # Loop over all the list of collinear paths for each source
-        for points_to_source in paths_to_sources:
-
-            # Get the cross section for the point furthest away
-            cross_section = CrossSection([points_to_source[-1]], receiver)
-            cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver_height)
+        with open(obj_filename, 'w') as f_out:
+            vts_count_lst = [0]
+            counter = 0
+            for cross_section in cross_sections:
+                path = cross_section.vertices
+                path = np.array(path)
+                counter = counter + len(path)
+                vts_count_lst.append(counter)
+                for v in path:
+                    f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
             
-            # append the direct path directly
-            self.cross_section_manager[receiver].append(cross_section)
-
-            # If there are collinear points, the list is more than 1 point.
-            if (len(points_to_source) > 1):
-
-                # if the list is longer, go over each point, and slice the path such that its until the intermediate source.
-                for point in points_to_source[:-1]:
-
-                    # find where the intermediate sources lie in the 'complete' cross-section
-
-                    # check if the cross section is going in the positive or negative direction
-                    if cross_section.vertices[-1][0] - cross_section.vertices[0][0] < 0:
-                        split_idx = reverse_bisect_left(cross_section.vertices, point)
-
-                    # if the path is parallel with the x axis, check if the y axis is in negative direction.
-                    elif cross_section.vertices[-1][0] - cross_section.vertices[0][0] == 0 and cross_section.vertices[-1][1] - cross_section.vertices[0][1] < 0:
-                        split_idx = reverse_bisect_left(cross_section.vertices, point)
-
-                    # the x direction is positive, or y is in positive direction
-                    else:
-                        split_idx = bisect.bisect_left(cross_section.vertices, point)
-
-                    # what is split idx
-
-                    # check if the intermediate point is exactly (should be nearby) the last edge of the sliced path ( in x,y coordinates)
-                    if point == cross_section.vertices[split_idx][:2]:  # better to add a distance threshold
-                        # create new cross_section for intermediate point
-                        cross_section_collinear_point = CrossSection([point], receiver)
-                        cross_section_collinear_point.vertices = cross_section.vertices[split_idx:]
-                        cross_section_collinear_point.extension = {
-                            0: ["source", source_height],
-                            #split_idx + 1: ["receiver", receiver_height]
-                            len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
-                        }
-                        cross_section_collinear_point.materials = cross_section.material[split_idx:]
-
-                        self.cross_section_manager[receiver].append(cross_section_collinear_point)
-
-                    # If the intermediate point is not on the edge, than interpolate the height and add this point (at the beginning, since it starts at the source.)
-                    else:
-                        part_path_direct = cross_section.vertices[split_idx:]
-                        source_ground_height = interpolate_edge(cross_section.vertices[split_idx - 1], cross_section.vertices[split_idx], point)
-                        part_path_direct = [(point[0], point[1], source_ground_height)] + part_path_direct
-
-                        cross_section_collinear_point = CrossSection([point], receiver)
-                        cross_section_collinear_point.vertices = part_path_direct
-                        cross_section_collinear_point.extension = {
-                            0: ["source", source_height],
-                            #split_idx + 1: ["receiver", receiver_height]
-                            len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
-                        }
-                        part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
-                        cross_section_collinear_point.materials = part_path_direct_material
-                        
-                        self.cross_section_manager[receiver].append(cross_section_collinear_point)
-    """
-    #This is a quick implementation!!! SHOULD BE CHECKED!!!
-    
-
+            #print(vts_count_lst)
+            for i, cross_section in enumerate(cross_sections):
+                path = cross_section.vertices
+                base = vts_count_lst[i]
+                f_out.write("l")
+                for i in range(len(path)):
+                    f_out.write(" " + str(base + i + 1))
+                f_out.write("\n")

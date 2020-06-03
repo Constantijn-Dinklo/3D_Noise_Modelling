@@ -1,10 +1,10 @@
 import fiona
 import math
 import misc
-import time
-from shapely.geometry import shape, Point
 import numpy as np
+import time
 
+from shapely.geometry import shape, Point
 
 class ReflectionPath:
 
@@ -15,73 +15,6 @@ class ReflectionPath:
         # now storing this here.
         self.reflection_points = []
         self.reflection_heights = []
-
-    def is_point_in_lineseg(self, point, lineseg):
-        """
-        Explanation: A function that tests if a point that is known to be part of a line is within a specific line segment of
-        that particular line.
-        ---------------
-        Input:
-        point: [x(float), y(float)] - A point.
-        lineseg: [[x(float), y(float)],[x(float), y(float)]] - A line segment.
-        ---------------
-        Output:
-        point: [x(float), y(float)] - The intersection point.
-        """
-        x_min = min(lineseg[0][0], lineseg[1][0])
-        x_max = max(lineseg[0][0], lineseg[1][0])
-        y_min = min(lineseg[0][1], lineseg[1][1])
-        y_max = max(lineseg[0][1], lineseg[1][1])
-        return point[0] > x_min and point[0] < x_max and point[1] > y_min and point[1] < y_max
-
-    def get_parametric_line_equation(self, p1, p2):
-        """
-        Explanation: A function that reads two points and returns the ABC parameters of the line composed by these points.
-        ---------------
-        Input:
-        p1 : [x(float), y(float)] - The starting point in the line.
-        p2 : [x(float), y(float)] - The ending point in the line.
-        ---------------
-        Output:
-        parameters: [a_norm(float),b_norm(float),c_norm(float)] - The a,b,c parameters of the normalised line equation.
-        """
-        # EQUATION OF A LINE IN THE 2D PLANE:
-        # A * x + B * y + C = 0
-        a = p2[1] - p1[1]
-        b = -(p2[0] - p1[0])
-        c = -a * p1[0] - b * p1[1]
-        m = math.sqrt(a * a + b * b)
-        a_norm = a / m
-        b_norm = b / m
-        c_norm = c / m
-        # EQUATION OF A LINE IN THE 2D PLANE WITH NORMALISED (UNIT) NORMAL VECTORs:
-        # A' * x + B' * y + C' = 0
-        parameters = [a_norm, b_norm, c_norm]
-        return parameters  # THE PARAMETERS OF THE NORMALISED LINE.
-
-    def get_rotated_point(self, p1, p2, angle):
-        """
-        Explanation: A function that reads point p1 (centre), p2, and an angle and returns p2', i.e. the rotated point.
-        ---------------
-        Input:
-        p1 : [x(float), y(float)] - The centre of rotation.
-        p2 : [x(float), y(float)] - The starting point of rotation, i.e. the point to be rotated.
-        angle : float - The angle of rotation (in degrees)
-        Attention: a positive angle rotates to the left (counterclockwise), whereas a negative angle rotates to the right (clockwise)
-        ---------------
-        Output:
-        p2_new: [x(float), y(float)] - The rotated point
-        """
-        x = p2[0] - p1[
-            0]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-        y = p2[1] - p1[
-            1]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-        x_new = x * math.cos(math.radians(angle)) - y * math.sin(math.radians(angle)) + p1[
-            0]  # p1[0] is then added to return to the 'global origin'
-        y_new = x * math.sin(math.radians(angle)) + y * math.cos(math.radians(angle)) + p1[
-            1]  # p1[1] is then added to return to the 'global origin'
-        p2_new = [x_new, y_new]
-        return p2_new
 
     def get_mirror_point(self, line_parameters, point=False):
         """
@@ -101,54 +34,6 @@ class ReflectionPath:
         p_mirror_x = point[0] - 2 * line_parameters[0] * d
         p_mirror_y = point[1] - 2 * line_parameters[1] * d
         return [p_mirror_x, p_mirror_y]
-
-    def line_intersect(self, line1, line2):
-        """
-        Explanation: this functions returns the intersection points (source points) of both lines
-        ---------------
-        Input:
-        line1: the line segment of the receiver point
-        line2: the line segment of the source
-        ---------------
-        Output:
-        point : it returns the point where both line segments intersect
-        """
-        d = (line2[1][1] - line2[0][1]) * (line1[1][0] - line1[0][0]) - (line2[1][0] - line2[0][0]) * (
-                    line1[1][1] - line1[0][1])
-        if d:
-            uA = ((line2[1][0] - line2[0][0]) * (line1[0][1] - line2[0][1]) - (line2[1][1] - line2[0][1]) * (
-                        line1[0][0] - line2[0][0])) / d
-            uB = ((line1[1][0] - line1[0][0]) * (line1[0][1] - line2[0][1]) - (line1[1][1] - line1[0][1]) * (
-                        line1[0][0] - line2[0][0])) / d
-        else:
-            return False
-        if not (0 <= uA <= 1 and 0 <= uB <= 1):
-            return False
-        x = line1[0][0] + uA * (line1[1][0] - line1[0][0])
-        y = line1[0][1] + uA * (line1[1][1] - line1[0][1])
-        return (x, y)
-
-    def x_line_intersect(self, line1, line2):
-        """
-        Explanation: A function that returns the intersection point between two xlines. It doesn't matter if the line segments
-        are really intercepting each other; if they are not, the interception point is virtual, as like it will be the extension of
-        as least one of these lines. This is important for testing reflection points and, therefore, the algorithm cannot use
-        line_intersect, since this last one will return False if the lines do not intercept each other indeed.
-        ---------------
-        Input:
-        line1 : [[x(float), y(float)],[x(float), y(float)]] - A line segment.
-        line2 : [[x(float), y(float)],[x(float), y(float)]] - A line segment.
-        ---------------
-        Output:
-        point: [x(float), y(float)] - The intersection point.
-        """
-        num_x = (line1[0][0] * line1[1][1] - line1[0][1] * line1[1][0]) * (line2[0][0] - line2[1][0]) - (
-                    line1[0][0] - line1[1][0]) * (line2[0][0] * line2[1][1] - line2[0][1] * line2[1][0])
-        num_y = (line1[0][0] * line1[1][1] - line1[0][1] * line1[1][0]) * (line2[0][1] - line2[1][1]) - (
-                    line1[0][1] - line1[1][1]) * (line2[0][0] * line2[1][1] - line2[0][1] * line2[1][0])
-        denom = (line1[0][0] - line1[1][0]) * (line2[0][1] - line2[1][1]) - (line1[0][1] - line1[1][1]) * (
-                    line2[0][0] - line2[1][0])
-        return [num_x / denom, num_y / denom]
 
     def check_validity(self, building_id, building_manager, tin, reflection_point, building_height, minimal_height_difference):
         triangle_index_building = np.where(tin.attributes == building_id)
@@ -222,9 +107,9 @@ class ReflectionPath:
                 # COS: Not sure if this is actually true!!!!
                 if test_r > 0 and test_s > 0:  # This statement guarantees that the source and receiver are both on the outer side of the wall
                     # Get the mirrored source over the wall segment
-                    s_mirror = self.get_mirror_point(self.get_parametric_line_equation(wall[0], wall[1]))
+                    s_mirror = self.get_mirror_point(misc.parametric_line_equation(wall[0], wall[1]))
                     # find the intersection point, returns False is they do not intersect.
-                    reflection_point = self.line_intersect(wall, [s_mirror, self.receiver])
+                    reflection_point = misc.line_intersect(wall, [s_mirror, self.receiver])
 
                     # ref is false if there is no reflection.
                     if reflection_point:
@@ -235,8 +120,8 @@ class ReflectionPath:
                             test_left_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
                             test_left_s = misc.side_test( any_wall[0], any_wall[1], self.source)
                             if test_left_r > 0 and test_left_s > 0:
-                                left_point  = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,angle)])
-                                local_left = self.is_point_in_lineseg(left_point,any_wall)
+                                left_point  = misc.x_line_intersect(any_wall,[self.source, misc.get_rotated_point(self.source,reflection_point,angle)])
+                                local_left = misc.point_on_line(left_point,any_wall)
                                 is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # RIGHT POINT
                         is_right_valid = False
@@ -244,8 +129,8 @@ class ReflectionPath:
                             test_right_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
                             test_right_s = misc.side_test( any_wall[0], any_wall[1], self.source)
                             if test_right_r > 0 and test_right_s > 0:                            
-                                right_point = self.x_line_intersect(any_wall,[self.source,self.get_rotated_point(self.source,reflection_point,-angle)])                        
-                                local_right = self.is_point_in_lineseg(right_point,any_wall)
+                                right_point = misc.x_line_intersect(any_wall,[self.source, misc.get_rotated_point(self.source,reflection_point,-angle)])                        
+                                local_right = misc.point_on_line(right_point,any_wall)
                                 is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
@@ -281,7 +166,6 @@ def get_closest_point(p1, parameters):
     return [p_line_x,p_line_y]
     """
 
-
 def split_lineseg_n(n, lineseg):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
     """
@@ -308,7 +192,6 @@ def split_lineseg_n(n, lineseg):
         ref_list.append(vertex)
     return ref_list
     """
-
 
 def split_lineseg_dim(dim, lineseg):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
@@ -343,7 +226,6 @@ def split_lineseg_dim(dim, lineseg):
     return ref_list
     """
 
-
 def get_candidate_point(dim):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
     """
@@ -367,7 +249,6 @@ def get_candidate_point(dim):
                 candidate = [wall[0],point,wall[1]]
                 c_list.append(candidate)
     """
-
 
 def get_second_order_reflection(s, r, t):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
@@ -422,7 +303,6 @@ def get_second_order_reflection(s, r, t):
     return [ coords, heights ] #[ [ [p11, p12], [p21, p22], .... [pn1, pn2] ] , [ [h11, h12], [h21, h22], .... [hn1, hn2] ]
     """
 
-
 def read_buildings(input_file):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
     # ATTENTION: THE CONTENT OF THIS FUNCTION HAS BEEN PLACED IN MAIN.PY AND BUILDINGMANAGER.PY
@@ -472,7 +352,6 @@ def read_buildings(input_file):
     return dictionary
     """
 
-
 def read_points(input_file, dictionary):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
     """
@@ -501,7 +380,6 @@ def read_points(input_file, dictionary):
     layer.close()
     """
 
-
 def write_candidates(output_file, lista):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
     """
@@ -528,7 +406,6 @@ def write_candidates(output_file, lista):
     fout.close()
     #PointZ (93539.68248698 441892 1.4)
     """
-
 
 def write_output_1st(output_file, lista):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
@@ -559,7 +436,6 @@ def write_output_1st(output_file, lista):
     fout.close()
     #MultiLineStringZ ((93528.02305619 441927.11005859 2.5, 93567.67848824 441908.81858497 0, 93539.68248698 441892 1.4))
     """
-
 
 def write_output_2nd(output_file, lista):
     # THIS FUNCTION IS OUT-OF-DATE, SINCE WE ARE NOT WORKING WITH SECOND ORDER REFLECTIONS ANYMORE.
