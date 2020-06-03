@@ -1,7 +1,8 @@
 from reflectionPath import ReflectionPath, read_buildings
 from pprint import pprint
-#import numpy as np
+# import numpy as np
 from misc import write_cross_section_to_obj
+
 
 class ReflectionManager:
 
@@ -20,24 +21,24 @@ class ReflectionManager:
         Output:
             void (fills self.reflection_paths with a list of paths)
         """
-        
-        #Loop through all the source po ints from all outgoing rays from the receiver
+
+        # Loop through all the source po ints from all outgoing rays from the receiver
         for ray_end_point, source_point_list in source_list_per_ray.items():
-            
-            #Loop through all the source points from one outoing ray from the receiver    
+
+            # Loop through all the source points from one outoing ray from the receiver
             for source_point in source_point_list:
 
-                #Create a reflection path from source to receiver and get all possible reflections
+                # Create a reflection path from source to receiver and get all possible reflections
                 reflection_object = ReflectionPath(source_point, receiver)
                 at_least_one_reflection = reflection_object.get_first_order_reflection(building_manager.buildings, tin, minimal_height_difference)
 
-                #If at least 1 reflection was found, store it
+                # If at least 1 reflection was found, store it
                 if at_least_one_reflection:
                     if receiver not in self.reflection_paths.keys():
                         self.reflection_paths[receiver] = {}
                     if ray_end_point not in self.reflection_paths[receiver].keys():
                         self.reflection_paths[receiver][ray_end_point] = {}
-                    
+
                     self.reflection_paths[receiver][ray_end_point][source_point] = reflection_object
     
     def get_reflection_paths(self, source_receivers_dict, building_manager, tin, minimal_height_difference):
@@ -55,4 +56,4 @@ class ReflectionManager:
         """
         for receiver, sources_list_per_ray in source_receivers_dict.items():
             self.get_reflection_path(receiver, sources_list_per_ray, building_manager, tin, minimal_height_difference)
-        
+

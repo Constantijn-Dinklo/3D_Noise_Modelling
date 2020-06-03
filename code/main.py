@@ -87,7 +87,6 @@ def read_building_and_ground(building_manager, ground_type_manager):
                 geometry = record['geometry']
                 ground_level = record['properties']['h_maaiveld']
                 roof_level = record['properties']['h_dak']
-                #print(part_id)
                 building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
 
             elif record['properties']['uuid'] is not None:
@@ -150,7 +149,6 @@ def main(sys_args):
         for elem in shape:
             geometry = elem["geometry"]
             rec_pt_coords = geometry["coordinates"]
-            #print(rec_pt_coords)
             rec_pt = ReceiverPoint(rec_pt_coords)
             receiver_points[rec_pt_coords] = rec_pt
 
@@ -172,23 +170,17 @@ def main(sys_args):
     watch = time()
 
     #Go through all the receiver points and get their possible source points
-    #count = 0
-    for rec_pt_coords in receiver_points.keys():
+    for rec_pt_coords in receiver_points:
         rec_pt = receiver_points[rec_pt_coords]
         int_pts = rec_pt.return_intersection_points(road_lines)
         
         #Set all the intersection points as possible source points, not this list (int_pts) could be empty
         if len(int_pts.keys()) > 0:
             source_points[rec_pt_coords] = int_pts
-        
-        #if count == 100:
-        #    break
 
-        #count = count + 1
     print("sources in: {}".format(time() - watch))
     watch = time()
-    #for building in building_manager.buildings:
-    #    print(building)
+
 
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
@@ -223,11 +215,12 @@ def main(sys_args):
     #print("xml_parser")
     xml_manager = XmlParserManager()
     xml_manager.write_xml_files(cross_section_manager)
-    
+
     print("write xml in: {}".format(time() - watch))
     watch = time()
     
     print("total runtime in: {}".format(time() - start))
+
 
 if __name__ == "__main__":
     main(sys.argv)
