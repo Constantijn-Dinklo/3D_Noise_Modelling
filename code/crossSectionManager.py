@@ -18,7 +18,8 @@ class CrossSectionManager:
         if receiver in self.receiver_triangles.keys():
             receiver_triangle = self.receiver_triangles[receiver]
         else:
-            receiver_triangle = tin.find_receiver_triangle(2, receiver)
+            init_tr = tin.find_init_triangle(receiver)
+            receiver_triangle = tin.find_receiver_triangle(init_tr, receiver)
             self.receiver_triangles[receiver] = receiver_triangle
 
         #Create the cross section from the receiver to the source point        

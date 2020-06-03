@@ -6,6 +6,9 @@ import numpy as np
 import xml.etree.cElementTree as ET
 
 from pprint import pprint
+from shapely.geometry import Polygon, LineString, Point
+from shapely.strtree import STRtree
+
 from time import time
 
 from xmlParserManager import XmlParserManager
@@ -52,12 +55,12 @@ def return_segments_source(path):
                     sets = []
     for elem in line_float:
         if len(elem) == 2:
-            line_segments.append(elem)
+            line_segments.append(LineString((elem[0], elem[1])))
         if len(elem) > 2:
             for i in range(len(elem) - 1):
                 first_el = elem[i]
                 next_el = elem[i + 1]
-                line_segments.append([first_el, next_el])
+                line_segments.append(LineString((first_el, next_el)))
     return line_segments
 
 def read_building_and_ground(building_manager, ground_type_manager):
@@ -124,6 +127,7 @@ def main(sys_args):
     building_manager = BuildingManager()
 
     read_building_and_ground(building_manager, ground_type_manager)
+    building_manager.create_rtree()
     
     print("read buildings in: {}".format(time() - watch))
     watch = time()
@@ -169,10 +173,13 @@ def main(sys_args):
     print("read receiver points in: {}".format(time() - watch))
     watch = time()
 
+    # create a tree for roads
+    tree_roads = STRtree(road_lines)
+
     #Go through all the receiver points and get their possible source points
     for rec_pt_coords in receiver_points:
         rec_pt = receiver_points[rec_pt_coords]
-        int_pts = rec_pt.return_intersection_points(road_lines)
+        int_pts = rec_pt.return_intersection_points(tree_roads)
         
         #Set all the intersection points as possible source points, not this list (int_pts) could be empty
         if len(int_pts.keys()) > 0:
@@ -206,9 +213,10 @@ def main(sys_args):
                 cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
+    cross_section_manager.write_obj("test_object_reflect_02.obj")
+    
     print("get reflected cross sections in: {}".format(time() - watch))
     watch = time()
-    #cross_section_manager.write_obj("test_object_reflect_01.obj")
 
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()

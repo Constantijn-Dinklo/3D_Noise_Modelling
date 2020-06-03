@@ -17,7 +17,7 @@ class GroundTin:
         self.trs = np.array(trs)
         self.attributes = np.array(attr)
         
-        self.kd_vts = KDTree(self.vts)
+        self.kd_vts = KDTree(self.vts[:, [0, 1]])
 
         self.bounding_box_2d = [100000000, 100000000, -100000000, -100000000]
         self.bounding_box_3d = [100000000, 100000000, 100000000, -100000000, -100000000, -100000000]
@@ -83,6 +83,13 @@ class GroundTin:
 
         self.trs[triangle_index][2] = temp_vertex
         self.trs[triangle_index][5] = temp_incident
+
+    def find_init_triangle(self, p_receiver):
+        nearest_vts = self.kd_vts.query(p_receiver)[1]
+        for i, tr in enumerate(self.trs):
+            if nearest_vts in tr[:3]:
+                return i
+        return 2
 
     def find_receiver_triangle(self, tr_init, p_receiver):
         """
