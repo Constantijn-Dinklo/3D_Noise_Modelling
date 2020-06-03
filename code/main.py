@@ -59,11 +59,11 @@ def return_segments_source(path):
                 line_segments.append([first_el, next_el])
     return line_segments
 
-def read_building_and_ground(building_manager, ground_type_manager):
+def read_building_and_ground(file_path, building_manager, ground_type_manager):
     
     #Read in the buildings and ground types
     #This should be removed and moved to the files individually
-    with fiona.open("input/semaantics_test_part_id.shp") as semantics:
+    with fiona.open(file_path) as semantics:
         for record in semantics:
             #Not sure if this does anything right now
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
@@ -110,16 +110,21 @@ def read_building_and_ground(building_manager, ground_type_manager):
 def main(sys_args):
     print(sys_args[0])
 
-    constraint_tin_file_path = sys_args[1]
-    ground_type_file_path = ""#sys_args[2]
-    building_file_path = ""#sys_args[3]
+    #Input files
+    constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
+    building_and_ground_file_path = "input/semaantics_test_part_id.shp"
+    receiver_point_file_path = "input/receiver_points_scenario_000.shp"
+    road_lines_file_path = "input/test_2.gml"
+
+    #Output files
+    cross_section_obj_file_path = "test_object_reflect_01.obj"
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
 
     ground_type_manager = GroundTypeManager()
     building_manager = BuildingManager()
 
-    read_building_and_ground(building_manager, ground_type_manager)
+    read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
     
     #COS: Till now we have a:
     #   - Constrained Tin
@@ -138,14 +143,15 @@ def main(sys_args):
     road_lines = [] #COS: Find a better place for this?
 
     #Create a Receiver Point to which the sound should travel
-    with fiona.open('input/receiver_points_scenario_000.shp') as shape: #Open the receiver points shapefile
+    with fiona.open(receiver_point_file_path) as shape: #Open the receiver points shapefile
         for elem in shape:
             geometry = elem["geometry"]
             rec_pt_coords = geometry["coordinates"]
             rec_pt = ReceiverPoint(rec_pt_coords)
             receiver_points[rec_pt_coords] = rec_pt
 
-    road_lines = return_segments_source('input/test_2.gml') #Read in the roads
+    road_lines = return_segments_source(road_lines_file_path) #Read in the roads
+    exit()
 
     #COS: Till now we have a:
     #   - Constrained Tin
@@ -187,10 +193,10 @@ def main(sys_args):
                 cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
-    cross_section_manager.write_obj("test_object_reflect_01.obj")
+    cross_section_manager.write_obj(cross_section_obj_file_path)
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
-    print("xml_parser")
+    print("=== Write XML files ===")
     xml_manager = XmlParserManager()
     xml_manager.write_xml_files(cross_section_manager)
 
