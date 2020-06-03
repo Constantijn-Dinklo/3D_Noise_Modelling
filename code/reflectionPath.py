@@ -3,6 +3,7 @@ import math
 import misc
 import time
 from shapely.geometry import shape
+import numpy as np
 
 
 class ReflectionPath:
@@ -149,7 +150,50 @@ class ReflectionPath:
                     line2[0][0] - line2[1][0])
         return [num_x / denom, num_y / denom]
 
-    def get_first_order_reflection(self, buildings_dict):
+    def check_validity(self, building_id, buildings_dict, tin, reflection_point, building_height, minimal_height_difference):
+        triangle_index_building = np.where(tin.attributes == building_id)
+        triangle_index_building = triangle_index_building[0][0]
+        #print("random tr index of building: {}".format(triangle_index_building))
+        # find the triangle where the reflection point is in (it is on the line though.)
+        reflection_triangle = tin.find_receiver_triangle(triangle_index_building, reflection_point)
+        #print("correct tr of building: {}".format(tin.attributes[reflection_triangle]))
+
+        # can be either on the building side, or on the outerside
+        # If the triangle is on the inside, get the triangle on the outside
+        if(tin.attributes[reflection_triangle] == building_id):
+            #print("triangle is on inside")
+            # the triangle is on the inside of the building
+            # now get neighbor
+            edges = (
+                (tin.vts[tin.trs[reflection_triangle][0]], tin.vts[tin.trs[reflection_triangle][1]]),
+                (tin.vts[tin.trs[reflection_triangle][1]], tin.vts[tin.trs[reflection_triangle][2]]),
+                (tin.vts[tin.trs[reflection_triangle][2]], tin.vts[tin.trs[reflection_triangle][0]])
+            )
+            # find which edge intersects with the point.
+            neighbor = -1
+            for i, edge in enumerate(edges):
+                # side the side test is very much close to 0, it is the right edge
+                if(abs(misc.side_test(edge[0], edge[1], reflection_point)) < 0.05): neighbor = i
+            assert(neighbor != -1)
+            nbs = [5, 3, 4]
+            reflection_triangle = tin.trs[reflection_triangle][nbs[neighbor]]
+
+        #print("triangle type on outside: {}".format(tin.attributes[reflection_triangle]))
+        # we should have the correct triangle at hand
+        if(tin.attributes[reflection_triangle][0] == 'b'):
+            #print("other triangle is building")
+            # it is a building
+            outside_building_height = buildings_dict[tin.attributes[reflection_triangle]].roof_level
+            if(building_height - outside_building_height > minimal_height_difference):
+                # building is atleast 20 centimeters higher then
+                return True
+            else:
+                return False
+        else:
+            # not a building, so its fine (should be, there should not be buildings below ground level in the dataset)
+            return True
+
+    def get_first_order_reflection(self, buildings_dict, tin, minimal_height_difference):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
@@ -161,10 +205,10 @@ class ReflectionPath:
         Stores reflection points, and their corresponding heights in the class.
         return True if reflections are found, False if not
         """
-        # Loop through all the buildings
-        for id, building in buildings_dict.items():
-            # h_dak = buildings_dict[bag_id]['h_dak']
-            # walls = buildings_dict[bag_id]['walls']
+        #Loop through all the buildings
+        for building_id, building in buildings_dict.items():
+            #h_dak = buildings_dict[bag_id]['h_dak']
+            #walls = buildings_dict[bag_id]['walls']
             for wall in building.walls:
                 test_r = misc.side_test(wall[0], wall[1], self.receiver)
                 test_s = misc.side_test(wall[0], wall[1], self.source)
@@ -199,8 +243,10 @@ class ReflectionPath:
                                 is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-                            self.reflection_points.append([reflection_point])
-                            self.reflection_heights.append([building.roof_level])
+                            # Check if reflection is valid, ie if there is no other building in front.
+                            if(self.check_validity(building_id, buildings_dict, tin, reflection_point, building.roof_level, minimal_height_difference)):
+                                self.reflection_points.append([reflection_point])
+                                self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
             return True
         return False

@@ -6,6 +6,7 @@ import numpy as np
 import xml.etree.cElementTree as ET
 
 from pprint import pprint
+from time import time
 
 from xmlParserManager import XmlParserManager
 from buildingManager import BuildingManager
@@ -108,6 +109,7 @@ def read_building_and_ground(building_manager, ground_type_manager):
                     ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
 
 def main(sys_args):
+    start = time()
     print(sys_args[0])
 
     constraint_tin_file_path = sys_args[1]
@@ -115,12 +117,16 @@ def main(sys_args):
     building_file_path = ""#sys_args[3]
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
+    print("read file in {} seconds".format(time() - start))
+    watch = time()
 
     ground_type_manager = GroundTypeManager()
     building_manager = BuildingManager()
 
     read_building_and_ground(building_manager, ground_type_manager)
     
+    print("read buildings in: {}".format(time() - watch))
+    watch = time()
     #COS: Till now we have a:
     #   - Constrained Tin
     #   - Building Manager
@@ -133,6 +139,7 @@ def main(sys_args):
     cnossos_angle = 2.0
     source_height = 0.05
     receiver_height = 2
+    minimal_building_height_threshold = 0.3 # this is the minimal distance the 
 
     receiver_points = {} #COS: Might make another manager from this, but might not be needed.
     road_lines = [] #COS: Find a better place for this?
@@ -159,6 +166,8 @@ def main(sys_args):
     #For each receiver, there is a set of rays
     #For each ray, there is a list of sources
     #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
+    print("read receiver points in: {}".format(time() - watch))
+    watch = time()
 
     #Go through all the receiver points and get their possible source points
     for rec_pt_coords in receiver_points:
@@ -169,30 +178,49 @@ def main(sys_args):
         if len(int_pts.keys()) > 0:
             source_points[rec_pt_coords] = int_pts
 
+    print("sources in: {}".format(time() - watch))
+    watch = time()
+
+
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager()
     print("=== get direct cross sections ===")
     cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
+    
+    print("direct cross_sections in: {}".format(time() - watch))
+    watch = time()
+
     # Get first order reflections
-    print("=== get reflection points ===")
     reflected_paths = ReflectionManager()
-    reflected_paths.get_reflection_paths(source_points, building_manager)
+    reflected_paths.get_reflection_paths(source_points, building_manager, tin, minimal_building_height_threshold)
+    
+    print("reflected paths in: {}".format(time() - watch))
+    watch = time()
 
     #Loop through all the reflection paths
-    print("=== get reflection cross sections ===")
+    #print("=== get reflection cross sections ===")
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
                 cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
 
-    cross_section_manager.write_obj("test_object_reflect_01.obj")
+    print("get reflected cross sections in: {}".format(time() - watch))
+    watch = time()
+    #cross_section_manager.write_obj("test_object_reflect_01.obj")
+
 
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
-    print("xml_parser")
+    #print("xml_parser")
     xml_manager = XmlParserManager()
     xml_manager.write_xml_files(cross_section_manager)
+
+    print("write xml in: {}".format(time() - watch))
+    watch = time()
+    
+    print("total runtime in: {}".format(time() - start))
+
 
 if __name__ == "__main__":
     main(sys.argv)
