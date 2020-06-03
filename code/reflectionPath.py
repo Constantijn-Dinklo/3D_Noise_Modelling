@@ -2,7 +2,7 @@ import fiona
 import math
 import misc
 import time
-from shapely.geometry import shape
+from shapely.geometry import shape, Point
 import numpy as np
 
 
@@ -150,7 +150,7 @@ class ReflectionPath:
                     line2[0][0] - line2[1][0])
         return [num_x / denom, num_y / denom]
 
-    def check_validity(self, building_id, buildings_dict, tin, reflection_point, building_height, minimal_height_difference):
+    def check_validity(self, building_id, building_manager, tin, reflection_point, building_height, minimal_height_difference):
         triangle_index_building = np.where(tin.attributes == building_id)
         triangle_index_building = triangle_index_building[0][0]
         #print("random tr index of building: {}".format(triangle_index_building))
@@ -183,7 +183,7 @@ class ReflectionPath:
         if(tin.attributes[reflection_triangle][0] == 'b'):
             #print("other triangle is building")
             # it is a building
-            outside_building_height = buildings_dict[tin.attributes[reflection_triangle]].roof_level
+            outside_building_height = building_manager.buildings[tin.attributes[reflection_triangle]].roof_level
             if(building_height - outside_building_height > minimal_height_difference):
                 # building is atleast 20 centimeters higher then
                 return True
@@ -193,7 +193,7 @@ class ReflectionPath:
             # not a building, so its fine (should be, there should not be buildings below ground level in the dataset)
             return True
 
-    def get_first_order_reflection(self, buildings_dict, tin, minimal_height_difference):
+    def get_first_order_reflection(self, building_manager, tin, minimal_height_difference, radius_buffer=2000):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
         according to the receivers and sources that are provided from main.py
@@ -209,7 +209,7 @@ class ReflectionPath:
         # for id, building in buildings_dict.items():
             # h_dak = buildings_dict[bag_id]['h_dak']
             # walls = buildings_dict[bag_id]['walls']
-        query_geom = self.receiver.buffer(radius_buffer)  # 2000 m buffer around receiver
+        query_geom = Point(self.receiver).buffer(radius_buffer)  # 2000 m buffer around receiver
         chosen_buildings = building_manager.buildings_tree.query(query_geom)
         for chosen_building in chosen_buildings:
             building_id = building_manager.polygon_id_to_building_id[id(chosen_building)]
@@ -250,7 +250,7 @@ class ReflectionPath:
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
                             # Check if reflection is valid, ie if there is no other building in front.
-                            if(self.check_validity(building_id, buildings_dict, tin, reflection_point, building.roof_level, minimal_height_difference)):
+                            if(self.check_validity(building_id, building_manager, tin, reflection_point, building.roof_level, minimal_height_difference)):
                                 self.reflection_points.append([reflection_point])
                                 self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:

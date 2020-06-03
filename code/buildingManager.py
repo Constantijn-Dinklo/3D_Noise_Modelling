@@ -1,6 +1,8 @@
 from building import Building
 import fiona
 
+from shapely.strtree import STRtree
+
 class BuildingManager:
 
     def __init__(self):
@@ -23,7 +25,7 @@ class BuildingManager:
     def add_building(self, building_id, building_bag_id, geometry, ground_level, roof_level):
         building = Building(building_id, building_bag_id, geometry, ground_level, roof_level)
         self.buildings[building_id] = building
-        self.building_geometry.append(building.polygon)
+        self.buildings_geometry.append(building.polygon)
         self.polygon_id_to_building_id[id(building.polygon)] = building_id
 
     def create_rtree(self):
