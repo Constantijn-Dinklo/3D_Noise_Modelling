@@ -8,6 +8,7 @@ import xml.etree.cElementTree as ET
 from buildingManager import BuildingManager
 from crossSectionManager import CrossSectionManager
 from groundTypeManager import GroundTypeManager
+from receiverManager import ReceiverManager
 from receiverPoint import ReceiverPoint
 from reflectionManager import ReflectionManager
 from reflectionPath import ReflectionPath
@@ -124,6 +125,7 @@ def main(sys_args):
     #Output files
     cross_section_obj_file_path = "test_object_reflect_01.obj"
 
+
     tin = TIN.read_from_objp(constraint_tin_file_path)
     print("read file in {} seconds".format(time() - start))
     watch = time()
@@ -137,39 +139,22 @@ def main(sys_args):
     print("read buildings in: {}".format(time() - watch))
     watch = time()
     
-    receiver_points = {} #COS: Might make another manager from this, but might not be needed.
-    road_lines = [] #COS: Find a better place for this?
-
-    #Create a Receiver Point to which the sound should travel
-    with fiona.open(receiver_point_file_path) as shape: #Open the receiver points shapefile
-        for elem in shape:
-            geometry = elem["geometry"]
-            rec_pt_coords = geometry["coordinates"]
-            rec_pt = ReceiverPoint(rec_pt_coords)
-            receiver_points[rec_pt_coords] = rec_pt
+    receiver_manager = ReceiverManager()
+    receiver_manager.read_receiver_points(receiver_point_file_path)
+    
     print("read receiver points in: {}".format(time() - watch))
     watch = time()
 
+    road_lines = [] #COS: Find a better place for this?
     road_lines = return_segments_source(road_lines_file_path) #Read in the roads
+    tree_roads = STRtree(road_lines) # create a tree for roads
 
-    #source_points structure!
-    #For each receiver, there is a set of rays
-    #For each ray, there is a list of sources
-    #{receiver:{ray_1:[source_1, source_2], ray_2:[source_3, source_4]}}
-    source_points = {}
+    print("read road lines in: {}".format(time() - watch))
+    watch = time()
 
-    # create a tree for roads
-    tree_roads = STRtree(road_lines)
-
-    #Go through all the receiver points and get their possible source points
-    for rec_pt_coords in receiver_points:
-        rec_pt = receiver_points[rec_pt_coords]
-        int_pts = rec_pt.return_intersection_points(tree_roads)
-        
-        #Set all the intersection points as possible source points, not this list (int_pts) could be empty
-        if len(int_pts.keys()) > 0:
-            source_points[rec_pt_coords] = int_pts
-
+    #Get the source points for each receiver
+    receiver_manager.determine_source_points(tree_roads)   
+    
     print("sources in: {}".format(time() - watch))
     watch = time()
 
@@ -179,26 +164,25 @@ def main(sys_args):
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager(source_height, receiver_height)
     print("=== get direct cross sections ===")
-    cross_section_manager.get_cross_sections_direct(source_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
+    cross_section_manager.get_cross_sections_direct(receiver_manager.receiver_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
     print("direct cross_sections in: {}".format(time() - watch))
     watch = time()
 
     minimal_building_height_threshold = 0.3 # this is the minimal distance the 
     # Get first order reflections   
-    reflected_paths = ReflectionManager()
-    reflected_paths.get_reflection_paths(source_points, building_manager, tin, minimal_building_height_threshold)
+    reflection_manager = ReflectionManager()
+    reflection_manager.get_reflection_paths(receiver_manager.receiver_points, building_manager, tin, minimal_building_height_threshold)
     
     print("reflected paths in: {}".format(time() - watch))
     watch = time()
 
     #Loop through all the reflection paths
     #print("=== get reflection cross sections ===")
-    for receiver, ray_paths in reflected_paths.reflection_paths.items():
+    for receiver_coords, ray_paths in reflection_manager.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
-            for source, path in source_paths.items():
-                cross_section_manager.get_cross_sections_reflection(path, tin, ground_type_manager, building_manager, source_height, receiver_height)
-    
+            for source, reflection_path in source_paths.items():
+                cross_section_manager.get_cross_sections_reflection(reflection_path, tin, ground_type_manager, building_manager, source_height, receiver_height)
 
     #cross_section_manager.write_obj(cross_section_obj_file_path)
    

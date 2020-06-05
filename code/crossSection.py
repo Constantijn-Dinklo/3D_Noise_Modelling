@@ -5,10 +5,11 @@ from pprint import pprint
 
 class CrossSection:
 
-    def __init__(self, points_to_source, receiver, reflection_heights):
+    def __init__(self, points_to_source, receiver, source, reflection_heights):
         self.points_to_source = points_to_source
         self.reflection_heights = reflection_heights
         self.receiver = receiver
+        self.source = source
         
         self.vertices = []
         self.materials = []

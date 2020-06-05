@@ -13,11 +13,12 @@ class XmlParserManager:
                 f.write('{} {} {}\n'.format(j, receiver[0], receiver[1]))
             self.prepared_paths[receiver] = []
             for i, cross_section in enumerate(cross_sections):
+                source = cross_section.source
                 extension = cross_section.extension
                 path = cross_section.vertices
                 material = cross_section.materials
                                 
-                xml = XmlParser(path, extension, material)
+                xml = XmlParser(source, path, extension, material)
                 #xml.normalize_path()
                 output_file_path = "output/xml/path_{}_{}.xml".format(j, i)
                 #print("=== write {} ===".format(output_file_path))
