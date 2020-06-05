@@ -243,9 +243,9 @@ class CrossSection:
         #
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
-
+        source_length = 2
         # add source and receiver points. source is always 0.05 meter above terrain, receiver always at 2 meters.
-        extension[0] = ["source", source_height]
+        extension[0] = ["source", source_height, source_length]
         extension[len(cross_section_vertices) - 1] = ["receiver", receiver_height]
 
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)

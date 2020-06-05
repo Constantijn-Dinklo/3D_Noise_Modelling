@@ -105,8 +105,8 @@ class XmlParser:
 
         self.mat = [self.mat[id] for id in path_simple]
         self.vts = np.array([self.vts[id] for id in path_simple])
-                    
-    def write_xml(self, filename, validate):
+
+    def write_xml(self, filename, default_noise_file, Lw, validate):
         """
         Explination:
             1. create a element tree and set general information
@@ -158,9 +158,31 @@ class XmlParser:
             # set the first point as receiver
             ext = ET.Element("ext")
             ext_type = ET.SubElement(ext, val[0])
-            ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
-            if (len(ext) > 2):
+            # if its a source, this comes before the height
+            if(val[0] == "source"):
+                #ET.SubElement(ext_type, "import", file=default_noise_file)
+                ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+                power_levels = Lw['power'] + 10 * np.log10(val[2])
+                power_levels_str = ""
+                for dB in power_levels:
+                    power_levels_str += " {:.1f}".format(dB)
+                print(power_levels_str)
+                ET.SubElement(ext_type, "Lw", 
+                    sourceType=Lw['sourceType'],
+                    measurementType=Lw['measurementType'],
+                    frequencyWeighting=Lw['frequencyWeighting']
+                ).text = power_levels_str
+
+                #geom = ET.SubElement(ext_type, "extGeometry")
+                #line_source = ET.SubElement(geom, "lineSource")
+                # make sure to put the lenth in extension
+                #ET.SubElement(line_source, "length").text = "{:.2f}".format(val[2])
+
+            elif (val[0] == "wall" or val[0] == "edge"):
                 ET.SubElement(ext_type, "mat").text = str(val[2])
+            else:
+                ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+
             
             path[id].append(ext)
 

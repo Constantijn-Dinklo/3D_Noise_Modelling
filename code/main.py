@@ -119,7 +119,7 @@ def main(sys_args):
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
     receiver_point_file_path = "input/receiver_points_scenario_000.shp"
-    road_lines_file_path = "input/test_2.gml"
+    road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
     cross_section_obj_file_path = "test_object_reflect_01.obj"
@@ -176,6 +176,12 @@ def main(sys_args):
 
     source_height = 0.05
     receiver_height = 2
+    defaulf_noise_levels = {
+        "sourceType"         : "LineSource",
+        "measurementType"    : "OmniDirectionnal",
+        "frequencyWeighting" : "LIN",
+        "power"              : np.array([78.2, 74.1, 71.6, 74.2, 78, 73.8, 69, 55.9])
+    }
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager(source_height, receiver_height)
     print("=== get direct cross sections ===")
@@ -193,7 +199,7 @@ def main(sys_args):
     watch = time()
 
     #Loop through all the reflection paths
-    #print("=== get reflection cross sections ===")
+    print("=== get reflection cross sections ===")
     for receiver, ray_paths in reflected_paths.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, path in source_paths.items():
@@ -208,7 +214,7 @@ def main(sys_args):
     #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
     print("=== Write XML files ===")
     xml_manager = XmlParserManager()
-    xml_manager.write_xml_files(cross_section_manager)
+    xml_manager.write_xml_files(cross_section_manager, defaulf_noise_levels, source_height)
 
     print("write xml in: {}".format(time() - watch))
     watch = time()
