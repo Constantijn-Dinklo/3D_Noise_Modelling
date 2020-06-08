@@ -8,9 +8,6 @@ class XmlParserManager:
 
     def write_xml_files(self, cross_sections_manager, Lw, source_height):
         output_folder = "output/xml/"
-        output_default_noise = "Default_Road_Noise.xml"
-        # write the default noise output file
-        #write_default_noise(output_folder + output_default_noise, Lw, source_height)
 
         j = 0
         cross_sections_dict = cross_sections_manager.cross_sections
