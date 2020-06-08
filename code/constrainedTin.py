@@ -143,6 +143,7 @@ class ConstrainedTin:
             t2 = time()
             print("---" + str(count / length * 100) + " %---")
             print(t2 - t1)
+        print("================== Added Constraints =========================")
         return id_to_attr
 
     def triangulate_constraints(self, semantics):
@@ -150,9 +151,9 @@ class ConstrainedTin:
         self.from_3d_to_2d()
         id_to_attr = self.add_constraint(semantics)
         A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
+        print("================== Created Dict ==============================")
         const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
-        # tr.compare(plt, A, const_tin)
-        # plt.show()
+        print("================== Triangulated Area =========================")
         if len(const_tin['vertices']) != len(self.vts):
             for v in const_tin['vertices'][len(self.vts):]:
                 z = self.tin.interpolate_tin_linear(v[0], v[1])
@@ -166,6 +167,7 @@ class ConstrainedTin:
             self.trs.append((triangle[0][0], triangle[0][1], triangle[0][2],
                              triangle[1][0], triangle[1][1], triangle[1][2]))
         self.attr = const_tin['triangle_attributes']
+        print("================== Created Lists =========================")
         return const_tin, id_to_attr
 
     @staticmethod
@@ -326,7 +328,11 @@ class ConstrainedTin:
 
 
 if __name__ == "__main__":
-    semantics = fiona.open("input/semantics_scenario_001.shp")
-    v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin_scenario_001.obj")
+    semantics = fiona.open("input/scenario_001/building/lod13.shp")
+    v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/scenario_001/tin/tin.obj")
+    print("================== Read Constraints ==========================")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
-    v_ground_tin_lod1.write_to_objp("output/constrained_tin_clean_semantics_tile_NW.objp", output[1])
+    v_ground_tin_lod1.write_to_obj("output/scenario_003/constrainted_tin.objp")
+    print("================== Wrote To OBJ ==============================")
+    v_ground_tin_lod1.write_to_objp("output/scenario_003/constrainted_tin.objp", output[1])
+    print("================== Wrote To OBJP =============================")
