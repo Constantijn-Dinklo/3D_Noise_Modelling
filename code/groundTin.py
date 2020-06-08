@@ -106,9 +106,13 @@ class GroundTin:
         area_left = abs(misc.side_test(receiver, source, vertex_left))
 
         # quick check, debug:
-        #if()
-        # find where on the line (percentile) the cross section is.
-        part_right = area_right / (area_left + area_right)
+        if((area_left + area_right) < 0.1):
+            # if edge and both triangles are collinear, put the point half way.
+            print("super small area, put point halfway")
+            part_right = 0.5
+        else: 
+            # find where on the line (percentile) the cross section is.
+            part_right = area_right / (area_left + area_right)
 
         # take vertex_right and append a part of the vector from right to left to it
         intersection_point = vertex_right + (vertex_left - vertex_right) * part_right

@@ -19,7 +19,6 @@ from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
 from time import time
 
-
 #This should be a temporary input type
 #def read_ground_objects()
 
@@ -119,7 +118,7 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/test_receivers_simple_case.shp"
+    receiver_point_file_path = "input/gridded_points_scenario_000.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
@@ -137,20 +136,17 @@ def main(sys_args):
     read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
     building_manager.create_rtree()
     
-    print("read buildings in: {:.2f} seconds".format(time() - watch))
+    print("read {} buildings in: {:.2f} seconds".format(len(building_manager.buildings), time() - watch))
     watch = time()
     
     receiver_manager = ReceiverManager()
     receiver_manager.read_receiver_points(receiver_point_file_path)
-    
-    print("read receiver points in: {:.2f} seconds".format(time() - watch))
-    watch = time()
 
     road_lines = [] #COS: Find a better place for this?
     road_lines = return_segments_source(road_lines_file_path) #Read in the roads
     tree_roads = STRtree(road_lines) # create a tree for roads
 
-    print("read receiver points in: {:.2f}\nFind sources...".format(time() - watch))
+    print("read receiver points in: {:.2f}\nFind sources for each receiver...".format(time() - watch))
     watch = time()
 
     #Get the source points for each receiver
@@ -175,7 +171,7 @@ def main(sys_args):
     #print("=== get direct cross sections ===")
     cross_section_manager.get_cross_sections_direct(receiver_manager.receiver_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
-    print("ran direct cross_sections in: {:.2f} seconds\nGet refelcted paths...".format(time() - watch))
+    print("ran direct cross_sections in: {:.2f} seconds\nGet reflected paths...".format(time() - watch))
     watch = time()
 
     # Get first order reflections   

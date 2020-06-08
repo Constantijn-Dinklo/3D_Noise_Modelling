@@ -90,7 +90,7 @@ class CrossSectionManager:
         #
         i = 0
         for receiver_coords, receiver in receiver_points.items():  
-            print(i, receiver)
+            print(i, receiver.receiver_coords)
             i += 1          
             #For each ray, grab all the source points between the receiver and the ray_end
             for ray_end, source_points in receiver.source_points.items():
@@ -131,10 +131,12 @@ class CrossSectionManager:
         Output:
             void (writes obj file)
         """
-        i = 0
-        for receiver, cross_sections in self.cross_sections.items():
-            self.write_cross_section_to_obj(str(i) + filename, cross_sections)
-            i += 1
+        cross_sections = self.cross_sections[(93573.0, 441873.0)]
+
+        #i = 0
+        #for receiver, cross_sections in self.cross_sections.items():
+        self.write_cross_section_to_obj("test" + filename, cross_sections)
+        #i += 1
 
     def write_cross_section_to_obj(self, obj_filename, cross_sections):
         print("=== Writing {} ===".format(obj_filename))

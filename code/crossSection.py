@@ -36,7 +36,7 @@ class CrossSection:
         for i, edge in enumerate(edges):
             # Check if the orientation is correct
             if (misc.side_test(origin, destination, ground_tin.vts[edge[0]]) <= 0 and
-                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) >= 0):
+                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) > 0):
                 return i, edge
         
         print("something went wrong here")
@@ -244,7 +244,7 @@ class CrossSection:
         #
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
-        source_length = self.source.left_length + self.source.right_lenght
+        source_length = self.source.left_length + self.source.right_length
         # add source and receiver points. source is always 0.05 meter above terrain, receiver always at 2 meters.
         extension[0] = ["source", source_height, source_length]
         extension[len(cross_section_vertices) - 1] = ["receiver", receiver_height]
