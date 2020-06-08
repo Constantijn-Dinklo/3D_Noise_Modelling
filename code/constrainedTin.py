@@ -90,8 +90,13 @@ class ConstrainedTin:
         return coords[0], coords[1]
 
     def add_constraint(self, semantic):
+        print("=== adding constraints ===")
         id_to_attr = {}
+        length = len(semantic)
+        count = 0
         for record in semantic:
+            t1 = time()
+            count += 1
             if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
                 continue
             elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
@@ -135,23 +140,26 @@ class ConstrainedTin:
                 elif record['properties']['uuid'] is not None:
                     id_to_attr[int(record['id']) * 100 + k] = 'g' + record['properties']['uuid']
                 k += 1
+            t2 = time()
+            print("---" + str(count / length * 100) + " %---")
+            print(t2 - t1)
         print("================== Added Constraints =========================")
         return id_to_attr
 
     def triangulate_constraints(self, semantics):
+        print("=== start triangulating ===")
         self.from_3d_to_2d()
         id_to_attr = self.add_constraint(semantics)
         A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
         print("================== Created Dict ==============================")
         const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
         print("================== Triangulated Area =========================")
-        #tr.compare(plt, A, const_tin)
-        #plt.show()
         if len(const_tin['vertices']) != len(self.vts):
             for v in const_tin['vertices'][len(self.vts):]:
                 z = self.tin.interpolate_tin_linear(v[0], v[1])
                 self.vts_2d.append(v)
                 self.vts.append((v[0], v[1], z))
+        print("=== preparing triangles ===")
         temp_trs = const_tin['triangles'].tolist()
         temp_ns = const_tin['neighbors'].tolist()
         full_trs = list(zip(temp_trs, temp_ns))
@@ -294,6 +302,7 @@ class ConstrainedTin:
         ---------------
         Output: void
         """
+        print("=== write to file ===")
 
         with open(file_path, 'w+') as output_file:
             for vertex in self.vts:
@@ -306,13 +315,16 @@ class ConstrainedTin:
                     triangle[5] + 1) + "\n"
                 output_file.write(triangle_str)
 
-            for attribute in self.attr:
+            '''for attribute in self.attr:
                 if attribute[0] != 0.0:
                     attribute_str = "a " + id_to_attr[int(attribute[0])] + "\n"
                     output_file.write(attribute_str)
                 else:
                     attribute_str = "a " + id_to_attr[1001] + "\n"
-                    output_file.write(attribute_str)
+                    output_file.write(attribute_str)'''
+            for attribute in self.attr:
+                attribute_str = "a " + id_to_attr[int(attribute[0])] + "\n"
+                output_file.write(attribute_str)
 
 
 if __name__ == "__main__":
