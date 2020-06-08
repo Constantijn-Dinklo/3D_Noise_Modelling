@@ -120,14 +120,10 @@ def get_rotated_point(p1, p2, angle):
     Output:
     p2_new: [x(float), y(float)] - The rotated point
     """
-    x = p2[0] - p1[
-        0]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-    y = p2[1] - p1[
-        1]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-    x_new = x * math.cos(math.radians(angle)) - y * math.sin(math.radians(angle)) + p1[
-        0]  # p1[0] is then added to return to the 'global origin'
-    y_new = x * math.sin(math.radians(angle)) + y * math.cos(math.radians(angle)) + p1[
-        1]  # p1[1] is then added to return to the 'global origin'
+    x = p2[0] - p1[0]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
+    y = p2[1] - p1[1]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
+    x_new = x * math.cos(math.radians(angle)) - y * math.sin(math.radians(angle)) + p1[0]  # p1[0] is then added to return to the 'global origin'
+    y_new = x * math.sin(math.radians(angle)) + y * math.cos(math.radians(angle)) + p1[1]  # p1[1] is then added to return to the 'global origin'
     p2_new = [x_new, y_new]
     return p2_new
 

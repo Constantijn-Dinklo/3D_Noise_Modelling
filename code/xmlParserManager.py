@@ -19,15 +19,15 @@ class XmlParserManager:
                 f.write('{} {} {}\n'.format(j, receiver[0], receiver[1]))
 
             self.prepared_paths[receiver] = []
-            for i, cross_section in enumerate(cross_sections[:1]):
+            for i, cross_section in enumerate(cross_sections):
+                source = cross_section.source
                 extension = cross_section.extension
                 path = cross_section.vertices
                 material = cross_section.materials
                                 
-                xml = XmlParser(path, extension, material)
+                xml = XmlParser(source, path, extension, material)
                 xml.normalize_path()
                 output_file_path = "{}path_{}_{}.xml".format(output_folder, j, i)
-                #print("=== write {} ===".format(output_file_path))
                 xml.write_xml(output_file_path, output_default_noise, Lw, True)
                 self.prepared_paths[receiver].append(xml)
 
