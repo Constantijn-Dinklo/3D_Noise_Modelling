@@ -15,7 +15,7 @@ class XmlParserManager:
         j = 0
         cross_sections_dict = cross_sections_manager.cross_sections
         for receiver, cross_sections in cross_sections_dict.items():
-            with open('input/map_receiver_id.txt', '+a') as f:
+            with open('output/map_receiver_id.txt', '+a') as f:
                 f.write('{} {} {}\n'.format(j, receiver[0], receiver[1]))
 
             self.prepared_paths[receiver] = []

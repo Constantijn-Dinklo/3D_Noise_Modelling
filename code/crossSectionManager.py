@@ -86,7 +86,10 @@ class CrossSectionManager:
         """
 
         #
+        i = 0
         for receiver, ray_intersects in direct_paths.items():
+            print(i, receiver)
+            i += 1
             #For each ray, grab all the source points between the receiver and the ray_end
             for ray_end, source_points in ray_intersects.items():
                 #Create cross section for the furthest away point

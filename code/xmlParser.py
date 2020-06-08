@@ -166,7 +166,6 @@ class XmlParser:
                 power_levels_str = ""
                 for dB in power_levels:
                     power_levels_str += " {:.1f}".format(dB)
-                print(power_levels_str)
                 ET.SubElement(ext_type, "Lw", 
                     sourceType=Lw['sourceType'],
                     measurementType=Lw['measurementType'],

@@ -52,6 +52,9 @@ class ReflectionManager:
         Output:
             void (fills self.paths with a list of paths)
         """
+        #i = 0
         for receiver, sources_list_per_ray in source_receivers_dict.items():
+            #print(i, receiver)
+            #i += 1
             self.get_reflection_path(receiver, sources_list_per_ray, building_manager, tin, minimal_height_difference)
 

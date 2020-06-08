@@ -105,6 +105,8 @@ class GroundTin:
         area_right = abs(misc.side_test(receiver, source, vertex_right))
         area_left = abs(misc.side_test(receiver, source, vertex_left))
 
+        # quick check, debug:
+        #if()
         # find where on the line (percentile) the cross section is.
         part_right = area_right / (area_left + area_right)
 
