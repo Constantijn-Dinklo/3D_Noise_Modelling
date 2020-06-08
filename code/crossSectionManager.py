@@ -90,7 +90,7 @@ class CrossSectionManager:
         #
         i = 0
         for receiver_coords, receiver in receiver_points.items():  
-            print(i, receiver.receiver_coords)
+            #print(i, receiver.receiver_coords)
             i += 1          
             #For each ray, grab all the source points between the receiver and the ray_end
             for ray_end, source_points in receiver.source_points.items():

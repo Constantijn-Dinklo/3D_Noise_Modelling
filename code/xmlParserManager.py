@@ -10,10 +10,11 @@ class XmlParserManager:
         output_folder = "output/xml/"
 
         j = 0
+        receiver_list = []
         cross_sections_dict = cross_sections_manager.cross_sections
         for receiver, cross_sections in cross_sections_dict.items():
-            with open('output/map_receiver_id.txt', '+a') as f:
-                f.write('{} {} {}\n'.format(j, receiver[0], receiver[1]))
+            # save the receiver, so the order is saved, later written to seperate file with all receivers.
+            receiver_list.append(receiver)
 
             self.prepared_paths[receiver] = []
             for i, cross_section in enumerate(cross_sections):
@@ -25,7 +26,13 @@ class XmlParserManager:
                 xml = XmlParser(source, path, extension, material)
                 xml.normalize_path()
                 output_file_path = "{}path_{}_{}.xml".format(output_folder, j, i)
-                xml.write_xml(output_file_path, output_default_noise, Lw, True)
+                
+                xml.write_xml(output_file_path, Lw, True)
                 self.prepared_paths[receiver].append(xml)
 
             j += 1
+            
+            with open('output/map_receiver_id.txt', 'w') as f:
+                for i, receiver in enumerate(receiver_list):
+                    f.write('{} {} {}\n'.format(i, receiver[0], receiver[1]))
+
