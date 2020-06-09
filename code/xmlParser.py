@@ -14,6 +14,8 @@ class XmlParser:
     def normalize_path(self):
         """
         Explination: Move 3D Cartesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
+        Make all height >= 0
+        make the path in positive x and y direction
         ---------------
         Input: void
         ---------------
@@ -21,6 +23,16 @@ class XmlParser:
         """
         # move all vertices relative to first vertex
         self.vts -= self.vts[0]
+        # make all height >= 0
+        z_min = np.min(self.vts[:,2])
+        if(z_min < 0): self.vts[:,2] += abs(z_min)
+
+        # Make it in positive x and y direction
+        # probably slower
+        #self.vts = [(abs(pt[0]), abs(pt[1]), pt[2]) for pt in self.vts]
+        self.vts[:,0] = abs(self.vts[:,0])
+        self.vts[:,1] = abs(self.vts[:,1])
+        
 
     def get_offsets_perpendicular(self, start, end):
         """
