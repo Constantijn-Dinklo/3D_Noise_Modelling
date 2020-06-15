@@ -118,7 +118,7 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/test_receivers_simple_case.shp"
+    receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
@@ -182,21 +182,23 @@ def main(sys_args):
     watch = time()
 
     #Loop through all the reflection paths
-    #print("=== get reflection cross sections ===")
+    print("=== get reflection cross sections ===")
     for receiver_coords, ray_paths in reflection_manager.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, reflection_path in source_paths.items():
                 cross_section_manager.get_cross_sections_reflection(reflection_path, tin, ground_type_manager, building_manager, source_height, receiver_height)
-
-    #cross_section_manager.write_obj(cross_section_obj_file_path)
-   
     print("ran reflected cross sections in: {:.2f}".format(time() - watch))
     watch = time()
 
-    xml_manager = XmlParserManager()
-    xml_manager.write_xml_files(cross_section_manager, defaulf_noise_levels, source_height)
+    cross_section_manager.write_obj(cross_section_obj_file_path)
+   
+    print("wrote cross sections in: {:.2f}".format(time() - watch))
+    watch = time()
 
-    print("write xml in: {:.2f}".format(time() - watch))
+    #xml_manager = XmlParserManager()
+    #xml_manager.write_xml_files(cross_section_manager, defaulf_noise_levels, source_height)
+
+    #print("wrote {} xml files in: {:.2f}".format(len(xml_manager.prepared_paths), time() - watch))
     watch = time()
     
     print("total runtime in: {}".format(time() - start))

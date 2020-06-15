@@ -131,17 +131,48 @@ class CrossSectionManager:
         Output:
             void (writes obj file)
         """
-        cross_sections = self.cross_sections[(93573.0, 441873.0)]
+        print("=== Writing {} ===".format("paths_section"))
+        total_paths = []
+        i = 0
+        for receiver, cross_sections in self.cross_sections.items():
+            #within bounding box
+            #if(receiver[0] > 93503 and receiver[1] > 441868 and receiver[0] < 93516 and receiver[1] < 441946):
+            #print(receiver, len(cross_sections))
+            total_paths.append(cross_sections)
+            #self.write_cross_section_to_obj("output/obj_paths/receiver_{}.obj".format(i), cross_sections)
+            i +=1
 
-        #i = 0
-        #for receiver, cross_sections in self.cross_sections.items():
-        self.write_cross_section_to_obj("test" + filename, cross_sections)
-        #i += 1
+        with open("output/obj_paths/paths_section.obj", 'w') as f_out:
+            base = 0
+            vts_count_lst = [0]
+            counter = 0
+            for cross_section_paths in total_paths:
+                #write the vertices
+                for cross_section in cross_section_paths:
+                    path = cross_section.vertices
+                    path = np.array(path)
+                    counter = counter + len(path)
+                    vts_count_lst.append(counter)
+                    for v in path:
+                        f_out.write("v {:.2f} {:.2f} {:.2f}\n".format(v[0], v[1], v[2]))
+            #print(vts_count_lst)
+            # write the lines:
+            j = 0
+            for cross_section_paths in total_paths:
+                for i, cross_section in enumerate(cross_section_paths):
+                    path = cross_section.vertices
+                    base = vts_count_lst[j]
+                    f_out.write("l")
+                    for i in range(len(path)):
+                        f_out.write(" " + str(base + i + 1))
+                    f_out.write("\n")
+                    j += 1
 
-    def write_cross_section_to_obj(self, obj_filename, cross_sections):
-        print("=== Writing {} ===".format(obj_filename))
+    def write_cross_section_to_obj(self, filename, cross_sections):
 
-        with open(obj_filename, 'w') as f_out:
+        #with open(obj_filename, 'w') as f_out:
+        
+        with open(filename, 'w') as f_out:
             vts_count_lst = [0]
             counter = 0
             for cross_section in cross_sections:
