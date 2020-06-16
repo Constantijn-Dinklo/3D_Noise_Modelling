@@ -81,8 +81,8 @@ class ReflectionPath:
     def check_relative_size(self, wall_segments, building, point):
         for wall_id in wall_segments:
             other_wall = building.walls[wall_id]
-            intersection_point = misc.line_intersect(other_wall, [self.source.source_coords, point])
-            if intersection_point:    
+            intersection_point = misc.line_intersect(other_wall, [self.receiver, point])
+            if intersection_point != False:    
                 return True
         return False
 
@@ -98,10 +98,6 @@ class ReflectionPath:
         Stores reflection points, and their corresponding heights in the class.
         return True if reflections are found, False if not
         """
-        # Loop through all the buildings
-        # for id, building in buildings_dict.items():
-            # h_dak = buildings_dict[bag_id]['h_dak']
-            # walls = buildings_dict[bag_id]['walls']
         query_geom = Point(self.receiver).buffer(radius_buffer)  # 2000 m buffer around receiver
         chosen_buildings = building_manager.buildings_tree.query(query_geom)
         for chosen_building in chosen_buildings:
@@ -115,7 +111,6 @@ class ReflectionPath:
 
                 # COS: Not sure if this is actually true!!!!
                 if test_r > 0 and test_s > 0:  # This statement guarantees that the source and receiver are both on the outer side of the wall
-                    #if(p_rint): print(wall)
                     # Get the mirrored source over the wall segment
                     s_mirror = self.get_mirror_point(misc.parametric_line_equation(wall[0], wall[1]))
                     # find the intersection point, returns False is they do not intersect.
@@ -125,27 +120,27 @@ class ReflectionPath:
                     if reflection_point:
                         angle = 0.01745329252  # Hardcoded Angle in radians (1 degree or 2.pi / 360)
 
-                        # make vector longer (10 times)
-                        mirrored_point = np.array(s_mirror)
-                        source_array = np.array(self.source.source_coords)
+                        # take the mirror point and rotate that
+                        receiver_array = np.array(self.receiver)
+                        mirrored_source_array = np.array(s_mirror)
 
-                        # The function will also enlarge the vector, so it will intersect
-                        left_point = misc.get_rotated_point(source_array, mirrored_point, angle)
-                        right_point = misc.get_rotated_point(source_array, mirrored_point, -angle)
-
-                        # loop over the wall segments in logical order, so the intersection wall element is found easily.
-                        wall_adjusted_order_right = np.array(range(number_of_walls + wall_id, wall_id, -1)) % number_of_walls
+                        # rotate the mirrored point 1 degree to the left and look for an intersection with the building
+                        left_point = misc.get_rotated_point(receiver_array, mirrored_source_array, angle)
                         wall_adjusted_order_left = np.array(range(wall_id, number_of_walls + wall_id, 1)) % number_of_walls
-
                         is_left_valid = self.check_relative_size(wall_adjusted_order_left, building, left_point)
-                        is_right_valid = self.check_relative_size(wall_adjusted_order_right, building, right_point)
 
-                        # FINAL DECISION
-                        if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
-                            # Check if reflection is valid, ie if there is no other building in front.
-                            if(self.check_validity(building_id, building_manager, tin, reflection_point, building.roof_level, minimal_height_difference)):
-                                self.reflection_points.append([reflection_point])
-                                self.reflection_heights.append([building.roof_level])
+                        if is_left_valid:
+                            # rotate the mirrored point 1 degree to the right and look for an intersection with the building
+                            right_point = misc.get_rotated_point(receiver_array, mirrored_source_array, -angle)
+                            wall_adjusted_order_right = np.array(range(number_of_walls + wall_id, wall_id, -1)) % number_of_walls
+                            is_right_valid = self.check_relative_size(wall_adjusted_order_right, building, right_point)
+
+                            if is_right_valid:
+                                # Check if reflection is valid, ie if there is no other taller building in front.
+                                if(self.check_validity(building_id, building_manager, tin, reflection_point, building.roof_level, minimal_height_difference)):
+                                    # If the reflection object is of sufficient size, and the reflection is valid, store it
+                                    self.reflection_points.append([reflection_point])
+                                    self.reflection_heights.append([building.roof_level])
         if len(self.reflection_points) > 0:
             return True
         return False

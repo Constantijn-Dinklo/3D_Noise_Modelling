@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/GEOG1011/Cnossos_info/Cnossos_code/cnosses_code/Release
+CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/CNOSSOS/cnosses_code/Release
 
-CODE_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code
+CODE_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code
 
-INPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/xml_test/*
-OUTPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/output_xml/
+INPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code/output/xml_test/*
+OUTPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code/output/output_xml/
 
 
 #$CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/path_0_19.xml -o=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/xml/cnossos_out/path_0_2.xml

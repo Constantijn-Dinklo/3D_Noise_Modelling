@@ -72,13 +72,15 @@ class ReceiverPoint:
                     list_intersection_per_ray.append(source_pt)
                     
                     #Calculate the left and right segment length
-
+                    # find the point on the radius circle for 1 degree left and right ( can be optimized more)
                     point_left = self.return_points_circle(angle + (step_angle_radians / 2.0))
                     point_right = self.return_points_circle(angle - (step_angle_radians / 2.0))
 
+                    # make a (virtual) intersection with the same road element on both sides
                     point_left = np.array(x_line_intersect([self.receiver_coords, point_left], struct_line.coords))
                     point_right = np.array(x_line_intersect([self.receiver_coords, point_right], struct_line.coords))
 
+                    # Get the vector (length) of the line between the left and right point
                     vector = point_left - point_right
                     segment_length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
 

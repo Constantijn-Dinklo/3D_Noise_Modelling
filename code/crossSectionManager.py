@@ -15,16 +15,18 @@ class CrossSectionManager:
         self.receiver_default_height= receiver_default_height
     
     def get_cross_section(self, receiver_coords, source, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights=0):
-        cross_section = CrossSection(path, receiver_coords, source, reflection_heights)
-
         #Find the triangle of the tin in which the receiver is located.
         if receiver_coords in self.receiver_triangles.keys():
             receiver_triangle = self.receiver_triangles[receiver_coords]
         else:
             init_tr = tin.find_vts_near_pt(receiver_coords)
             receiver_triangle = tin.find_receiver_triangle(init_tr, receiver_coords)
+            # Make sure the receiver triangle is not in a building, this is not valid. if so, exclude it
+            if(tin.attributes[receiver_triangle][0] == 'b'):
+                return 
             self.receiver_triangles[receiver_coords] = receiver_triangle
 
+        cross_section = CrossSection(path, receiver_coords, source, reflection_heights)
         #Create the cross section from the receiver to the source point        
         cross_section.get_cross_section(receiver_triangle, tin, ground_type_manager, building_manager, source_height, receiver_height)
 
@@ -88,19 +90,24 @@ class CrossSectionManager:
         """
 
         #
-        i = 0
         for receiver_coords, receiver in receiver_points.items():  
             #print(i, receiver.receiver_coords)
-            i += 1          
             #For each ray, grab all the source points between the receiver and the ray_end
             for ray_end, source_points in receiver.source_points.items():
                 #Create cross section for the furthest away point
                 furthest_source_point = source_points[-1]
+
+                # find the receiver triangle. If this triangle is in a building, than it is not valid and should not be included.
+                # This is done here, since there is no need for the collinear paths to be checked in this case. 
+                init_tr = tin.find_vts_near_pt(receiver_coords)
+                receiver_triangle = tin.find_receiver_triangle(init_tr, receiver_coords)
+                if(tin.attributes[receiver_triangle][0] == 'b'):
+                    continue
+                self.receiver_triangles[receiver_coords] = receiver_triangle
                 cross_section = self.get_cross_section(receiver_coords, furthest_source_point, [furthest_source_point.source_coords], tin, ground_type_manager, building_manager, source_height, receiver_height)
 
                 # create cross sections for intermediate source points, if available
                 for source_point in source_points[:-1]:
-                    #print("got collinear path")
                     self.get_intermediate_cross_section_collinear_source(
                         source_point, 
                         cross_section, 
