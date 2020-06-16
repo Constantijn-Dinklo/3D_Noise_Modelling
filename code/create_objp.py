@@ -27,7 +27,7 @@ class json_parse:
                 constrained_object = objects[uuid]
                 #print(constrained_object)
 
-                id_value = uuid[1:-1]
+                id_value = 'g' + uuid[1:-1]
 
                 #Get the attributes of this object
                 attributes = constrained_object["attributes"]
@@ -36,7 +36,7 @@ class json_parse:
                 identificatie = attributes["identificatie"]
                 #If the identificatie is not empty, it is a building and this is the id used to identify the object
                 if identificatie != '':
-                    id_value = identificatie
+                    id_value = 'b' + identificatie
                 
                 object_geoms = constrained_object['geometry']
                 for object_geom in object_geoms:
