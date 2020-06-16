@@ -118,7 +118,7 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/gridded_points_scenario_000.shp"
+    receiver_point_file_path = "input/test_receivers_simple_case.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files

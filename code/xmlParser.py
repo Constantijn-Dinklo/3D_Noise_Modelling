@@ -104,7 +104,7 @@ class XmlParser:
         self.mat = [self.mat[id] for id in path_simple]
         self.vts = np.array([self.vts[id] for id in path_simple])
 
-    def write_xml(self, filename, default_noise_file, Lw, validate):
+    def write_xml(self, filename, Lw, validate):
         """
         Explination:
             1. create a element tree and set general information
@@ -124,7 +124,7 @@ class XmlParser:
         # Set the Method (same for all)
         ET.SubElement(method, "select", id="JRC-2012")
 
-        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input it horizontal and orientation is correct
+        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input in horizontal and orientation is correct
         if(not validate):
             options = ET.SubElement(method, "options")
             ET.SubElement(options, "option", id="CheckHorizontalAlignment", value="false")
@@ -156,40 +156,33 @@ class XmlParser:
             # set the first point as receiver
             ext = ET.Element("ext")
             ext_type = ET.SubElement(ext, val[0])
+
             # if its a source, this comes before the height
             if(val[0] == "source"):
-                #ET.SubElement(ext_type, "import", file=default_noise_file)
                 ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+                # Compute the right noise level based on the source line length
                 power_levels = Lw['power'] + 10 * np.log10(val[2])
                 power_levels_str = ""
                 for dB in power_levels:
                     power_levels_str += " {:.1f}".format(dB)
-                #print("length: {} dB incr. {} new: {}".format(val[2],  10 * np.log10(val[2]), power_levels_str))
+
                 ET.SubElement(ext_type, "Lw", 
                     sourceType=Lw['sourceType'],
                     measurementType=Lw['measurementType'],
                     frequencyWeighting=Lw['frequencyWeighting']
                 ).text = power_levels_str
 
-                #geom = ET.SubElement(ext_type, "extGeometry")
-                #line_source = ET.SubElement(geom, "lineSource")
-                # make sure to put the lenth in extension
-                #ET.SubElement(line_source, "length").text = "{:.2f}".format(val[2])
-
+            # If the extension type is wall or edge (refelction or diffraction, store the height and the material)
             elif (val[0] == "wall" or val[0] == "edge"):
                 ET.SubElement(ext_type, "mat").text = str(val[2])
+            
+            # currently only when the extension is receiver, only store the relative height above ground.
             else:
                 ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
 
-            
+            # add this extension to the right path element (control point)
             path[id].append(ext)
 
-        # set the last point as source
-        #ext_srs = ET.Element("ext")
-        #srs = ET.SubElement(ext_srs, "source")
-        #ET.SubElement(srs, "h").text = str(self.source_height)
-
-        #path[-1].append(ext_srs)
-        # Put the whole root in the tree, and write the tree to the file
+        # create a tree from the whole root to the tree and write it to a file.
         tree = ET.ElementTree(root)
         tree.write(filename, encoding="UTF-8", xml_declaration=True)

@@ -193,12 +193,8 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
 
 def write_default_noise(filename, Lw, source_height):
     """
-        defaulf_noise_levels = {
-        "sourceType"         : "LineSource",
-        "measurementType"    : "HemiSpherical",
-        "frequencyWeighting" : "LIN",
-        "power"              : "78.2 74.1 71.6 74.2 78 73.8 69 55.9"
-    }
+        CURRENTLY NOT USED
+    """
     """
     root = ET.Element("CNOSSOS_SourcePower", version="X1.0")
     source = ET.SubElement(root, "source")
@@ -210,3 +206,5 @@ def write_default_noise(filename, Lw, source_height):
     ).text = Lw['power']
     tree = ET.ElementTree(root)
     tree.write(filename, encoding="UTF-8", xml_declaration=True)
+    """
+    pass
