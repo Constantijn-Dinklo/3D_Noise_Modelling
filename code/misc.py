@@ -88,7 +88,7 @@ def line_intersect(line1, line2):
 def x_line_intersect(line1, line2):
     """
     Explanation: A function that returns the intersection point between two xlines. It doesn't matter if the line segments
-    are really intercepting each other; if they are not, the interception point is virtual, as like it will be the extension of
+    are really intersecting each other; if they are not, the interception point is virtual, as like it will be the extension of
     as least one of these lines. This is important for testing reflection points and, therefore, the algorithm cannot use
     line_intersect, since this last one will return False if the lines do not intercept each other indeed.
     ---------------
@@ -112,20 +112,31 @@ def get_rotated_point(p1, p2, angle):
     Explanation: A function that reads point p1 (centre), p2, and an angle and returns p2', i.e. the rotated point.
     ---------------
     Input:
-    p1 : [x(float), y(float)] - The centre of rotation.
-    p2 : [x(float), y(float)] - The starting point of rotation, i.e. the point to be rotated.
-    angle : float - The angle of rotation (in degrees)
+    p1 : numpy array [x(float), y(float)] - The centre of rotation.
+    p2 : numpy array [x(float), y(float)] - The starting point of rotation, i.e. the point to be rotated.
+    angle : float - The angle of rotation (in radians)
     Attention: a positive angle rotates to the left (counterclockwise), whereas a negative angle rotates to the right (clockwise)
     ---------------
     Output:
-    p2_new: [x(float), y(float)] - The rotated point
+    p2_new: numpy array [x(float), y(float)] - The rotated point
     """
-    x = p2[0] - p1[0]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-    y = p2[1] - p1[1]  # This artefact makes p1 to become the centre of reflection, so p2 can be rotated from p1. "local origin"
-    x_new = x * math.cos(math.radians(angle)) - y * math.sin(math.radians(angle)) + p1[0]  # p1[0] is then added to return to the 'global origin'
-    y_new = x * math.sin(math.radians(angle)) + y * math.cos(math.radians(angle)) + p1[1]  # p1[1] is then added to return to the 'global origin'
-    p2_new = [x_new, y_new]
-    return p2_new
+    vector = p2 - p1
+    # get the squared length (as an indication, had to be longer than the original), faster and safer to use a longer distance.
+    vector_length = vector[0] ** 2 + vector[1] ** 2
+
+    # inverse tanges of y / x, returns the angle of hte vector.
+    vector_angle = math.atan2(vector[1], vector[0]) 
+    # add the angle difference
+    vector_angle += angle
+    
+    new_vector = (
+        vector_length * math.cos(vector_angle), 
+        vector_length * math.sin(vector_angle))
+    
+    # add the new vector to the old one, to go to the real world coordinate again.
+    new_vector += p1
+
+    return new_vector
 
 def side_test(pa, pb, pc):
         """
