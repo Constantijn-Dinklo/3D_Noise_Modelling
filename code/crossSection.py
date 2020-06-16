@@ -35,7 +35,7 @@ class CrossSection:
         for i, edge in enumerate(edges):
             # Check if the orientation is correct
             if (misc.side_test(origin, destination, ground_tin.vts[edge[0]]) <= 0 and
-                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) >= 0):
+                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) > 0):
                 return i, edge
         
         print("something went wrong here")
