@@ -1,6 +1,7 @@
 
 import math
 import numpy as np
+import xml.etree.cElementTree as ET
 
 def normal_of_triangle(triangle):
 
@@ -126,7 +127,6 @@ def get_rotated_point(p1, p2, angle):
     p2_new = [x_new, y_new]
     return p2_new
 
-
 def side_test(pa, pb, pc):
         """
         Explanation:
@@ -190,3 +190,23 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
         if a[mid] > x: lo = mid+1
         else: hi = mid
     return lo
+
+def write_default_noise(filename, Lw, source_height):
+    """
+        defaulf_noise_levels = {
+        "sourceType"         : "LineSource",
+        "measurementType"    : "HemiSpherical",
+        "frequencyWeighting" : "LIN",
+        "power"              : "78.2 74.1 71.6 74.2 78 73.8 69 55.9"
+    }
+    """
+    root = ET.Element("CNOSSOS_SourcePower", version="X1.0")
+    source = ET.SubElement(root, "source")
+    ET.SubElement(source, "h").text = str(source_height)
+    ET.SubElement(source, "Lw", 
+        sourceType=Lw['sourceType'],
+        measurementType=Lw['measurementType'],
+        frequencyWeighting=Lw['frequencyWeighting']
+    ).text = Lw['power']
+    tree = ET.ElementTree(root)
+    tree.write(filename, encoding="UTF-8", xml_declaration=True)
