@@ -1,14 +1,12 @@
-import xml.etree.cElementTree as ET
-import numpy as np
 import bisect
 import misc
-# to be removed later, for debugging
-import matplotlib.pyplot as plt
-from pprint import pprint
+import numpy as np
+import xml.etree.cElementTree as ET
 
 class XmlParser:
     
-    def __init__(self, path, ext, mat):
+    def __init__(self, source, path, ext, mat):
+        self.source = source
         self.vts = np.array(path)
         self.mat = mat
         self.ext = ext
@@ -16,6 +14,8 @@ class XmlParser:
     def normalize_path(self):
         """
         Explination: Move 3D Cartesian coordinates relative to the starting point (receiver) by subtraction P0 from everypoint
+        Make all height >= 0
+        make the path in positive x and y direction
         ---------------
         Input: void
         ---------------
@@ -23,6 +23,16 @@ class XmlParser:
         """
         # move all vertices relative to first vertex
         self.vts -= self.vts[0]
+        # make all height >= 0
+        z_min = np.min(self.vts[:,2])
+        if(z_min < 0): self.vts[:,2] += abs(z_min)
+
+        # Make it in positive x and y direction
+        # probably slower
+        #self.vts = [(abs(pt[0]), abs(pt[1]), pt[2]) for pt in self.vts]
+        self.vts[:,0] = abs(self.vts[:,0])
+        self.vts[:,1] = abs(self.vts[:,1])
+        
 
     def get_offsets_perpendicular(self, start, end):
         """
@@ -105,8 +115,8 @@ class XmlParser:
 
         self.mat = [self.mat[id] for id in path_simple]
         self.vts = np.array([self.vts[id] for id in path_simple])
-                    
-    def write_xml(self, filename, validate):
+
+    def write_xml(self, filename, Lw, validate):
         """
         Explination:
             1. create a element tree and set general information
@@ -126,7 +136,7 @@ class XmlParser:
         # Set the Method (same for all)
         ET.SubElement(method, "select", id="JRC-2012")
 
-        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input it horizontal and orientation is correct
+        # when validate is True, then the xml file will be validated by the TestCnossos software, if validate is false it is not checked, this will save time when we know the input in horizontal and orientation is correct
         if(not validate):
             options = ET.SubElement(method, "options")
             ET.SubElement(options, "option", id="CheckHorizontalAlignment", value="false")
@@ -158,105 +168,33 @@ class XmlParser:
             # set the first point as receiver
             ext = ET.Element("ext")
             ext_type = ET.SubElement(ext, val[0])
-            ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
-            if (len(ext) > 2):
+
+            # if its a source, this comes before the height
+            if(val[0] == "source"):
+                ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+                # Compute the right noise level based on the source line length
+                power_levels = Lw['power'] + 10 * np.log10(val[2])
+                power_levels_str = ""
+                for dB in power_levels:
+                    power_levels_str += " {:.1f}".format(dB)
+
+                ET.SubElement(ext_type, "Lw", 
+                    sourceType=Lw['sourceType'],
+                    measurementType=Lw['measurementType'],
+                    frequencyWeighting=Lw['frequencyWeighting']
+                ).text = power_levels_str
+
+            # If the extension type is wall or edge (refelction or diffraction, store the height and the material)
+            elif (val[0] == "wall" or val[0] == "edge"):
                 ET.SubElement(ext_type, "mat").text = str(val[2])
             
+            # currently only when the extension is receiver, only store the relative height above ground.
+            else:
+                ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+
+            # add this extension to the right path element (control point)
             path[id].append(ext)
 
-        # set the last point as source
-        #ext_srs = ET.Element("ext")
-        #srs = ET.SubElement(ext_srs, "source")
-        #ET.SubElement(srs, "h").text = str(self.source_height)
-
-        #path[-1].append(ext_srs)
-        # Put the whole root in the tree, and write the tree to the file
+        # create a tree from the whole root to the tree and write it to a file.
         tree = ET.ElementTree(root)
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
-
-    def visualize_path(self):
-        """
-        Explination:
-            Visualizes the cross Section
-        ---------------
-        Input:  void
-        ---------------
-        Output: void
-        """
-        # color: if it is reflective ground, take black, othewise, take brown.
-        color = ['k' if x == 'G' else 'brown' for x in self.mat]
-
-        for i in range(len(self.vts) -2, -1, -1):
-            plt.plot(self.vts[i:i+2,0], self.vts[i:i+2,2], color=color[i+1], marker="o")
-
-        # plot input points, and both source and receiver
-        
-        # plot the lines for both input and translated lines
-        #plt.plot(self.vts[:,0], self.vts[:,2])
-        
-        plt.show()
-
-if __name__ == "__main__":
-
-    path = [
-        [[93606.0, 441900.0, -4.904254700249789], 'G'],
-        [[ 9.36058074e+04,  4.41900000e+05, -4.91151646e+00], 'G'],
-        [[ 9.36036186e+04,  4.41900000e+05, -4.60547266e+00], 'G'],
-        [[ 9.36022807e+04,  4.41900000e+05, -4.52621185e+00], 'G'],
-        [[ 9.36001751e+04,  4.41900000e+05, -4.55178834e+00], 'G'],
-        [[ 9.35981648e+04,  4.41900000e+05, -4.62516807e+00], 'G'],
-        [[ 9.35943784e+04,  4.41900000e+05, -4.62364169e+00], 'G'],
-        [[ 9.3591028e+04,  4.4190000e+05, -4.6534186e+00], 'G'],
-        [[ 9.35896109e+04,  4.41900000e+05, -4.65267961e+00], 'G'],
-        [[ 9.35891827e+04,  4.41900000e+05, -4.66882258e+00], 'G']
-        ]
-
-    #Materials = ["G", "G", "G", "G", "G", "G", "G", "A0", "A0", "A0", "A0", "A0", "A0", "G"]
-    # input:
-    # The xmlParser part will deviate differently over direct path than over the others. therefore the function can be called as follows:
-    # Direct path:
-    #   xmlParser(vertices, material)
-    # (1st order) reflected or diffracted path or barriers:
-    #   xmlParser(vertices, material, extensions)
-
-    # === vertices and material ===
-    # numpy array with arrays/tuples of the coordinates, this includes barriers (TIN point below the point) and reflection edges.
-    # vertices = [[(x,y,z), mat], [(x,y,z), mat], [...]]
-
-    # where mat: string
-    # groundType: absorbtion index 1: "C"
-    # groundType: absorbtion index 0: "G"
-    # Building in DSM: "A0"
-
-    # === Extensions ===
-    # Extension holds information about reflection and diffraction. It is a dictionary
-    # the key is the index of the related vertex, the value is a list with the type, material and the height
-    # ext = {
-    #   "0":   ["source", 2],       # The source (and receiver) don't have a material.
-    #   "id0": [type, height above TIN, material],
-    #   "id1": ["wall", 5, "A0"],     # for a reflection against a building 
-    #   "id2": ["edge", 3, "A0"],      # For a diffractions around a building (horizontal)
-    #   "id3": ["barrier", 4, "A0"]   # for a sound barrier (we currently don't have them, but it could come)
-    #   "last":["receiver", 2]
-    # }
-
-    extension = {
-        0: ['source', 0.05], 
-        9: ['receiver', 2]}
-    
-    path = np.array(path)
-    pprint(path)
-    #xml_section = XmlParser(vertices, Materials, extension)
-    xml_section = XmlParser(path, extension)
-    
-    xml_section.normalize_path()
-
-    xml_section.douglas_Peucker(0.3)
-
-    xml_section.write_xml("test.xml", True)
-
-    xml_section.visualize_path()
-
-    # test with CNOSSOS like this:
-    # put the produced xml file in the CNOSSOS/code / data folder adn run:
-    # TestCnossos -w -i="..\data\sample_py.xml"

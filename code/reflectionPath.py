@@ -9,8 +9,8 @@ from shapely.geometry import shape, Point
 class ReflectionPath:
 
     def __init__(self, source, receiver):
-        self.source = source
-        self.receiver = receiver
+        self.source = source #A SourcePoint instance
+        self.receiver = receiver #Receiver coordinates
 
         # now storing this here.
         self.reflection_points = []
@@ -27,7 +27,7 @@ class ReflectionPath:
         p_mirror: [x(float),y(float)] - The image (virtual) point.
         """
         if point == False:
-            point = self.source
+            point = self.source.source_coords
 
         # THE SIGNED DISTANCE D FROM P1 TO THE LINE L, I.E. THE ONE WITH THE PARAMETERS.
         d = line_parameters[0] * point[0] + line_parameters[1] * point[1] + line_parameters[2]
@@ -78,6 +78,14 @@ class ReflectionPath:
             # not a building, so its fine (should be, there should not be buildings below ground level in the dataset)
             return True
 
+    def check_relative_size(self, wall_segments, building, point):
+        for wall_id in wall_segments:
+            other_wall = building.walls[wall_id]
+            intersection_point = misc.line_intersect(other_wall, [self.source.source_coords, point])
+            if intersection_point:    
+                return True
+        return False
+
     def get_first_order_reflection(self, building_manager, tin, minimal_height_difference, radius_buffer=2000):
         """
         Explanation: A function that reads a buildings_dict and computes all possible first-ORDER reflection paths,
@@ -99,13 +107,15 @@ class ReflectionPath:
         for chosen_building in chosen_buildings:
             building_id = building_manager.polygon_id_to_building_id[id(chosen_building)]
             building = building_manager.buildings[building_id]
-
-            for wall in building.walls:
+            number_of_walls = len(building.walls)
+            
+            for wall_id, wall in enumerate(building.walls):
                 test_r = misc.side_test(wall[0], wall[1], self.receiver)
-                test_s = misc.side_test(wall[0], wall[1], self.source)
+                test_s = misc.side_test(wall[0], wall[1], self.source.source_coords)
 
                 # COS: Not sure if this is actually true!!!!
                 if test_r > 0 and test_s > 0:  # This statement guarantees that the source and receiver are both on the outer side of the wall
+                    #if(p_rint): print(wall)
                     # Get the mirrored source over the wall segment
                     s_mirror = self.get_mirror_point(misc.parametric_line_equation(wall[0], wall[1]))
                     # find the intersection point, returns False is they do not intersect.
@@ -113,25 +123,23 @@ class ReflectionPath:
 
                     # ref is false if there is no reflection.
                     if reflection_point:
-                        angle = 1.0  # Hardcoded Angle
-                        # LEFT POINT
-                        is_left_valid = False
-                        for any_wall in building.walls:
-                            test_left_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
-                            test_left_s = misc.side_test( any_wall[0], any_wall[1], self.source)
-                            if test_left_r > 0 and test_left_s > 0:
-                                left_point  = misc.x_line_intersect(any_wall,[self.source, misc.get_rotated_point(self.source,reflection_point,angle)])
-                                local_left = misc.point_on_line(left_point,any_wall)
-                                is_left_valid = is_left_valid or local_left # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
-                        # RIGHT POINT
-                        is_right_valid = False
-                        for any_wall in building.walls:
-                            test_right_r = misc.side_test( any_wall[0], any_wall[1], self.receiver)
-                            test_right_s = misc.side_test( any_wall[0], any_wall[1], self.source)
-                            if test_right_r > 0 and test_right_s > 0:                            
-                                right_point = misc.x_line_intersect(any_wall,[self.source, misc.get_rotated_point(self.source,reflection_point,-angle)])                        
-                                local_right = misc.point_on_line(right_point,any_wall)
-                                is_right_valid = is_right_valid or local_right # THE 'OR' STATEMENT DETERMINES IF AT LEAST ONE WALL VALIDATES THE TEST.
+                        angle = 0.01745329252  # Hardcoded Angle in radians (1 degree or 2.pi / 360)
+
+                        # make vector longer (10 times)
+                        mirrored_point = np.array(s_mirror)
+                        source_array = np.array(self.source.source_coords)
+
+                        # The function will also enlarge the vector, so it will intersect
+                        left_point = misc.get_rotated_point(source_array, mirrored_point, angle)
+                        right_point = misc.get_rotated_point(source_array, mirrored_point, -angle)
+
+                        # loop over the wall segments in logical order, so the intersection wall element is found easily.
+                        wall_adjusted_order_right = np.array(range(number_of_walls + wall_id, wall_id, -1)) % number_of_walls
+                        wall_adjusted_order_left = np.array(range(wall_id, number_of_walls + wall_id, 1)) % number_of_walls
+
+                        is_left_valid = self.check_relative_size(wall_adjusted_order_left, building, left_point)
+                        is_right_valid = self.check_relative_size(wall_adjusted_order_right, building, right_point)
+
                         # FINAL DECISION
                         if is_left_valid and is_right_valid: # THE 'AND' STATEMENT DETERMINES IF BOTH RAYS (LEFT AND RIGHT) ARE INTERCEPTED BY AT LEAST ONE WALL.
                             # Check if reflection is valid, ie if there is no other building in front.

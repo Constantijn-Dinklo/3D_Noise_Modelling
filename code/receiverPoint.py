@@ -1,18 +1,17 @@
+import fiona
 import math
-import xml.etree.cElementTree as ET
 import matplotlib.pyplot as plt
 import numpy as np
+import xml.etree.cElementTree as ET
+from misc import get_rotated_point, x_line_intersect
+
+from sourcePoint import SourcePoint
+
 from pprint import pprint
 from shapely.geometry import Polygon, LineString, Point
-import fiona
 
 CNOSSOS_RADIUS = 2000.0
 CNOSSOS_ANGLE = 2.0
-
-#cnossos_radius = 2000.0 # should be 2000.0 --> 2km, for now 100 is used to test
-#cnossos_angle = 2.0
-#source_height = 0.05
-#receiver_height = 2
 
 class ReceiverPoint:
 
@@ -21,6 +20,8 @@ class ReceiverPoint:
         
         self.radius = radius
         self.step_angle = step_angle
+
+        self.source_points = {} #Source points per ray cast
         
     def return_points_circle(self, radians):
         """
@@ -36,7 +37,7 @@ class ReceiverPoint:
         y_next = self.receiver_coords[1] + self.radius * math.sin(radians)
         return (x_next, y_next)
 
-    def return_intersection_points(self, road_lines):
+    def find_intersection_points(self, road_lines):
         """
         Explanation: for every line segment of the receiver an intersection per line segment of the source is checked
         ---------------
@@ -48,10 +49,9 @@ class ReceiverPoint:
         in a dictionary
         """
 
-        intersection_points = {}
-
         #for rcvr in self.receiver_points:
-        for angle in np.arange(0, (2.0 * math.pi), math.radians(self.step_angle)):
+        step_angle_radians = math.radians(self.step_angle)
+        for angle in np.arange(0, (2.0 * math.pi), step_angle_radians):
             #Get the end point of the line at this angle from the receiver to the edge of the receiver's area
             following = self.return_points_circle(angle)
 
@@ -67,14 +67,29 @@ class ReceiverPoint:
             for struct_line in chosen_roads:
                 if current_receiver_line.intersects(struct_line):
                     point_intersection = current_receiver_line.intersection(struct_line)
-                    list_intersection_per_ray.append(list(point_intersection.coords)[0])
+                    source_coords = list(point_intersection.coords)[0]
+                    source_pt = SourcePoint(source_coords)
+                    list_intersection_per_ray.append(source_pt)
+                    
+                    #Calculate the left and right segment length
+
+                    point_left = self.return_points_circle(angle + (step_angle_radians / 2.0))
+                    point_right = self.return_points_circle(angle - (step_angle_radians / 2.0))
+
+                    point_left = np.array(x_line_intersect([self.receiver_coords, point_left], struct_line.coords))
+                    point_right = np.array(x_line_intersect([self.receiver_coords, point_right], struct_line.coords))
+
+                    vector = point_left - point_right
+                    segment_length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
+
+                    #Set the segment lengths
+                    source_pt.left_length = segment_length / 2
+                    source_pt.right_length = segment_length / 2
             
             #If at least 1 intersection point was found, store it.
             if len(list_intersection_per_ray) >= 1:
                 #Sort the interection points based on how far they are from the receiver point
                 sorted_list_intersection = sorted(list_intersection_per_ray, key=lambda point: (
-                                            (point[0] - self.receiver_coords[0]) ** 2 + (point[1] - self.receiver_coords[1]) ** 2) ** 0.5)
+                                            (point.source_coords[0] - self.receiver_coords[0]) ** 2 + (point.source_coords[1] - self.receiver_coords[1]) ** 2) ** 0.5)
 
-                intersection_points[following] = sorted_list_intersection
-
-        return intersection_points
+                self.source_points[following] = sorted_list_intersection

@@ -17,7 +17,6 @@ import fiona
 class ConstrainedTin:
 
     def __init__(self, vts):
-        # should we remove the vertices inside the building polygons? (time-wise)
         self.vts = vts
         self.trs = []
         self.vts_2d = []
@@ -147,6 +146,7 @@ class ConstrainedTin:
             print(count)
             print("---" + str(count / length * 100) + " %---")
             print(t2 - t1)
+        print("================== Added Constraints =========================")
         return id_to_attr
 
     def triangulate_constraints(self, semantics):
@@ -154,10 +154,9 @@ class ConstrainedTin:
         self.from_3d_to_2d()
         id_to_attr = self.add_constraint(semantics)
         A = dict(vertices=self.vts_2d, segments=self.segments, regions=self.regions)
-        print("=== added constraints ===")
+        print("================== Created Dict ==============================")
         const_tin = tr.triangulate(A, 'npA')  # we can get the neighbors immediately
-        # tr.compare(plt, A, const_tin)
-        # plt.show()
+        print("================== Triangulated Area =========================")
         if len(const_tin['vertices']) != len(self.vts):
             for v in const_tin['vertices'][len(self.vts):]:
                 z = self.tin.interpolate_tin_linear(v[0], v[1])
@@ -171,6 +170,7 @@ class ConstrainedTin:
             self.trs.append((triangle[0][0], triangle[0][1], triangle[0][2],
                              triangle[1][0], triangle[1][1], triangle[1][2]))
         self.attr = const_tin['triangle_attributes']
+        print("================== Created Lists =========================")
         return const_tin, id_to_attr
 
     @staticmethod
@@ -331,11 +331,11 @@ class ConstrainedTin:
 
 
 if __name__ == "__main__":
-    t3 = time()
     semantics = fiona.open("input/semaantics_test_part_id.shp")
     v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin.obj")
+    print("================== Read Constraints ==========================")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
-    v_ground_tin_lod1.write_to_objp("output/constrained_tin_scenario_000.objp", output[1])
     v_ground_tin_lod1.write_to_obj("output/constrained_tin_scenario_000.obj")
-    t4 = time()
-    print(t4-t3)
+    print("================== Wrote To OBJ ==============================")
+    v_ground_tin_lod1.write_to_objp("output/constrained_tin_scenario_000.objp", output[1])
+    print("================== Wrote To OBJP =============================")
