@@ -19,7 +19,6 @@ from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
 from time import time
 
-
 #This should be a temporary input type
 #def read_ground_objects()
 
@@ -114,20 +113,21 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
 
 def main(sys_args):
     start = time()
-    print(sys_args[0])
+    print("Running {}".format(sys_args[0]))
 
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/receiver_points_scenario_000.shp"
-    road_lines_file_path = "input/test_2.gml"
+    receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
+    road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
     cross_section_obj_file_path = "test_object_reflect_01.obj"
 
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
-    print("read file in {} seconds".format(time() - start))
+
+    print("read dtm in {:.2f} seconds".format(time() - start))
     watch = time()
 
     ground_type_manager = GroundTypeManager()
@@ -136,65 +136,69 @@ def main(sys_args):
     read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
     building_manager.create_rtree()
     
-    print("read buildings in: {}".format(time() - watch))
+    print("read {} buildings in: {:.2f} seconds".format(len(building_manager.buildings), time() - watch))
     watch = time()
     
     receiver_manager = ReceiverManager()
     receiver_manager.read_receiver_points(receiver_point_file_path)
-    
-    print("read receiver points in: {}".format(time() - watch))
-    watch = time()
 
     road_lines = [] #COS: Find a better place for this?
     road_lines = return_segments_source(road_lines_file_path) #Read in the roads
     tree_roads = STRtree(road_lines) # create a tree for roads
 
-    print("read road lines in: {}".format(time() - watch))
+    print("read receiver points in: {:.2f}\nFind sources for each receiver...".format(time() - watch))
     watch = time()
 
     #Get the source points for each receiver
     receiver_manager.determine_source_points(tree_roads)   
     
-    print("sources in: {}".format(time() - watch))
+    print("found sources in {:.2f} seconds \nGet direct cross sections...".format(time() - watch))
     watch = time()
 
-
+    # set variables to play with
     source_height = 0.05
-    receiver_height = 2
+    receiver_height = 2.0
+    defaulf_noise_levels = {
+        "sourceType"         : "LineSource",
+        "measurementType"    : "OmniDirectionnal",
+        "frequencyWeighting" : "LIN",
+        "power"              : np.array([78.2, 74.1, 71.6, 74.2, 78, 73.8, 69, 55.9])
+    }
+    minimal_building_height_threshold = 1.0 # this is the minimal height difference for a building to be reflective
+
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager(source_height, receiver_height)
-    print("=== get direct cross sections ===")
+    #print("=== get direct cross sections ===")
     cross_section_manager.get_cross_sections_direct(receiver_manager.receiver_points, tin, ground_type_manager, building_manager, source_height, receiver_height)
     
-    print("direct cross_sections in: {}".format(time() - watch))
+    print("ran direct cross_sections in: {:.2f} seconds\nGet reflected paths...".format(time() - watch))
     watch = time()
 
-    minimal_building_height_threshold = 0.3 # this is the minimal distance the 
     # Get first order reflections   
     reflection_manager = ReflectionManager()
     reflection_manager.get_reflection_paths(receiver_manager.receiver_points, building_manager, tin, minimal_building_height_threshold)
     
-    print("reflected paths in: {}".format(time() - watch))
+    print("ran reflected paths in: {:.2f}\nGet reflected cross sections...".format(time() - watch))
     watch = time()
 
     #Loop through all the reflection paths
-    #print("=== get reflection cross sections ===")
+    print("=== get reflection cross sections ===")
     for receiver_coords, ray_paths in reflection_manager.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, reflection_path in source_paths.items():
                 cross_section_manager.get_cross_sections_reflection(reflection_path, tin, ground_type_manager, building_manager, source_height, receiver_height)
-
-    #cross_section_manager.write_obj(cross_section_obj_file_path)
-   
-    print("get reflected cross sections in: {}".format(time() - watch))
+    print("ran reflected cross sections in: {:.2f}".format(time() - watch))
     watch = time()
 
-    #sections, extensions, materials = cross_section_manager.get_paths_and_extensions()
-    print("=== Write XML files ===")
-    xml_manager = XmlParserManager()
-    xml_manager.write_xml_files(cross_section_manager)
+    cross_section_manager.write_obj(cross_section_obj_file_path)
+   
+    print("wrote cross sections in: {:.2f}".format(time() - watch))
+    watch = time()
 
-    print("write xml in: {}".format(time() - watch))
+    #xml_manager = XmlParserManager()
+    #xml_manager.write_xml_files(cross_section_manager, defaulf_noise_levels, source_height)
+
+    #print("wrote {} xml files in: {:.2f}".format(len(xml_manager.prepared_paths), time() - watch))
     watch = time()
     
     print("total runtime in: {}".format(time() - start))

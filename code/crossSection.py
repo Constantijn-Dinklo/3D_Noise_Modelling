@@ -36,7 +36,7 @@ class CrossSection:
         for i, edge in enumerate(edges):
             # Check if the orientation is correct
             if (misc.side_test(origin, destination, ground_tin.vts[edge[0]]) <= 0 and
-                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) >= 0):
+                    misc.side_test(origin, destination, ground_tin.vts[edge[1]]) > 0):
                 return i, edge
         
         print("something went wrong here")
@@ -132,6 +132,8 @@ class CrossSection:
                         # cross_section_vertices[-1] = [interpolated_point, next_material]
                         cross_section_vertices = cross_section_vertices[:-1]
                         material = material[:-1]
+                #cross_section_vertices.append(tuple(interpolated_point))
+                #material.append(next_material)
                 
                 # Check if both this and the next triangle are ground, then append the vertex to the list
                 if current_building_id == -1 and next_building_id == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
@@ -188,14 +190,6 @@ class CrossSection:
 
                         # Will go down from building again
                         elif current_height_building > interpolated_point[2] and next_building_id == -1:
-                            """
-                            # add the roof top
-                            cross_section_vertices.append([(interpolated_point[0], interpolated_point[1],
-                                                            current_height_building), current_material])
-                            # add the ground point
-                            cross_section_vertices.append([interpolated_point, next_material])
-                            in_building = False
-                            """
                             # Check if the ray only crosses the corner of the building, then ignore
                             if np.sum(abs(cross_section_vertices[-2][0] - interpolated_point)) <= 0.1:
                                 cross_section_vertices = cross_section_vertices[:-2]
@@ -214,7 +208,7 @@ class CrossSection:
                                 in_building = False
                         else:
                             print("Roof height is lower than ground height, for building ", current_building_id)
-
+                
             # When destination has been reached, check if that is the source.
             if(destination_id != len(self.points_to_source)-1):
                 # set the reflection point to the origin
@@ -244,9 +238,9 @@ class CrossSection:
         #
         # Invert the path to go from source to receiver (materials are taken care of.)
         cross_section_vertices.reverse()
-
+        source_length = self.source.left_length + self.source.right_length
         # add source and receiver points. source is always 0.05 meter above terrain, receiver always at 2 meters.
-        extension[0] = ["source", source_height]
+        extension[0] = ["source", source_height, source_length]
         extension[len(cross_section_vertices) - 1] = ["receiver", receiver_height]
 
         # Add the reflection (path is inversed, so also the location of the extension needs to be inversed.)
