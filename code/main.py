@@ -74,9 +74,6 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                 continue
             elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
                 continue
-            elif (record['properties']['h_dak'] is not None and
-                    record['properties']['h_maaiveld'] > record['properties']['h_dak']):
-                continue
             
             record_id = int(record['id'])
             record_id = record_id * 100
