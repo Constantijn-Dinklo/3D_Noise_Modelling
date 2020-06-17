@@ -26,11 +26,10 @@ class json_parse:
             for uuid in objects:
                 constrained_object = objects[uuid]
                 #print(constrained_object)
-
-                id_value = 'g' + uuid[uuid.find("{")+1:uuid.find("}")]
-
-                #Get the attributes of this object
+                # Get the attributes of this object
                 attributes = constrained_object["attributes"]
+
+                id_value = 'g' + attributes["bodemfacto"]
 
                 #Get the identificatie of this object
                 part_id = attributes["part_id"]
