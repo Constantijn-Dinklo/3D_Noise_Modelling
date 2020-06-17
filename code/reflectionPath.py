@@ -124,27 +124,33 @@ class ReflectionPath:
                     if reflection_point:
                         angle = 0.01745329252  # Hardcoded Angle in radians (1 degree or 2.pi / 360)
 
-                        # take the mirror point and rotate that
+                        # take the mirror point and check if reflection path is longer than 2Km
                         receiver_array = np.array(self.receiver)
                         mirrored_source_array = np.array(s_mirror)
 
-                        # rotate the mirrored point 1 degree to the left and look for an intersection with the building
-                        left_point = misc.get_rotated_point(receiver_array, mirrored_source_array, angle)
-                        wall_adjusted_order_left = np.array(range(wall_id, number_of_walls + wall_id, 1)) % number_of_walls
-                        is_left_valid = self.check_relative_size(wall_adjusted_order_left, building, left_point)
+                        # check distance between reflection point and mirrored source
+                        reflection_point_array = np.array(reflection_point)
+                        dist = np.linalg.norm(reflection_point_array-mirrored_source_array)
+                        if dist <= 2000:
 
-                        if is_left_valid:
-                            # rotate the mirrored point 1 degree to the right and look for an intersection with the building
-                            right_point = misc.get_rotated_point(receiver_array, mirrored_source_array, -angle)
-                            wall_adjusted_order_right = np.array(range(number_of_walls + wall_id, wall_id, -1)) % number_of_walls
-                            is_right_valid = self.check_relative_size(wall_adjusted_order_right, building, right_point)
+                            # rotate the mirrored point 1 degree to the left and look for an intersection with the building
+                            left_point = misc.get_rotated_point(receiver_array, mirrored_source_array, angle)
+                            wall_adjusted_order_left = np.array(range(wall_id, number_of_walls + wall_id, 1)) % number_of_walls
+                            is_left_valid = self.check_relative_size(wall_adjusted_order_left, building, left_point)
 
-                            if is_right_valid:
-                                # Check if reflection is valid, ie if there is no other taller building in front.
-                                if(self.check_validity(building_id, building_manager, tin, reflection_point, building.roof_level, minimal_height_difference)):
-                                    # If the reflection object is of sufficient size, and the reflection is valid, store it
-                                    self.reflection_points.append([reflection_point])
-                                    self.reflection_heights.append([building.roof_level])
+                            if is_left_valid:
+                                # rotate the mirrored point 1 degree to the right and look for an intersection with the building
+                                right_point = misc.get_rotated_point(receiver_array, mirrored_source_array, -angle)
+                                wall_adjusted_order_right = np.array(range(number_of_walls + wall_id, wall_id, -1)) % number_of_walls
+                                is_right_valid = self.check_relative_size(wall_adjusted_order_right, building, right_point)
+
+                                if is_right_valid:
+                                    # Check if reflection is valid, ie if there is no other taller building in front.
+                                    if(self.check_validity(building_id, building_manager, tin, reflection_point, building.roof_level, minimal_height_difference)):
+                                        # If the reflection object is of sufficient size, and the reflection is valid, store it
+                                        self.reflection_points.append([reflection_point])
+                                        self.reflection_heights.append([building.roof_level])
+
         if len(self.reflection_points) > 0:
             return True
         return False
