@@ -27,16 +27,16 @@ class json_parse:
                 constrained_object = objects[uuid]
                 #print(constrained_object)
 
-                id_value = 'g' + uuid[1:-1]
+                id_value = 'g' + uuid[uuid.find("{")+1:uuid.find("}")]
 
                 #Get the attributes of this object
                 attributes = constrained_object["attributes"]
 
                 #Get the identificatie of this object
-                identificatie = attributes["identificatie"]
+                part_id = attributes["part_id"]
                 #If the identificatie is not empty, it is a building and this is the id used to identify the object
-                if identificatie != '':
-                    id_value = 'b' + identificatie
+                if part_id != '':
+                    id_value = 'b' + part_id
                 
                 object_geoms = constrained_object['geometry']
                 for object_geom in object_geoms:
@@ -119,10 +119,34 @@ class json_parse:
                 #    attribute_str = "a " + id_to_attr[1001] + "\n"
                 #    output_file.write(attribute_str)
 
+    def write_to_obj(self, file_path): #, id_to_attr):
+        """
+        Explination: Writes out the tin to an objp file.
+        ---------------
+        Input:
+            file_path : string - The path to the obj file we want to write to.
+        ---------------
+        Output: void
+        """
+        print("=== write to file {} ===".format(file_path))
+
+        with open(file_path, 'w+') as output_file:
+            for vertex in self.vts:
+                vertex_str = "v " + str(vertex[0]) + " " + str(vertex[1]) + " " + str(vertex[2]) + "\n"
+                output_file.write(vertex_str)
+
+            for triangle in self.trs:
+                triangle_str = "f " + str(triangle[0] + 1) + " " + str(triangle[1] + 1) + " " + str(
+                    triangle[2] + 1) + "\n"
+                output_file.write(triangle_str)
+
 jp = json_parse()
 
-json_file_path = "input/scenario_005/area_05.json"
+json_file_path = "input/scenario_000/area_00.json"
 jp.read_json(json_file_path)
 
-objp_output_file = "output/scenario_005/area_05.objp"
+objp_output_file = "output/scenario_000/area_00.objp"
 jp.write_to_objp(objp_output_file)
+
+obj_output_file = "output/scenario_000/area_00.obj"
+jp.write_to_obj(obj_output_file)
