@@ -17,7 +17,6 @@ import fiona
 class ConstrainedTin:
 
     def __init__(self, vts):
-        # should we remove the vertices inside the building polygons? (time-wise)
         self.vts = vts
         self.trs = []
         self.vts_2d = []
@@ -112,35 +111,39 @@ class ConstrainedTin:
                 shapes.append(record['geometry']['coordinates'][0])
             k = 1
             for s in shapes:
-                i = len(self.vts)
                 poly = Polygon(s)
                 x, y = poly.exterior.coords.xy
                 vts_2d = list(zip(x, y))[:-1]
-                self.vts_2d.extend(vts_2d)
-                # interpolate points from TIN
-                for v in vts_2d:
+                existing_vts = {}
+                for l, v in enumerate(vts_2d):
                     z = self.tin.interpolate_tin_linear(v[0], v[1])
-                    self.vts.append((v[0], v[1], z))
-
-                bound = []
-                j = 0
-                while j < len(vts_2d):
-                    if j != len(vts_2d) - 1:
-                        bound.append((i + j, i + j + 1))
-                        j += 1
+                    v_3d = (v[0], v[1], z)
+                    if v_3d not in self.vts:
+                        self.vts_2d.append(v)
+                        self.vts.append(v_3d)
+                        existing_vts[l] = len(self.vts) - 1
                     else:
-                        bound.append((i + j, i))
-                        j += 1
+                        existing_vts[l] = self.vts.index(v_3d)
+
+                sequence = [existing_vts[0]]
+                j = 1
+                bound = []
+                for vt in vts_2d[1:]:
+                    bound.append((sequence[-1], existing_vts[j]))
+                    sequence.append(existing_vts[j])
+                    j += 1
+                bound.append((sequence[-1], sequence[0]))
 
                 self.segments.extend(bound)
                 a, b = self.get_attr_coord(vts_2d[0], vts_2d[1], vts_2d[-1])
                 self.regions.append([a, b, int(record['id']) * 100 + k, 0])
                 if record['properties']['bag_id'] is not None:
                     id_to_attr[int(record['id']) * 100 + k] = 'b' + record['properties']['part_id']
-                elif record['properties']['uuid'] is not None:
+                if record['properties']['uuid'] is not None:
                     id_to_attr[int(record['id']) * 100 + k] = 'g' + record['properties']['uuid']
                 k += 1
             t2 = time()
+            print(count)
             print("---" + str(count / length * 100) + " %---")
             print(t2 - t1)
         print("================== Added Constraints =========================")
@@ -315,24 +318,24 @@ class ConstrainedTin:
                     triangle[5] + 1) + "\n"
                 output_file.write(triangle_str)
 
-            '''for attribute in self.attr:
+            for attribute in self.attr:
                 if attribute[0] != 0.0:
                     attribute_str = "a " + id_to_attr[int(attribute[0])] + "\n"
                     output_file.write(attribute_str)
                 else:
                     attribute_str = "a " + id_to_attr[1001] + "\n"
-                    output_file.write(attribute_str)'''
-            for attribute in self.attr:
+                    output_file.write(attribute_str)
+            '''for attribute in self.attr:
                 attribute_str = "a " + id_to_attr[int(attribute[0])] + "\n"
-                output_file.write(attribute_str)
+                output_file.write(attribute_str)'''
 
 
 if __name__ == "__main__":
-    semantics = fiona.open("input/scenario_001/building/lod13.shp")
-    v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/scenario_001/tin/tin.obj")
+    semantics = fiona.open("input/semaantics_test_part_id.shp")
+    v_ground_tin_lod1 = ConstrainedTin.read_from_obj("input/tin.obj")
     print("================== Read Constraints ==========================")
     output = v_ground_tin_lod1.triangulate_constraints(semantics)
-    v_ground_tin_lod1.write_to_obj("output/scenario_003/constrainted_tin.objp")
+    v_ground_tin_lod1.write_to_obj("output/constrained_tin_scenario_000.obj")
     print("================== Wrote To OBJ ==============================")
-    v_ground_tin_lod1.write_to_objp("output/scenario_003/constrainted_tin.objp", output[1])
+    v_ground_tin_lod1.write_to_objp("output/constrained_tin_scenario_000.objp", output[1])
     print("================== Wrote To OBJP =============================")
