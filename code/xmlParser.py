@@ -141,6 +141,9 @@ class XmlParser:
             options = ET.SubElement(method, "options")
             ET.SubElement(options, "option", id="CheckHorizontalAlignment", value="false")
             ET.SubElement(options, "option", id="ForceSourceToReceiver", value="false")
+            ET.SubElement(options, "option", id="CheckSoundPowerUnits", value="false")
+            # ET.SubElement(options, "option", id="CheckLateralDiffraction", value="false") maybe add this to fix error.
+            
 
         meteo = ET.SubElement(method, "meteo", model="DEFAULT")
         ET.SubElement(meteo, "pFav").text = "0.3"
@@ -157,7 +160,7 @@ class XmlParser:
             ET.SubElement(pos, "x").text = "{:.2f}".format(self.vts[id,0])
             ET.SubElement(pos, "y").text = "{:.2f}".format(self.vts[id,1])
             ET.SubElement(pos, "z").text = "{:.2f}".format(self.vts[id,2])
-
+            
             # Insert the material
             ET.SubElement(cp, "mat", id=self.mat[id])
 
