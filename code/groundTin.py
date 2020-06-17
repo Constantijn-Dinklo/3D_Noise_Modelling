@@ -108,7 +108,6 @@ class GroundTin:
         # quick check, debug:
         if((area_left + area_right) < 0.1):
             # if edge and both triangles are collinear, put the point half way.
-            print("super small area, put point halfway")
             part_right = 0.5
         else: 
             # find where on the line (percentile) the cross section is.

@@ -5,8 +5,7 @@ import xml.etree.cElementTree as ET
 
 class XmlParser:
     
-    def __init__(self, source, path, ext, mat):
-        self.source = source
+    def __init__(self, path, ext, mat):
         self.vts = np.array(path)
         self.mat = mat
         self.ext = ext
@@ -25,13 +24,15 @@ class XmlParser:
         self.vts -= self.vts[0]
         # make all height >= 0
         z_min = np.min(self.vts[:,2])
-        if(z_min < 0): self.vts[:,2] += abs(z_min)
+        if(z_min < 0): self.vts[:,2] -= z_min
+
+        # unfold the path, if it is direct
+        #if(len(self.ext) <= 2):
+        #    self.vts = np.array([[(x ** 2 + y ** 2) ** 0.5, 0, z] for [x,y,z] in self.vts])
 
         # Make it in positive x and y direction
-        # probably slower
-        #self.vts = [(abs(pt[0]), abs(pt[1]), pt[2]) for pt in self.vts]
-        self.vts[:,0] = abs(self.vts[:,0])
-        self.vts[:,1] = abs(self.vts[:,1])
+        #self.vts[:,0] = abs(self.vts[:,0])
+        #self.vts[:,1] = abs(self.vts[:,1])
         
 
     def get_offsets_perpendicular(self, start, end):
@@ -85,7 +86,6 @@ class XmlParser:
         # == insert relevant points ===
         i = 0
         while(i < len(path_simple) - 1):
-            #print(path_simple)
             start = path_simple[i]
             end = path_simple[i+1]
 
@@ -186,7 +186,8 @@ class XmlParser:
 
             # If the extension type is wall or edge (refelction or diffraction, store the height and the material)
             elif (val[0] == "wall" or val[0] == "edge"):
-                ET.SubElement(ext_type, "mat").text = str(val[2])
+                ET.SubElement(ext_type, "h").text = "{:.2f}".format(val[1])
+                ET.SubElement(ext_type, "mat", id=val[2])
             
             # currently only when the extension is receiver, only store the relative height above ground.
             else:
