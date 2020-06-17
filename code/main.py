@@ -19,9 +19,6 @@ from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
 from time import time
 
-#This should be a temporary input type
-#def read_ground_objects()
-
 def return_segments_source(path):
     """
     Explanation: Changes the data structure of the coordinates from strings to floats in tuples
@@ -115,11 +112,14 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
+    #receiver_point_file_path = "input/scen_00_single_point_building.shp"
     receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
-    cross_section_obj_file_path = "test_object_reflect_01.obj"
+    cross_section_obj_file_path = "output/cross_sections.obj"
+    # the output xml files is split up to put the receiver_dict one folder up.
+    output_folder_xml_files = ("output/", "xml/")
 
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
@@ -155,13 +155,13 @@ def main(sys_args):
     # set variables to play with
     source_height = 0.05
     receiver_height = 2.0
-    defaulf_noise_levels = {
+    minimal_building_height_threshold = 1.0 # this is the minimal height difference for a building to be reflective
+    default_noise_levels = {
         "sourceType"         : "LineSource",
         "measurementType"    : "OmniDirectionnal",
         "frequencyWeighting" : "LIN",
         "power"              : np.array([78.2, 74.1, 71.6, 74.2, 78, 73.8, 69, 55.9])
     }
-    minimal_building_height_threshold = 1.0 # this is the minimal height difference for a building to be reflective
 
     #Create the cross sections for all the direct paths
     cross_section_manager = CrossSectionManager(source_height, receiver_height)
@@ -175,27 +175,28 @@ def main(sys_args):
     reflection_manager = ReflectionManager()
     reflection_manager.get_reflection_paths(receiver_manager.receiver_points, building_manager, tin, minimal_building_height_threshold)
     
-    print("ran reflected paths in: {:.2f}\nGet reflected cross sections...".format(time() - watch))
+    print("ran reflected paths in: {:.2f} seconds\nGet reflected cross sections...".format(time() - watch))
     watch = time()
 
     #Loop through all the reflection paths
-    print("=== get reflection cross sections ===")
     for receiver_coords, ray_paths in reflection_manager.reflection_paths.items():
         for ray_end, source_paths in ray_paths.items():
             for source, reflection_path in source_paths.items():
                 cross_section_manager.get_cross_sections_reflection(reflection_path, tin, ground_type_manager, building_manager, source_height, receiver_height)
+
     print("ran reflected cross sections in: {:.2f}".format(time() - watch))
     watch = time()
 
+    #Optionally write an obj with all the cross sections
     cross_section_manager.write_obj(cross_section_obj_file_path)
    
-    print("wrote cross sections in: {:.2f}".format(time() - watch))
+    print("wrote cross sections in: {:.2f} seconds\nWrite xml files...".format(time() - watch))
     watch = time()
 
-    #xml_manager = XmlParserManager()
-    #xml_manager.write_xml_files(cross_section_manager, defaulf_noise_levels, source_height)
+    xml_manager = XmlParserManager()
+    xml_manager.write_xml_files(cross_section_manager, default_noise_levels, output_folder_xml_files)
 
-    #print("wrote {} xml files in: {:.2f}".format(len(xml_manager.prepared_paths), time() - watch))
+    print("wrote xml files in: {:.2f} seconds".format(time() - watch))
     watch = time()
     
     print("total runtime in: {}".format(time() - start))

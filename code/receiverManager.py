@@ -18,7 +18,7 @@ class ReceiverManager:
     def determine_source_points(self, source_lines):
         #Go through all the receiver points and get their possible source points
         for rec_pt_coords in self.receiver_points.keys():
-            #if(rec_pt_coords[0] > 93503 and rec_pt_coords[1] > 441868 and rec_pt_coords[0] < 93516 and rec_pt_coords[1] < 441946):
+            if(rec_pt_coords[0] > 93503 and rec_pt_coords[1] > 441868 and rec_pt_coords[0] < 93516 and rec_pt_coords[1] < 441946):
             #print(rec_pt_coords)
-            rec_pt = self.receiver_points[rec_pt_coords]
-            rec_pt.find_intersection_points(source_lines)
+                rec_pt = self.receiver_points[rec_pt_coords]
+                rec_pt.find_intersection_points(source_lines)
