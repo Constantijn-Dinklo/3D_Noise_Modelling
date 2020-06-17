@@ -12,6 +12,10 @@ class Building:
         self.ground_level = ground_level
         self.roof_level = roof_level
 
+        self.underground = False
+        if (self.ground_level > self.roof_level):
+            self.underground = True
+        
         self.walls = []
         
         b_geom_coord = geometry['coordinates']
