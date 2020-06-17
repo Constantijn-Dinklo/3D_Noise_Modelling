@@ -71,7 +71,7 @@ if __name__ == '__main__':
     file_db = 'input/temp_out (1).txt'
     raw_data = read_file_db(input_file)
 
-    file_receivers = 'input/receiver_dict.txt'
+    file_receivers = 'output/receiver_dict.txt'
     map_id = read_file_receivers(input_2_file)
 
     levels_summed = get_noise_levels(raw_data, map_id)

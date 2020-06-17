@@ -115,12 +115,11 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    #receiver_point_file_path = "input/scen_00_single_point_building.shp"
-    receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
+    receiver_point_file_path = "input/receiver_points_scenario_000.shp"
+    #receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
-    cross_section_obj_file_path = "output/cross_sections.obj"
     # the output xml files is split up to put the receiver_dict one folder up.
     output_folder_xml_files = ("output/", "xml/")
 
@@ -191,7 +190,8 @@ def main(sys_args):
     watch = time()
 
     #Optionally write an obj with all the cross sections
-    cross_section_manager.write_obj(cross_section_obj_file_path)
+    #write_obj_paths_per_receiver = True
+    #cross_section_manager.write_obj(write_obj_paths_per_receiver)
    
     print("wrote cross sections in: {:.2f} seconds\nWrite xml files...".format(time() - watch))
     watch = time()
