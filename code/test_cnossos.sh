@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/CNOSSOS/cnosses_code/Release
+CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/laure/Documents/synthesis/CNOSSOS/cnosses_code/Release
 
-CODE_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code
+CODE_PATH=/C/Users/laure/Documents/synthesis
 
-INPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code/output/xml_test/*
-OUTPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/college documenten/2019-2020 Msc Geomatics/Q4/GEO1101 Synthesis project/gitHub_group/code/output/output_xml/
+INPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/synthesis/xml/*
+OUTPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/synthesis/output_xml/
 
 
 
