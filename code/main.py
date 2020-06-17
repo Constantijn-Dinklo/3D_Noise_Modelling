@@ -71,7 +71,10 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                 continue
             elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
                 continue
-            
+            elif (record['properties']['h_dak'] is not None and
+                record['properties']['h_maaiveld'] > record['properties']['h_dak']):
+                continue
+
             record_id = int(record['id'])
             record_id = record_id * 100
 
@@ -110,7 +113,7 @@ def main(sys_args):
     print("Running {}".format(sys_args[0]))
 
     #Input files
-    constraint_tin_file_path = "input/constrainted_tin_clean_semantics.objp"
+    constraint_tin_file_path = "input/area_00.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
     #receiver_point_file_path = "input/scen_00_single_point_building.shp"
     receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
