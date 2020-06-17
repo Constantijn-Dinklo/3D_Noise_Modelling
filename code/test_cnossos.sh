@@ -1,26 +1,26 @@
 #!/bin/bash
 
 
-CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/GEOG1011/Cnossos_info/Cnossos_code/cnosses_code/Release
+CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/Nadine/Desktop/Nad/TUdelft/Q4/GEO1101/Cnossos_info/Cnossos_code/cnosses_code/Release
 
-CODE_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code
+CODE_PATH=/c/Users/Nadine/Documents/3D_Noise_Modelling/code
 
-INPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/xml_test/*
-OUTPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/output_xml/
+INPUT_XML_FOLDER_PATH=/c/Users/Nadine/Desktop/Nad/TUdelft/Q4/GEO1101/incremental_test/trial_01/simplified_scenarios/without_buildings/xml/*
+OUTPUT_XML_FOLDER_PATH=/c/Users/Nadine/Documents/3D_Noise_Modelling/code/output/output_xml/
 
 
 #$CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/path_0_19.xml -o=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/xml/cnossos_out/path_0_2.xml
 
 TEMP_OUT=temp_out.txt
-receiver_dict=output/receiver_dict.txt
-output_shape_file=output/out_contour.shp
+receiver_dict=output/map_receiver_id_NW.txt
+output_shape_file=output/out_contour_NW_01.shp
 
 truncate -s 0 $TEMP_OUT
 
 #Loop through all input files
-for input_file_path in $INPUT_XML_FOLDER_PATH 
+for input_file_path in $INPUT_XML_FOLDER_PATH
 do
-    #Split the filepath by the / delimiter and store them in the file_path_elements array    
+    #Split the filepath by the / delimiter and store them in the file_path_elements array
     delimiter=/
     s=$input_file_path$delimiter
     file_path_elements=();
@@ -28,7 +28,7 @@ do
         file_path_elements+=( "${s%%"$delimiter"*}" );
         s=${s#*"$delimiter"};
     done;
-    
+
     #The last element is always the actual file name
     file_name=${file_path_elements[-1]}
 
@@ -48,7 +48,7 @@ do
     output_file_path=$OUTPUT_XML_FOLDER_PATH$file_name
 
     $CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=$input_file_path -o=$output_file_path
-    #If the output file exists then 
+    #If the output file exists then
     if [ -f "$output_file_path" ]; then
 
         output_value=($(grep -oP '(?<=LeqA>)[^<]+' $output_file_path))
