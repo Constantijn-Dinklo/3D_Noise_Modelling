@@ -103,6 +103,10 @@ class ReflectionPath:
         for chosen_building in chosen_buildings:
             building_id = building_manager.polygon_id_to_building_id[id(chosen_building)]
             building = building_manager.buildings[building_id]
+            
+            if building.underground:
+                continue
+
             number_of_walls = len(building.walls)
             
             for wall_id, wall in enumerate(building.walls):
