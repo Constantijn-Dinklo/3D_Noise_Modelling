@@ -60,7 +60,7 @@ class CrossSection:
             building_id = tin.attributes[tr]
             return "A0", building_id
         elif tin.attributes[tr][0] == 'g':
-            if(ground_type_manager.grd_division[tin.attributes[tr]].index == 0):
+            if(tin.attributes[tr][1] == 0):
                 return "G", -1
             else:
                 return "C", -1
@@ -150,10 +150,10 @@ class CrossSection:
 
                     # We are not in building, but are going up
                     if not in_building:
-                        # Check if building is underground, ignore it
+                        '''# Check if building is underground, ignore it
                         if building_manager.buildings[next_building_id].underground:
                             print("Underground building ", next_building_id)
-                            continue
+                            continue'''
 
                         # Get height of building
                         next_height_building = building_manager.buildings[next_building_id].roof_level
@@ -178,9 +178,8 @@ class CrossSection:
                         
                         current_height_building = building_manager.buildings[current_building_id].roof_level
 
-                        # Check if building is underground, go down from building
-                        if building_manager.buildings[next_building_id].underground:
-                            print('Shouldnt be here for scenario000')
+                        '''# Check if building is underground, go down from building
+                        if next_building_id != -1 and building_manager.buildings[next_building_id].underground:
                             print("Underground building ", next_building_id)
                             # Check if the ray only crosses the corner of the building, then ignore
                             if np.sum(abs(cross_section_vertices[-2][0] - interpolated_point)) <= 0.1:
@@ -198,10 +197,10 @@ class CrossSection:
                                 # add the ground point
                                 cross_section_vertices.append(tuple(interpolated_point))
                                 material.append("G")
-                                in_building = False
+                                in_building = False'''
 
                         # We will stay in Building, check if building is higher than the ground (negative buildings considered)
-                        elif current_height_building > interpolated_point[2] and next_building_id != -1:
+                        if current_height_building > interpolated_point[2] and next_building_id != -1:
 
                             next_height_building = building_manager.buildings[next_building_id].roof_level
 
