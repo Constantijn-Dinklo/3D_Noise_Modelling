@@ -33,7 +33,7 @@ class GroundTin:
         Output:
             Boolean - True if the point is inside the triangle.
         """
-        e = 10 ** (-8)
+        e = 10 ** (-4)
         d1 = misc.side_test(self.vts[self.trs[tr][0]], self.vts[self.trs[tr][1]], pt)
         d2 = misc.side_test(self.vts[self.trs[tr][1]], self.vts[self.trs[tr][2]], pt)
         d3 = misc.side_test(self.vts[self.trs[tr][2]], self.vts[self.trs[tr][0]], pt)

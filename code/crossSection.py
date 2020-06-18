@@ -60,7 +60,7 @@ class CrossSection:
             building_id = tin.attributes[tr]
             return "A0", building_id
         elif tin.attributes[tr][0] == 'g':
-            if(ground_type_manager.grd_division[tin.attributes[tr]].index == 0):
+            if(tin.attributes[tr][1] == 0):
                 return "G", -1
             else:
                 return "C", -1
@@ -150,6 +150,10 @@ class CrossSection:
 
                     # We are not in building, but are going up
                     if not in_building:
+                        '''# Check if building is underground, ignore it
+                        if building_manager.buildings[next_building_id].underground:
+                            print("Underground building ", next_building_id)
+                            continue'''
 
                         # Get height of building
                         next_height_building = building_manager.buildings[next_building_id].roof_level
@@ -165,13 +169,35 @@ class CrossSection:
                             in_building = True
 
                         else:
-                            print("Roof height is lower than ground height, for building ", next_building_id)
+                            print("Roof height in building dataset is lower than ground height in TIN, for building ",
+                                  next_building_id)
 
                     else:
                         if(current_building_id == -1):
                             print("segemt: {} tr: {} next attrib: {} inbuilding?: {} last point: {}".format(destination_id, current_triangle, next_building_id, in_building, cross_section_vertices[-1]))
                         
                         current_height_building = building_manager.buildings[current_building_id].roof_level
+
+                        '''# Check if building is underground, go down from building
+                        if next_building_id != -1 and building_manager.buildings[next_building_id].underground:
+                            print("Underground building ", next_building_id)
+                            # Check if the ray only crosses the corner of the building, then ignore
+                            if np.sum(abs(cross_section_vertices[-2][0] - interpolated_point)) <= 0.1:
+                                cross_section_vertices = cross_section_vertices[:-2]
+                                material = material[:-2]
+
+                                cross_section_vertices.append(tuple(interpolated_point))
+                                material.append("G")
+                                in_building = False
+                            else:
+                                # add the roof top
+                                cross_section_vertices.append(
+                                    (interpolated_point[0], interpolated_point[1], current_height_building))
+                                material.append(current_material)
+                                # add the ground point
+                                cross_section_vertices.append(tuple(interpolated_point))
+                                material.append("G")
+                                in_building = False'''
 
                         # We will stay in Building, check if building is higher than the ground (negative buildings considered)
                         if current_height_building > interpolated_point[2] and next_building_id != -1:
@@ -206,8 +232,11 @@ class CrossSection:
                                 cross_section_vertices.append(tuple(interpolated_point))
                                 material.append(next_material)
                                 in_building = False
+
                         else:
-                            print("Roof height is lower than ground height, for building ", current_building_id)
+                            print("Roof height in building dataset is lower than ground height in TIN, for building ",
+                                  next_building_id)
+
                 
             # When destination has been reached, check if that is the source.
             if(destination_id != len(self.points_to_source)-1):
