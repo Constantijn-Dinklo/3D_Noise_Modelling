@@ -60,9 +60,7 @@ class CrossSection:
             building_id = tin.attributes[tr]
             return "A0", building_id
         elif tin.attributes[tr][0] == 'g':
-            print(tin.attributes[tr])
             if(tin.attributes[tr][1] == "0"):
-                print("material G")
                 return "G", -1
             else:
                 return "C", -1
