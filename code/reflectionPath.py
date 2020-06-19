@@ -119,7 +119,6 @@ class ReflectionPath:
                     s_mirror = self.get_mirror_point(misc.parametric_line_equation(wall[0], wall[1]))
                     # find the intersection point, returns False is they do not intersect.
                     reflection_point = misc.line_intersect(wall, [s_mirror, self.receiver])
-
                     # ref is false if there is no reflection.
                     if reflection_point:
                         angle = 0.01745329252  # Hardcoded Angle in radians (1 degree or 2.pi / 360)
