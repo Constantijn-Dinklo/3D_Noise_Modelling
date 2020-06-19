@@ -85,6 +85,7 @@ class GroundTin:
             # get the index of the neighbour triangle
             tr = self.trs[tr][nb_index]
         print("no tr found after 1000 loops")
+        assert(False)
 
     def intersection_point(self, edge, source, receiver):
         """

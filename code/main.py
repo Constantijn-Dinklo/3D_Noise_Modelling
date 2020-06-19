@@ -115,8 +115,7 @@ def main(sys_args):
     #Input files
     constraint_tin_file_path = "input/area_00.objp"
     building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/receiver_points_scenario_000.shp"
-    #receiver_point_file_path = "input/receiver_grid_v2_clipped.shp"
+    receiver_point_file_path = "input/receiver_grid_v2.shp"
     road_lines_file_path = "input/scen_000_one_road.gml"
 
     #Output files
@@ -190,8 +189,8 @@ def main(sys_args):
     watch = time()
 
     #Optionally write an obj with all the cross sections
-    #write_obj_paths_per_receiver = True
-    #cross_section_manager.write_obj(write_obj_paths_per_receiver)
+    write_obj_paths_per_receiver = False
+    cross_section_manager.write_obj(write_obj_paths_per_receiver)
    
     print("wrote cross sections in: {:.2f} seconds\nWrite xml files...".format(time() - watch))
     watch = time()

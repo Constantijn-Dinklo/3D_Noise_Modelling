@@ -106,7 +106,6 @@ class CrossSection:
                 assert (current_triangle != -1)
 
                 # Get the outgoing edge of the triangle
-                #print(destination_id, current_triangle)
                 edge_id, edge = self.get_next_edge(ground_tin, current_triangle, origin, destination)
 
                 # get intersection point between edge and receiver-source segment
@@ -124,7 +123,7 @@ class CrossSection:
 
                 # Check if the new calculated point is not too close to the previously added point, in MH distance
                 
-                if np.sum(abs(cross_section_vertices[-1][0] - interpolated_point)) <= 0.1:
+                if np.sum(abs(np.array(cross_section_vertices[-1]) - interpolated_point)) <= 0.1:
                     #print("points are too close, material: {} -> {}".format(current_material, next_material))
                     if current_material == next_material:
                         continue
@@ -132,8 +131,6 @@ class CrossSection:
                         # cross_section_vertices[-1] = [interpolated_point, next_material]
                         cross_section_vertices = cross_section_vertices[:-1]
                         material = material[:-1]
-                #cross_section_vertices.append(tuple(interpolated_point))
-                #material.append(next_material)
                 
                 # Check if both this and the next triangle are ground, then append the vertex to the list
                 if current_building_id == -1 and next_building_id == -1:  # don't use the mtl because maybe later there will be != mtl for bldgs
@@ -150,11 +147,6 @@ class CrossSection:
 
                     # We are not in building, but are going up
                     if not in_building:
-                        '''# Check if building is underground, ignore it
-                        if building_manager.buildings[next_building_id].underground:
-                            print("Underground building ", next_building_id)
-                            continue'''
-
                         # Get height of building
                         next_height_building = building_manager.buildings[next_building_id].roof_level
 
@@ -174,6 +166,7 @@ class CrossSection:
 
                     else:
                         if(current_building_id == -1):
+                            # TODO maybe remove this part?
                             print("segemt: {} tr: {} next attrib: {} inbuilding?: {} last point: {}".format(destination_id, current_triangle, next_building_id, in_building, cross_section_vertices[-1]))
                         
                         current_height_building = building_manager.buildings[current_building_id].roof_level
