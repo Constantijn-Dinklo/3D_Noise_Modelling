@@ -195,8 +195,8 @@ def main(sys_args):
     print("wrote cross sections in: {:.2f} seconds\nWrite xml files...".format(time() - watch))
     watch = time()
 
-    #xml_manager = XmlParserManager()
-    #xml_manager.write_xml_files(cross_section_manager, default_noise_levels, output_folder_xml_files)
+    xml_manager = XmlParserManager()
+    xml_manager.write_xml_files(cross_section_manager, default_noise_levels, output_folder_xml_files)
 
     print("wrote xml files in: {:.2f} seconds".format(time() - watch))
     watch = time()
