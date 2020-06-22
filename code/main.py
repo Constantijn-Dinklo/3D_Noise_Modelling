@@ -135,7 +135,7 @@ def main(sys_args):
     ground_type_manager = GroundTypeManager()
     building_manager = BuildingManager()
 
-    # read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
+    read_building_and_ground(building_and_ground_file_path, building_manager, ground_type_manager)
     building_manager.create_rtree()
     
     print("read {} buildings in: {:.2f} seconds".format(len(building_manager.buildings), time() - watch))
