@@ -67,13 +67,16 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
     with fiona.open(file_path) as semantics:
         for record in semantics:
             #Not sure if this does anything right now
-            if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
-                continue
-            elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
-                continue
-            elif (record['properties']['h_dak'] is not None and
-                record['properties']['h_maaiveld'] > record['properties']['h_dak']):
-                continue
+            if 'properties' in record.keys():
+                if ('uuid' in record['properties'].keys()) and ('bodemfacto' in record['properties']):
+                    if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
+                        continue
+                if ('h_dak' in record['properties'].keys()) and ('h_maaiveld' in record['properties']):
+                    if record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
+                        continue
+                    elif (record['properties']['h_dak'] is not None and
+                        record['properties']['h_maaiveld'] > record['properties']['h_dak']):
+                        continue
 
             record_id = int(record['id'])
             record_id = record_id * 100
@@ -113,10 +116,10 @@ def main(sys_args):
     print("Running {}".format(sys_args[0]))
 
     #Input files
-    constraint_tin_file_path = "input/area_00.objp"
-    building_and_ground_file_path = "input/semaantics_test_part_id.shp"
-    receiver_point_file_path = "input/receiver_grid_v2.shp"
-    road_lines_file_path = "input/scen_000_one_road.gml"
+    constraint_tin_file_path = "input/scenario_005/area_05_no_outliers.objp"
+    building_and_ground_file_path = "input/scenario_005/scenario_005_semantics.shp"
+    receiver_point_file_path = "input/scenario_005/Scenario005_Receivers_Filtered.shp"
+    road_lines_file_path = "input/scenario_005/scenario_005_roads.gml"
 
     #Output files
     # the output xml files is split up to put the receiver_dict one folder up.
