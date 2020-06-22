@@ -67,13 +67,16 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
     with fiona.open(file_path) as semantics:
         for record in semantics:
             #Not sure if this does anything right now
-            if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
-                continue
-            elif record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
-                continue
-            elif (record['properties']['h_dak'] is not None and
-                record['properties']['h_maaiveld'] > record['properties']['h_dak']):
-                continue
+            if 'properties' in record.keys():
+                if ('uuid' in record['properties'].keys()) and ('bodemfacto' in record['properties']):
+                    if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
+                        continue
+                if ('h_dak' in record['properties'].keys()) and ('h_maaiveld' in record['properties']):
+                    if record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
+                        continue
+                    elif (record['properties']['h_dak'] is not None and
+                        record['properties']['h_maaiveld'] > record['properties']['h_dak']):
+                        continue
 
             record_id = int(record['id'])
             record_id = record_id * 100
