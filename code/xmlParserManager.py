@@ -43,7 +43,7 @@ class XmlParserManager:
                 #xml.douglas_Peucker(0.1)
 
                 # write the xml to the output file
-                output_file_path = "{}{}path_{}_{}.xml".format(output_folder[0], output_folder[1], j, i)
+                output_file_path = "{}path_{}_{}.xml".format(output_folder[1], j, i)
                 xml.write_xml(output_file_path, Lw, False)
                 self.prepared_paths[receiver].append(xml)
 

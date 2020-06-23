@@ -61,8 +61,9 @@ class CrossSectionManager:
 
         cross_section_collinear_point = CrossSection([source_coords], receiver, source_point, 0)
         cross_section_collinear_point.vertices = part_path_direct
+        source_length = source_point.left_length + source_point.right_length
         cross_section_collinear_point.extension = {
-            0: ["source", source_height],
+            0: ["source", source_height, source_length],
             len(cross_section_collinear_point.vertices) - 1 : ["receiver", receiver_height]
         }
         part_path_direct_material = [cross_section.materials[split_idx]] + cross_section.materials[split_idx:]
@@ -143,7 +144,7 @@ class CrossSectionManager:
         if(individual_bool):
             i = 0
             for receiver, cross_sections in self.cross_sections.items():
-                self.write_cross_section_to_obj("output/obj_paths/receiver_{}.obj".format(i), cross_sections)
+                self.write_cross_section_to_obj("output/scenario_004/obj_paths/receiver_{}.obj".format(i), cross_sections)
                 i +=1
 
         # Or write one file with all paths
@@ -152,7 +153,7 @@ class CrossSectionManager:
             for receiver, cross_sections in self.cross_sections.items():
                 total_paths.append(cross_sections)
 
-            with open("output/obj_paths/paths_section.obj", 'w') as f_out:
+            with open("output/scenario_004/obj_paths/paths_section.obj", 'w') as f_out:
                 base = 0
                 vts_count_lst = [0]
                 counter = 0
