@@ -118,10 +118,15 @@ def main(sys_args):
     print("Running {}".format(sys_args[0]))
 
     #Input files
-    constraint_tin_file_path = "input/scenario_005/area_05_no_outliers.objp"
-    building_and_ground_file_path = "input/scenario_005/scenario_005_semantics.shp"
-    receiver_point_file_path = "input/scenario_005/Scenario005_Receivers_Filtered.shp"
-    road_lines_file_path = "input/scenario_005/scenario_005_roads.gml"
+    #constraint_tin_file_path = "input/scenario_005/area_05_no_outliers.objp"
+    #building_and_ground_file_path = "input/scenario_005/scenario_005_semantics.shp"
+    #receiver_point_file_path = "input/scenario_005/Scenario005_Receivers_Filtered.shp"
+    #road_lines_file_path = "input/scenario_005/scenario_005_roads.gml"
+    
+    constraint_tin_file_path = sys_args[1]
+    building_and_ground_file_path = sys_args[2]
+    receiver_point_file_path = sys_args[3]
+    road_lines_file_path = sys_args[4]
 
     #Output files
     # the output xml files is split up to put the receiver_dict one folder up.
