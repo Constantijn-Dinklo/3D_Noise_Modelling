@@ -19,16 +19,19 @@ This project is part of the research on [automated reconstruction of 3D input da
 
 To run the program the following command can be ran on the command line:
 
-python main.py [constrained_tin] [semantics] [receivers] [sources] [output_folder] [xml_output_folder]
+python main.py [constrained_tin] [semantics] [receivers] [sources] [output_folder]
 
 Where:
 
 constrained_tin = the file path to the constrained tin, this should be a 'objp' file type
+
 semantics = the file path to the semantics, these are the buildings and ground types of the area
+
 receivers = the file path to the receiver points
+
 sources = the file path to the sources that generate noise, this should be a 'gml' file type
+
 output_folder = this is the folder where the files will be outputted
-xml_output_folder = the path to the folder where all xml cross section files will be outputted. The xml files are needed as input to the test_cnossos software.
 
 ### Generating an OBJP file
 

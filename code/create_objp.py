@@ -1,5 +1,7 @@
 import json
+import sys
 
+from pathlib import Path
 
 class json_parse:
 
@@ -141,11 +143,14 @@ class json_parse:
 
 jp = json_parse()
 
-json_file_path = "input/scenario_000/area_00.json"
+json_file_path = sys.argv[1]
 jp.read_json(json_file_path)
 
-objp_output_file = "output/scenario_000/area_00.objp"
+output_file_path = sys.argv[2]
+Path(output_file_path).mkdir(parents=True, exist_ok=True)
+
+objp_output_file = output_file_path + "/constrainted_tin.objp"
 jp.write_to_objp(objp_output_file)
 
-obj_output_file = "output/scenario_000/area_00.obj"
+obj_output_file = output_file_path + "/constrainted_tin.obj"
 jp.write_to_obj(obj_output_file)

@@ -12,6 +12,7 @@ class ReceiverManager:
             for elem in shape:
                 geometry = elem["geometry"]
                 rec_pt_coords = geometry["coordinates"]
+                rec_pt_coords = (rec_pt_coords[0], rec_pt_coords[1]) #Only take the first 2 coords. Needs to be 2d.
                 rec_pt = ReceiverPoint(rec_pt_coords)
                 self.receiver_points[rec_pt_coords] = rec_pt
 

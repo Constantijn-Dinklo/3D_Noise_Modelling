@@ -12,6 +12,7 @@ def read_input(input_file):
     """
     with fiona.open(input_file) as layer:
         for feature in layer:
+            #print(feature)
             #for key in feature:
             #    print(key)
             #    print(feature[key])
@@ -30,4 +31,5 @@ def read_input(input_file):
             print()
 
 if __name__ == "__main__":
-    read_input('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Ground type data/6 m2/tiles_bodemvlakken_6.gpkg/37fz1_bodemvlakken_6.0.gpkg')
+    #read_input('//Users/denisgiannelli/Documents/DOCS_TU_DELFT/_4Q/GEO1101/06_DATA/01_Scenarios/scenario000/Ground type data/6 m2/tiles_bodemvlakken_6.gpkg/37fz1_bodemvlakken_6.0.gpkg')
+    read_input('input/37fz1_bodemvlakken_6.0.gpkg')

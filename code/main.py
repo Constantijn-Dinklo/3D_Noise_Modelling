@@ -107,7 +107,7 @@ def main(sys_args):
 
     output_folder = sys_args[5]
     Path(output_folder).mkdir(parents=True, exist_ok=True)
-    output_folder_xml = sys_args[6]
+    output_folder_xml = output_folder + "/xml"
     Path(output_folder_xml).mkdir(parents=True, exist_ok=True)
     
     #output_folder_xml_files = ("output/scenario_004/output/", "output/scenario_004/xml/")

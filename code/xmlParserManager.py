@@ -43,13 +43,13 @@ class XmlParserManager:
                 #xml.douglas_Peucker(0.1)
 
                 # write the xml to the output file
-                output_file_path = "{}path_{}_{}.xml".format(output_folder[1], j, i)
+                output_file_path = "{}/path_{}_{}.xml".format(output_folder[1], j, i)
                 xml.write_xml(output_file_path, Lw, False)
                 self.prepared_paths[receiver].append(xml)
 
             j += 1
         
         # write the receivers to a text file so the receiver location can be retrieved after analyzing the xml file.
-        with open('{}receiver_dict.txt'.format(output_folder[0]), 'w') as f:
+        with open('{}/receiver_dict.txt'.format(output_folder[0]), 'w') as f:
             f.write(receivers)
 

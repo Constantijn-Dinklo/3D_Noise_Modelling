@@ -260,7 +260,6 @@ def read_from_objp(file_path):
                 triangles.append(triangle)
             
             if line_elements[0] == 'a':
-                # attribute = float(line_elements[1])
                 attribute = line_elements[1].rstrip("\n")
 
                 attributes.append(attribute)
