@@ -14,6 +14,7 @@ from reflectionManager import ReflectionManager
 from reflectionPath import ReflectionPath
 from xmlParserManager import XmlParserManager
 
+from pathlib import Path
 from pprint import pprint
 from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
@@ -78,12 +79,12 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                         record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                         continue
 
-            record_id = int(record['id'])
-            record_id = record_id * 100
+                record_id = int(record['id'])
+                record_id = record_id * 100
 
-            record_index = 1
-            
-                if ['bag_id'] in record['properties'].keys():
+                record_index = 1
+
+                if 'bag_id' in record['properties'].keys():
                     if record['properties']['bag_id'] is not None:
                         #print("=== Adding a building ===")
                         part_id = 'b' + record['properties']['part_id']
@@ -93,14 +94,14 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                         roof_level = record['properties']['h_dak']
                         building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
 
-                if ['uuid'] in record['properties'].keys():
+                if 'uuid' in record['properties'].keys():
                     if record['properties']['uuid'] is not None:
                         #print("=== Adding a ground type ===")
 
                         uuid = record['properties']['uuid']
                         part_id = 'g' + uuid
                         absp_index = record['properties']['bodemfacto']
-                        
+
                         if record['geometry']['type'] == 'MultiPolygon':
                             for p in record['geometry']['coordinates']:
                                 geometry = p[0]
@@ -128,9 +129,16 @@ def main(sys_args):
     receiver_point_file_path = sys_args[3]
     road_lines_file_path = sys_args[4]
 
+
     #Output files
     # the output xml files is split up to put the receiver_dict one folder up.
-    output_folder_xml_files = ("output/", "xml/")
+
+    output_folder = sys_args[5]
+    Path(output_folder).mkdir(parents=True, exist_ok=True)
+    output_folder_xml = sys_args[6]
+    Path(output_folder_xml).mkdir(parents=True, exist_ok=True)
+    
+    #output_folder_xml_files = ("output/scenario_004/output/", "output/scenario_004/xml/")
 
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
@@ -200,13 +208,13 @@ def main(sys_args):
 
     #Optionally write an obj with all the cross sections
     write_obj_paths_per_receiver = False
-    cross_section_manager.write_obj(write_obj_paths_per_receiver)
+    cross_section_manager.write_obj(output_folder, write_obj_paths_per_receiver)
    
     print("wrote cross sections in: {:.2f} seconds\nWrite xml files...".format(time() - watch))
     watch = time()
 
     xml_manager = XmlParserManager()
-    xml_manager.write_xml_files(cross_section_manager, default_noise_levels, output_folder_xml_files)
+    xml_manager.write_xml_files(cross_section_manager, default_noise_levels, (output_folder, output_folder_xml))
 
     print("wrote xml files in: {:.2f} seconds".format(time() - watch))
     watch = time()

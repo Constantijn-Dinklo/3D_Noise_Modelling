@@ -1,20 +1,20 @@
 #!/bin/bash
 
 
-CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/laure/Documents/synthesis/CNOSSOS/cnosses_code/Release
+CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/Nadine/Desktop/Nad/TUdelft/Q4/GEO1101/Cnossos_info/Cnossos_code/cnosses_code/Release
 
-CODE_PATH=/C/Users/laure/Documents/synthesis
+CODE_PATH=/C/Users/Nadine/Documents/3D_Noise_Modelling/code
 
-INPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/synthesis/xml/*
-OUTPUT_XML_FOLDER_PATH=/c/Users/laure/Documents/synthesis/output_xml/
+INPUT_XML_FOLDER_PATH=/c/Users/Nadine/Documents/3D_Noise_Modelling/code/output/scenario_004/xml/*
+OUTPUT_XML_FOLDER_PATH=/c/Users/Nadine/Documents/3D_Noise_Modelling/code/output/scenario_004/output_xml/
 
 
 
 #$CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/path_0_19.xml -o=C:/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/output/xml/cnossos_out/path_0_2.xml
 
 TEMP_OUT=temp_out.txt
-receiver_dict=output/map_receiver_id_NW.txt
-output_shape_file=output/out_contour_NW_01.shp
+receiver_dict=output/scenario_004/output/receiver_dict.txt
+output_shape_file=output/scenario_004/out_contour_scenario_004.shp
 
 truncate -s 0 $TEMP_OUT
 
