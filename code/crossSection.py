@@ -100,7 +100,6 @@ class CrossSection:
 
         for destination_id, destination in enumerate(self.points_to_source):
             # keep going untill the source triangle has been found.
-            #print("{} origin: {} -> destination: {}".format(destination_id, origin, destination))
             while not ground_tin.point_in_triangle(destination, current_triangle):
                 # Make sure that we have not gotten of the TIN
                 assert (current_triangle != -1)

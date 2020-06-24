@@ -129,7 +129,7 @@ class CrossSectionManager:
 
             self.get_cross_section(reflection_path.receiver, reflection_path.source, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights)
     
-    def write_obj(self, individual_bool):
+    def write_obj(self, output_path, individual_bool):
         """
         Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj
         ---------------
@@ -144,7 +144,7 @@ class CrossSectionManager:
         if(individual_bool):
             i = 0
             for receiver, cross_sections in self.cross_sections.items():
-                self.write_cross_section_to_obj("output/scenario_004/obj_paths/receiver_{}.obj".format(i), cross_sections)
+                self.write_cross_section_to_obj("{}/receiver_{}.obj".format(output_path, i), cross_sections)
                 i +=1
 
         # Or write one file with all paths
@@ -153,7 +153,8 @@ class CrossSectionManager:
             for receiver, cross_sections in self.cross_sections.items():
                 total_paths.append(cross_sections)
 
-            with open("output/scenario_004/obj_paths/paths_section.obj", 'w') as f_out:
+            cross_section_file_path = output_path + "/cross_sections.obj"
+            with open(cross_section_file_path, 'w') as f_out:
                 base = 0
                 vts_count_lst = [0]
                 counter = 0
