@@ -69,20 +69,12 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
         for record in semantics:
             #Not sure if this does anything right now
             if 'properties' in record.keys():
-                if ('uuid' in record['properties'].keys()) and ('bodemfacto' in record['properties']):
-                    if record['properties']['uuid'] is not None and record['properties']['bodemfacto'] is None:
-                        continue
                 if ('h_dak' in record['properties'].keys()) and ('h_maaiveld' in record['properties']):
                     if record['properties']['h_dak'] is not None and record['properties']['h_maaiveld'] is None:
                         continue
                     elif (record['properties']['h_dak'] is not None and
                         record['properties']['h_maaiveld'] > record['properties']['h_dak']):
                         continue
-
-                record_id = int(record['id'])
-                record_id = record_id * 100
-
-                record_index = 1
 
                 if 'bag_id' in record['properties'].keys():
                     if record['properties']['bag_id'] is not None:
@@ -93,26 +85,6 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
                         ground_level = record['properties']['h_maaiveld']
                         roof_level = record['properties']['h_dak']
                         building_manager.add_building(part_id, bag_id, geometry, ground_level, roof_level)
-
-                if 'uuid' in record['properties'].keys():
-                    if record['properties']['uuid'] is not None:
-                        #print("=== Adding a ground type ===")
-
-                        uuid = record['properties']['uuid']
-                        part_id = 'g' + uuid
-                        absp_index = record['properties']['bodemfacto']
-
-                        if record['geometry']['type'] == 'MultiPolygon':
-                            for p in record['geometry']['coordinates']:
-                                geometry = p[0]
-                                holes = []
-                                for i in range(1, len(p)):
-                                    holes.append(p[i])
-                                ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index, holes)
-                                record_index = record_index + 1
-                        else:
-                            geometry = record['geometry']['coordinates'][0]
-                            ground_type_manager.add_ground_type(part_id, uuid, geometry, absp_index)
 
 def main(sys_args):
     start = time()
