@@ -1,6 +1,21 @@
 #!/bin/bash
 # ./complete.sh json_file_path constrained_tin_file_path semantics receivers sources xml_for_testcnossos cnossos_release code_path output_xml receiver_dict output_sound_level
 
-python ./create_objp.py $1 $2
-python ./main.py $2/constrainted_tin.objp $3 $4 $5 $6
-sh ./test_cnossos.sh $7 $8 $6 $9 $10 $11
+JSON_INPUT=$1
+OBJP_OUTPUT_FOLDER=$2
+SEMANTICS_FILE_PATH=$3
+RECEIVERS_FILE_PATH=$4
+SOURCES_FILE_PATH=$5
+OUTPUT_FOLDER=$6
+TEST_CNOSSOS_RELEASE_FOLDER=$7
+CODE_FILE_PATH=$8
+OUTPUT_SHAPE_FILE_PATH=$9
+
+CONSTRAINT_TIN_PATH=$OBJP_OUTPUT_FOLDER/constrainted_tin.objp
+XML_INPUT_FOLDER=$OUTPUT_FOLDER/xml
+XML_OUTPUT_FOLDER=$OUTPUT_FOLDER/xml_output
+RECEIVER_DICT=$OUTPUT_FOLDER/receiver_dict.txt
+
+python ./create_objp.py $JSON_INPUT $OBJP_OUTPUT_FOLDER
+python ./main.py $CONSTRAINT_TIN_PATH $SEMANTICS_FILE_PATH $RECEIVERS_FILE_PATH $SOURCES_FILE_PATH $OUTPUT_FOLDER
+sh ./test_cnossos.sh $TEST_CNOSSOS_RELEASE_FOLDER $CODE_FILE_PATH $XML_INPUT_FOLDER $XML_OUTPUT_FOLDER $RECEIVER_DICT $OUTPUT_SHAPE_FILE_PATH

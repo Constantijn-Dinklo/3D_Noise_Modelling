@@ -12,7 +12,7 @@ class CrossSectionManager:
         self.receiver_triangles = {}
 
         self.source_default_height = source_default_height
-        self.receiver_default_height= receiver_default_height
+        self.receiver_default_height = receiver_default_height
     
     def get_cross_section(self, receiver_coords, source, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights=0):
         #Find the triangle of the tin in which the receiver is located.
@@ -129,7 +129,7 @@ class CrossSectionManager:
 
             self.get_cross_section(reflection_path.receiver, reflection_path.source, path, tin, ground_type_manager, building_manager, source_height, receiver_height, reflection_heights)
     
-    def write_obj(self, output_path, individual_bool):
+    def write_obj(self, output_path, individual_bool): 
         """
         Explanation: Write the paths of this receiver to an obj file, calls write_cross_section_to_obj
         ---------------
