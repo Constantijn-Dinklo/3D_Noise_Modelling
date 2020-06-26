@@ -41,4 +41,10 @@ output_folder = this is the folder where the files will be outputted
 
 *what are the things that one would expect from this software but it doesn't do them, or not correctly*
 
+#### Spikes
+When there is a discrepancy between the precision of vertices in the constrained TIN and the semantics (buildings) in some cases (where the semantics file polygon is rounded of to the inner side, compared to the building in the constrained TIN) a reflection on that wall will have a spike in the cross section, making the computed value incorrect for that cross section.
+
+#### Noise sources
+the noise level of a road source is computed using a default noise per meter, and an estimation of the segment length of the noise source. Therefore it does not take speed limit, cars per hour or other types of sources in consideration
+
 ## Authors
