@@ -1,7 +1,11 @@
-# 3D_Noise_Modelling
-*maybe a better title?*
+# from_TIN_to_sound_level
+*maybe a better title? is this one better?*
 
 *the abstract from your report*
+Noise simulations require finding the paths between multiple receiver and source points. In the current approach, only 3D polylines can be used as input to describe the terrain. These 3D polylines are semi-automatically generated, based on the principle of describing the terrain profile with as few height lines as possible.
+In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
+The following report provides proof of concept to the hypothesis: ‘Using a TIN directly allows automated 3D noise modelling according to the guidelines of CNOSSOS-EU’. A code was written to generate the paths between receiver and source points using an LoD2 TIN. The paths were then checked visually and were fed to test_Cnossos software to prove their validity. Finally, noise maps were generated and compared to noise maps generated with the current method.
+
 
 *link to your report once it is uploaded to the TU Delft repository https://repository.tudelft.nl *
 
@@ -101,11 +105,11 @@ receiver_shape_file = The path to the file where the receivers with their noise 
 Noise can propagate in multiple ways, direct (line of sight), vertical diffracting (direct from source to receiver, where it diffracts over buildings / terrain in the cross section), reflecting (where the order is the number of reflections) and horizontal diffracting (around building corners).
 This algorithm supports direct, vertical diffracted (as Test_Cnossos supports it), and 1st order reflected paths.
 Therefore horizontal diffracted and multi order reflections are not yet supported (2nd order reflected is implemented but not used in the current release.)
-Secondly, sound does not necessarily propagate in straight lines, this is a simplification, called homogenous conditions. There are also favourable (where the sound does not propagate in straight lines, but in curves) and unfavourable conditions (where the sound waves are vurved towards te sky). Currently, on a horizontal level the algorithm supports only homogenous conditions. On a vertical level it support what is supported by Test_cnossos, which is homogenous and favourable conditions.
+Secondly, sound does not necessarily propagate in straight lines, this is a simplification, called homogenous conditions. There are also favourable (where the sound does not propagate in straight lines, but in curves) and unfavourable conditions (where the sound waves are curved towards the sky). Currently, on a horizontal level the algorithm supports only homogenous conditions. On a vertical level it support what is supported by Test_cnossos, which is homogenous and favourable conditions.
 
 For first order reflections we use two tests to verify of the theoretical reflection path is valid.
 The first test is a relative building size test te remove reflections near the edge of a building or on small buildings.
-The second test is a relative building height test in the case of buildings with common walls. In this case the reflected building requires to be atleast 1 meter higher then the adjacent building infront of the reflecting wall.
+The second test is a relative building height test in the case of buildings with common walls. In this case the reflected building requires to be at least 1 meter higher then the adjacent building in front of the reflecting wall.
 These tests filter out about all invalid paths. But in some scenario's paths are validated as correct, where they are not (false positive). This is further explained in the report (link at the top of the ReadMe)
 
 #### Spikes
@@ -117,13 +121,16 @@ the noise level of a road source is computed using a default noise per meter, an
 #### Materials
 In Test_Cnossos a material can be assigned to each line segment in the cross section to describe the material in that part of the cross section. Currently the algorithm supports three materials, as the input consists of three types.
 Buildings are always reflecting with a material 'A0'. This does not absorb any noise and has a sigma of 20000 kPa.s/m^2
-The ground material input has a absorbtion value of either 0 or 1. For these values the respective materials 'G' and 'C' are selected.
+The ground material input has a absorption value of either 0 or 1. For these values the respective materials 'G' and 'C' are selected.
 The 'G' material does not absorb any sound and has a sigma of 20000 kPa.s/m^2. (refered to as asphalt or concrete)
 the 'C' material does absorb all sound (g = 1) and has a sigma of 80 kPa.s/m^2. (refered to as turf, grass, loose soil)
 However, in reality there are many more materials with different characteristics.
 
 #### Barriers
-Noise barriers, placed along highways, are not commonly represented (correctly) in the dtm. They are also not part of the BAG (Building adress data of the Netherlands). Usually they are represented by means a line with a certain height. The algorithm does not support this, therefore this can either be added in the code, or barriers should be added as a building to the input.
+Noise barriers, placed along highways, are not commonly represented (correctly) in the DTM. They are also not part of the BAG (Building address data of the Netherlands). Usually they are represented by means a line with a certain height. The algorithm does not support this, therefore this can either be added in the code, or barriers should be added as a building to the input.
+
+#### Semantics
+For now, the code only reads in the absorption index if set as 'bodemfactor' and the building part id if set as 'part_id'.
 
 ## Authors
 
