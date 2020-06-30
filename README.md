@@ -1,6 +1,10 @@
 # from_TIN_to_sound_level
 *maybe a better title? is this one better?*
 
+Laurens:\
+I would say maybe something like: "Automated noise modelling based on a TIN"\
+But maybe its too long.
+
 *the abstract from your report*
 Noise simulations require finding the paths between multiple receiver and source points. In the current approach, only 3D polylines can be used as input to describe the terrain. These 3D polylines are semi-automatically generated, based on the principle of describing the terrain profile with as few height lines as possible.
 In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
@@ -16,6 +20,12 @@ This project is part of the research on [automated reconstruction of 3D input da
 ## Installation
 
 *how to install the software, on which platform*
+
+This program consists of a set of python and shell script files. To run python files, python is required (https://www.python.org/downloads/windows/) . We have only tested it with Python 3.7.
+
+To run Shell script files we used Git Bash (https://git-scm.com/download/win) , which in turn uses the MINGW64 compiler.
+
+In order to run Test_Cnossos, this software it required. It is available upon request. Send an email to Dirk van Maercke (works at Centre Scientifique et Technique du Bâtiment (CSTB).)
 
 ## Usage
 
@@ -134,21 +144,21 @@ For now, the code only reads in the absorption index if set as 'bodemfactor' and
 
 ## Authors
 
-The authors of this project are:
-Constantijn Dinklo
-Denis Giannelli
-Laurens van Rijssel
-Maarit Prusti
+The authors of this project are:\
+Constantijn Dinklo\
+Denis Giannelli\
+Laurens van Rijssel\
+Maarit Prusti\
 Nadine Hobeika
 
 We are all students from the master Geomatics at the Technical University of Delft.
 We were supported by two tutors from the TU Delft:
 
-Jantien Stoter
+Jantien Stoter\
 Balazs Dukai
 
 We were also supported by the RIVM and Rijkswaterstaat represented by:
 
-Arnaud Kok (RIVM)
-Rob van Loon (RIVM)
+Arnaud Kok (RIVM)\
+Rob van Loon (RIVM)\
 Renez Nota (Rijkswaterstaat)
