@@ -97,4 +97,51 @@ receiver_shape_file = The path to the file where the receivers with their noise 
 
 *what are the things that one would expect from this software but it doesn't do them, or not correctly*
 
+#### propagation paths
+Noise can propagate in multiple ways, direct (line of sight), vertical diffracting (direct from source to receiver, where it diffracts over buildings / terrain in the cross section), reflecting (where the order is the number of reflections) and horizontal diffracting (around building corners).
+This algorithm supports direct, vertical diffracted (as Test_Cnossos supports it), and 1st order reflected paths.
+Therefore horizontal diffracted and multi order reflections are not yet supported (2nd order reflected is implemented but not used in the current release.)
+Secondly, sound does not necessarily propagate in straight lines, this is a simplification, called homogenous conditions. There are also favourable (where the sound does not propagate in straight lines, but in curves) and unfavourable conditions (where the sound waves are vurved towards te sky). Currently, on a horizontal level the algorithm supports only homogenous conditions. On a vertical level it support what is supported by Test_cnossos, which is homogenous and favourable conditions.
+
+For first order reflections we use two tests to verify of the theoretical reflection path is valid.
+The first test is a relative building size test te remove reflections near the edge of a building or on small buildings.
+The second test is a relative building height test in the case of buildings with common walls. In this case the reflected building requires to be atleast 1 meter higher then the adjacent building infront of the reflecting wall.
+These tests filter out about all invalid paths. But in some scenario's paths are validated as correct, where they are not (false positive). This is further explained in the report (link at the top of the ReadMe)
+
+#### Spikes
+When there is a discrepancy between the precision of vertices in the constrained TIN and the semantics (buildings) in some cases (where the semantics file polygon is rounded of to the inner side, compared to the building in the constrained TIN) a reflection on that wall will have a spike in the cross section, making the computed value incorrect for that cross section.
+
+#### Noise sources
+the noise level of a road source is computed using a default noise per meter, and an estimation of the segment length of the noise source. Therefore it does not take speed limit, cars per hour or other types of sources in consideration
+
+#### Materials
+In Test_Cnossos a material can be assigned to each line segment in the cross section to describe the material in that part of the cross section. Currently the algorithm supports three materials, as the input consists of three types.
+Buildings are always reflecting with a material 'A0'. This does not absorb any noise and has a sigma of 20000 kPa.s/m^2
+The ground material input has a absorbtion value of either 0 or 1. For these values the respective materials 'G' and 'C' are selected.
+The 'G' material does not absorb any sound and has a sigma of 20000 kPa.s/m^2. (refered to as asphalt or concrete)
+the 'C' material does absorb all sound (g = 1) and has a sigma of 80 kPa.s/m^2. (refered to as turf, grass, loose soil)
+However, in reality there are many more materials with different characteristics.
+
+#### Barriers
+Noise barriers, placed along highways, are not commonly represented (correctly) in the dtm. They are also not part of the BAG (Building adress data of the Netherlands). Usually they are represented by means a line with a certain height. The algorithm does not support this, therefore this can either be added in the code, or barriers should be added as a building to the input.
+
 ## Authors
+
+The authors of this project are:
+Constantijn Dinklo
+Denis Giannelli
+Laurens van Rijssel
+Maarit Prusti
+Nadine Hobeika
+
+We are all students from the master Geomatics at the Technical University of Delft.
+We were supported by two tutors from the TU Delft:
+
+Jantien Stoter
+Balazs Dukai
+
+We were also supported by the RIVM and Rijkswaterstaat represented by:
+
+Arnaud Kok (RIVM)
+Rob van Loon (RIVM)
+Renez Nota (Rijkswaterstaat)
