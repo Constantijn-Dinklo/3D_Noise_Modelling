@@ -31,13 +31,17 @@ class json_parse:
                 # Get the attributes of this object
                 attributes = constrained_object["attributes"]
 
-                id_value = 'g' + attributes["bodemfacto"]
+                if 'bodemfactor' in attributes.keys():
+                    id_value = 'g' + attributes["bodemfactor"]
+                elif 'bodemfacto' in attributes.keys():
+                    id_value = 'g' + attributes["bodemfacto"]
 
                 #Get the identificatie of this object
-                part_id = attributes["part_id"]
-                #If the identificatie is not empty, it is a building and this is the id used to identify the object
-                if part_id != '':
-                    id_value = 'b' + part_id
+                if 'bag_id' in attributes.keys():
+                    part_id = attributes["part_id"]
+                    #If the identificatie is not empty, it is a building and this is the id used to identify the object
+                    if part_id != '':
+                        id_value = 'b' + part_id
                 
                 object_geoms = constrained_object['geometry']
                 for object_geom in object_geoms:

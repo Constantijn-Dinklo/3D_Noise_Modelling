@@ -1,7 +1,15 @@
-# 3D_Noise_Modelling
-*maybe a better title?*
+# from_TIN_to_sound_level
+*maybe a better title? is this one better?*
+
+Laurens:\
+I would say maybe something like: "Automated noise modelling based on a TIN"\
+But maybe its too long.
 
 *the abstract from your report*
+Noise simulations require finding the paths between multiple receiver and source points. In the current approach, only 3D polylines can be used as input to describe the terrain. These 3D polylines are semi-automatically generated, based on the principle of describing the terrain profile with as few height lines as possible.
+In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
+The following report provides proof of concept to the hypothesis: ‘Using a TIN directly allows automated 3D noise modelling according to the guidelines of CNOSSOS-EU’. A code was written to generate the paths between receiver and source points using an LoD2 TIN. The paths were then checked visually and were fed to test_Cnossos software to prove their validity. Finally, noise maps were generated and compared to noise maps generated with the current method.
+
 
 *link to your report once it is uploaded to the TU Delft repository https://repository.tudelft.nl *
 
@@ -12,6 +20,33 @@ This project is part of the research on [automated reconstruction of 3D input da
 ## Installation
 
 *how to install the software, on which platform*
+
+This program consists of a set of python and shell script files. To run python files, [python](https://www.python.org/downloads/windows/) is required . It was only tested it with Python 3.7.
+
+To run Shell script files [Git Bash](https://git-scm.com/download/win) was used, which in turn uses the MINGW64 compiler.
+
+This can be done on both windows and Mac, however, the used Test_Cnossos software is only compatible with windows. Therefore the complete pipeline can only be used with windows.
+
+In order to run Test_Cnossos, this software it required. It is available upon request. Send an email to Dirk van Maercke (works at Centre Scientifique et Technique du Bâtiment (CSTB).)
+
+Used Python libraries:
+* pathlib
+* Shapely (geometry and strtree)
+* fiona
+* time
+* Numpy
+* bisect
+* xml.etree.cElementTree
+* xml.etree.ElementTree
+* math
+* os
+* pprint (not actively used)
+* matplotlib (not used actively)
+* sys
+* collections
+* Scipy.spatial
+* Json
+* startin
 
 ## Usage
 
@@ -97,4 +132,54 @@ receiver_shape_file = The path to the file where the receivers with their noise 
 
 *what are the things that one would expect from this software but it doesn't do them, or not correctly*
 
+#### propagation paths
+Noise can propagate in multiple ways, direct (line of sight), vertical diffracting (direct from source to receiver, where it diffracts over buildings / terrain in the cross section), reflecting (where the order is the number of reflections) and horizontal diffracting (around building corners).
+This algorithm supports direct, vertical diffracted (as Test_Cnossos supports it), and 1st order reflected paths.
+Therefore horizontal diffracted and multi order reflections are not yet supported (2nd order reflected is implemented but not used in the current release.)
+Secondly, sound does not necessarily propagate in straight lines, this is a simplification, called homogenous conditions. There are also favourable (where the sound does not propagate in straight lines, but in curves) and unfavourable conditions (where the sound waves are curved towards the sky). Currently, on a horizontal level the algorithm supports only homogenous conditions. On a vertical level it support what is supported by Test_cnossos, which is homogenous and favourable conditions.
+
+For first order reflections we use two tests to verify of the theoretical reflection path is valid.
+The first test is a relative building size test te remove reflections near the edge of a building or on small buildings.
+The second test is a relative building height test in the case of buildings with common walls. In this case the reflected building requires to be at least 1 meter higher then the adjacent building in front of the reflecting wall.
+These tests filter out about all invalid paths. But in some scenario's paths are validated as correct, where they are not (false positive). This is further explained in the report (link at the top of the ReadMe)
+
+#### Spikes
+When there is a discrepancy between the precision of vertices in the constrained TIN and the semantics (buildings) in some cases (where the semantics file polygon is rounded of to the inner side, compared to the building in the constrained TIN) a reflection on that wall will have a spike in the cross section, making the computed value incorrect for that cross section.
+
+#### Noise sources
+the noise level of a road source is computed using a default noise per meter, and an estimation of the segment length of the noise source. Therefore it does not take speed limit, cars per hour or other types of sources in consideration
+
+#### Materials
+In Test_Cnossos a material can be assigned to each line segment in the cross section to describe the material in that part of the cross section. Currently the algorithm supports three materials, as the input consists of three types.
+Buildings are always reflecting with a material 'A0'. This does not absorb any noise and has a sigma of 20000 kPa.s/m^2
+The ground material input has a absorption value of either 0 or 1. For these values the respective materials 'G' and 'C' are selected.
+The 'G' material does not absorb any sound and has a sigma of 20000 kPa.s/m^2. (refered to as asphalt or concrete)
+the 'C' material does absorb all sound (g = 1) and has a sigma of 80 kPa.s/m^2. (refered to as turf, grass, loose soil)
+However, in reality there are many more materials with different characteristics.
+
+#### Barriers
+Noise barriers, placed along highways, are not commonly represented (correctly) in the DTM. They are also not part of the BAG (Building address data of the Netherlands). Usually they are represented by means a line with a certain height. The algorithm does not support this, therefore this can either be added in the code, or barriers should be added as a building to the input.
+
+#### Semantics
+For now, the code only reads in the absorption index if set as 'bodemfactor' and the building part id if set as 'part_id'.
+
 ## Authors
+
+The authors of this project are:\
+Constantijn Dinklo\
+Denis Giannelli\
+Laurens van Rijssel\
+Maarit Prusti\
+Nadine Hobeika
+
+We are all students from the master Geomatics at the Technical University of Delft.
+We were supported by two tutors from the TU Delft:
+
+Jantien Stoter\
+Balazs Dukai
+
+We were also supported by the RIVM and Rijkswaterstaat represented by:
+
+Arnaud Kok (RIVM)\
+Rob van Loon (RIVM)\
+Renez Nota (Rijkswaterstaat)
