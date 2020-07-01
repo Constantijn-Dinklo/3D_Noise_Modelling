@@ -1,5 +1,4 @@
 from reflectionPath import ReflectionPath, read_buildings
-from pprint import pprint
 
 
 class ReflectionManager:

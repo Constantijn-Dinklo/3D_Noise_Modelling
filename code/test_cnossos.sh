@@ -1,23 +1,14 @@
 #!/bin/bash
 
-
-#CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/laure/Documents/synthesis/CNOSSOS/cnosses_code/Release
-#CNOSSOS_RELEASE_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/GEOG1011/Cnossos_info/Cnossos_code/cnosses_code/Release
 CNOSSOS_RELEASE_FOLDER_PATH=$1
 
-#CODE_PATH=/C/Users/laure/Documents/synthesis
-#CODE_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code
 CODE_PATH=$2
 
-#INPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/scenario_000/output/xml/*
 INPUT_XML_FOLDER_PATH=$3/*
-#OUTPUT_XML_FOLDER_PATH=/c/Users/cosdi/OneDrive/TUDelft/3D_Noise_Modelling/code/scenario_000/output/output_xml/
 OUTPUT_XML_FOLDER_PATH=$4/
 
 TEMP_OUT=temp_out.txt
-#receiver_dict=scenario_000/output/receiver_dict.txt
 receiver_dict=$5
-#output_shape_file=scenario_000/output/receiver_noise_level.shp
 output_shape_file=$6
 
 truncate -s 0 $TEMP_OUT

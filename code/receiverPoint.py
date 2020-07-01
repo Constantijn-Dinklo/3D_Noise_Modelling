@@ -1,13 +1,11 @@
 import fiona
 import math
-import matplotlib.pyplot as plt
 import numpy as np
 import xml.etree.cElementTree as ET
 from misc import get_rotated_point, x_line_intersect
 
 from sourcePoint import SourcePoint
 
-from pprint import pprint
 from shapely.geometry import Polygon, LineString, Point
 
 CNOSSOS_RADIUS = 2000.0

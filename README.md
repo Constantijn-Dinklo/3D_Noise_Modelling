@@ -1,11 +1,5 @@
-# from_TIN_to_sound_level
-*maybe a better title? is this one better?*
+# Automated noise modelling based on a TIN
 
-Laurens:\
-I would say maybe something like: "Automated noise modelling based on a TIN"\
-But maybe its too long.
-
-*the abstract from your report*
 Noise simulations require finding the paths between multiple receiver and source points. In the current approach, only 3D polylines can be used as input to describe the terrain. These 3D polylines are semi-automatically generated, based on the principle of describing the terrain profile with as few height lines as possible.
 In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
 The following report provides proof of concept to the hypothesis: ‘Using a TIN directly allows automated 3D noise modelling according to the guidelines of CNOSSOS-EU’. A code was written to generate the paths between receiver and source points using an LoD2 TIN. The paths were then checked visually and were fed to test_Cnossos software to prove their validity. Finally, noise maps were generated and compared to noise maps generated with the current method.
@@ -37,11 +31,8 @@ Used Python libraries:
 * Numpy
 * bisect
 * xml.etree.cElementTree
-* xml.etree.ElementTree
 * math
 * os
-* pprint (not actively used)
-* matplotlib (not used actively)
 * sys
 * collections
 * Scipy.spatial

@@ -15,7 +15,6 @@ from reflectionPath import ReflectionPath
 from xmlParserManager import XmlParserManager
 
 from pathlib import Path
-from pprint import pprint
 from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
 from time import time

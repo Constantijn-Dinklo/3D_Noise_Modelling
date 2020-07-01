@@ -3,7 +3,6 @@ import numpy as np
 
 from crossSection import CrossSection
 from misc import interpolate_edge, reverse_bisect_left
-from pprint import pprint
 
 class CrossSectionManager:
 

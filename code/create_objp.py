@@ -37,7 +37,7 @@ class json_parse:
                     id_value = 'g' + attributes["bodemfacto"]
 
                 #Get the identificatie of this object
-                if 'bag_id' in attributes.keys():
+                if 'part_id' in attributes.keys():
                     part_id = attributes["part_id"]
                     #If the identificatie is not empty, it is a building and this is the id used to identify the object
                     if part_id != '':
