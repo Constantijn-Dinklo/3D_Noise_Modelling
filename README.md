@@ -21,11 +21,32 @@ This project is part of the research on [automated reconstruction of 3D input da
 
 *how to install the software, on which platform*
 
-This program consists of a set of python and shell script files. To run python files, python is required (https://www.python.org/downloads/windows/) . We have only tested it with Python 3.7.
+This program consists of a set of python and shell script files. To run python files, [python](https://www.python.org/downloads/windows/) is required . It was only tested it with Python 3.7.
 
-To run Shell script files we used Git Bash (https://git-scm.com/download/win) , which in turn uses the MINGW64 compiler.
+To run Shell script files [Git Bash](https://git-scm.com/download/win) was used, which in turn uses the MINGW64 compiler.
+
+This can be done on both windows and Mac, however, the used Test_Cnossos software is only compatible with windows. Therefore the complete pipeline can only be used with windows.
 
 In order to run Test_Cnossos, this software it required. It is available upon request. Send an email to Dirk van Maercke (works at Centre Scientifique et Technique du Bâtiment (CSTB).)
+
+Used Python libraries:
+* pathlib
+* Shapely (geometry and strtree)
+* fiona
+* time
+* Numpy
+* bisect
+* xml.etree.cElementTree
+* xml.etree.ElementTree
+* math
+* os
+* pprint (not actively used)
+* matplotlib (not used actively)
+* sys
+* collections
+* Scipy.spatial
+* Json
+* startin
 
 ## Usage
 
