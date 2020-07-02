@@ -10,6 +10,8 @@ This repository is for the 3D Noise Modelling Synthesis Project of the course GE
 
 This project is part of the research on [automated reconstruction of 3D input data for noise studies](https://3d.bk.tudelft.nl/projects/noise3d/) at the 3D geoinformation research group of Delft Unversity of Technology.
 
+The final presentation can also be viewed on [Youtube](https://www.youtube.com/watch?v=Lf49yOw0eRo)
+
 ## Installation
 
 *how to install the software, on which platform*
