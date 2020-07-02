@@ -4,8 +4,7 @@ Noise simulations require finding the paths between multiple receiver and source
 In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
 The following report provides proof of concept to the hypothesis: ‘Using a TIN directly allows automated 3D noise modelling according to the guidelines of CNOSSOS-EU’. A code was written to generate the paths between receiver and source points using an LoD2 TIN. The paths were then checked visually and were fed to test_Cnossos software to prove their validity. Finally, noise maps were generated and compared to noise maps generated with the current method.
 
-
-*link to your report once it is uploaded to the TU Delft repository https://repository.tudelft.nl *
+For an explanation of the project and how the algorithm works, please visit the [repository](https://repository.tudelft.nl) (this will be updated)
 
 This repository is for the 3D Noise Modelling Synthesis Project of the course GEO1011 at the MSc Geomatics program at the Delft Unversity of Technology.
 
@@ -19,9 +18,7 @@ This program consists of a set of python and shell script files. To run python f
 
 To run Shell script files [Git Bash](https://git-scm.com/download/win) was used, which in turn uses the MINGW64 compiler.
 
-This can be done on both windows and Mac, however, the used Test_Cnossos software is only compatible with windows. Therefore the complete pipeline can only be used with windows.
-
-In order to run Test_Cnossos, this software it required. It is available upon request. Send an email to Dirk van Maercke (works at Centre Scientifique et Technique du Bâtiment (CSTB).)
+In order to compute the noise level for a cross section, [Test_Cnossos](https://github.com/genell/Cnossos-EU-SWE) is used. This software works only on windows!
 
 Used Python libraries:
 * pathlib
@@ -37,7 +34,6 @@ Used Python libraries:
 * collections
 * Scipy.spatial
 * Json
-* startin
 
 ## Usage
 
@@ -93,6 +89,8 @@ receiver_dict = The path to the file which maps receiver id to coordinates. This
 
 receiver_shape_file = The path to the file where the receivers with their noise value will be stored as a shapefile.
 
+lastly, Test_cnossos prints a lot of information, this can cost a lot of time when computing many paths. This can be largely decreased by writing the output to another file. This can be done by adding " >> out.txt" to the command.
+
 ### Complete Pipeline
 
 While the main.py program runs the main algorithm, there are multiple steps to the entire pipeline. We provide a way to run the entire timeline in one (1) command:
@@ -118,6 +116,8 @@ test_cnossos_release = The file path to the test_cnossos release folder.
 code_file_path = The path to where the python code noise_maps.py is located. This will generally be in the same folder as the test_cnossos.sh file and can thus the input can be '.'.
 
 receiver_shape_file = The path to the file where the receivers with their noise value will be stored as a shapefile.
+
+As with generating noise levels, running time can be largely reduced by adding " >> out.txt" at the end of the command.
 
 ## Limitations
 
@@ -153,6 +153,18 @@ Noise barriers, placed along highways, are not commonly represented (correctly) 
 
 #### Semantics
 For now, the code only reads in the absorption index if set as 'bodemfactor' and the building part id if set as 'part_id'.
+
+#### Test_cnossos error
+During the development of this algorithm, it was noticed that in very few occasions (1 in 2000 paths) and error was raised by the Test_Cnossos software.
+The reason of this error has not yet been found. The following two errors were noticed:
+
+../../PropagationPath/MeanPlane.cpp, Line 56\
+Expression: dist3 > 0
+
+also, in even fewer cases the following error was noted:
+
+File: ../../PropagationPath/PropagationPath.h, Line 409\
+Expression: cp[pos_max].z_path <= cp[pos_max].pos.z
 
 ## Authors
 
