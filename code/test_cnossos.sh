@@ -42,8 +42,9 @@ do
 
     #Create an output file for this input file with the same end name, but to a different folder
     output_file_path=$OUTPUT_XML_FOLDER_PATH$file_name
+    relative_path=../xml_output/$file_name
 
-    $CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=$input_file_path -o=$output_file_path
+    $CNOSSOS_RELEASE_FOLDER_PATH/TestCnossos.exe -i=$input_file_path -o=$relative_path
     #If the output file exists then
     if [ -f "$output_file_path" ]; then
 
