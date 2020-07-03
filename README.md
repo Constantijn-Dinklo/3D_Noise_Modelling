@@ -12,6 +12,10 @@ This project is part of the research on [automated reconstruction of 3D input da
 
 The final presentation can also be viewed on [Youtube](https://www.youtube.com/watch?v=Lf49yOw0eRo)
 
+## Latest Release
+
+https://zenodo.org/badge/latestdoi/259080654
+
 ## Installation
 
 *how to install the software, on which platform*
