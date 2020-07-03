@@ -68,10 +68,8 @@ if __name__ == '__main__':
     input_2_file = sys.argv[2]
     output_file = sys.argv[3]
 
-    file_db = 'input/temp_out (1).txt'
     raw_data = read_file_db(input_file)
 
-    file_receivers = 'output/receiver_dict.txt'
     map_id = read_file_receivers(input_2_file)
 
     levels_summed = get_noise_levels(raw_data, map_id)
