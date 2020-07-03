@@ -88,13 +88,8 @@ def read_building_and_ground(file_path, building_manager, ground_type_manager):
 def main(sys_args):
     start = time()
     print("Running {}".format(sys_args[0]))
-
-    #Input files
-    #constraint_tin_file_path = "input/scenario_005/area_05_no_outliers.objp"
-    #building_and_ground_file_path = "input/scenario_005/scenario_005_semantics.shp"
-    #receiver_point_file_path = "input/scenario_005/Scenario005_Receivers_Filtered.shp"
-    #road_lines_file_path = "input/scenario_005/scenario_005_roads.gml"
     
+    #Input files
     constraint_tin_file_path = sys_args[1]
     building_and_ground_file_path = sys_args[2]
     receiver_point_file_path = sys_args[3]
@@ -108,9 +103,6 @@ def main(sys_args):
     Path(output_folder).mkdir(parents=True, exist_ok=True)
     output_folder_xml = output_folder + "/xml"
     Path(output_folder_xml).mkdir(parents=True, exist_ok=True)
-    
-    #output_folder_xml_files = ("output/scenario_004/output/", "output/scenario_004/xml/")
-
 
     tin = TIN.read_from_objp(constraint_tin_file_path)
 
