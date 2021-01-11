@@ -4,7 +4,7 @@ Noise simulations require finding the paths between multiple receiver and source
 In order to propose a more efficient, standardised and economic modelling approach, a partnership between RIVM/RWS and the 3D Geoinformation Group at TU Delft was launched in 2017, aiming to generate these height lines automatically from the available datasets, namely AHN3, BAG, and BGT, which are publicly available via PDOK for free. However, it was then proposed to prove that the paths between receiver and source points can be directly generated from a TIN without creating the height lines.
 The following report provides proof of concept to the hypothesis: ‘Using a TIN directly allows automated 3D noise modelling according to the guidelines of CNOSSOS-EU’. A code was written to generate the paths between receiver and source points using an LoD2 TIN. The paths were then checked visually and were fed to test_Cnossos software to prove their validity. Finally, noise maps were generated and compared to noise maps generated with the current method.
 
-For an explanation of the project and how the algorithm works, please visit the [repository](https://repository.tudelft.nl) (this will be updated)
+For an explanation of the project and how the algorithm works, please see the **[project report](http://resolver.tudelft.nl/uuid:9e83e3c1-0d7b-4026-a34c-2fbb61aaec2c)**.
 
 This repository is for the 3D Noise Modelling Synthesis Project of the course GEO1011 at the MSc Geomatics program at the Delft Unversity of Technology.
 
